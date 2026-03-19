@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Collider Agent Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#070b14;
+      --panel:rgba(10,18,33,.88);
+      --line:rgba(79,187,255,.22);
+      --cyan:#52e6ff;
+      --blue:#5e9cff;
+      --pink:#ff4fd8;
+      --green:#65ffb0;
+      --yellow:#ffe66d;
+      --red:#ff6b88;
+      --text:#d9ecff;
+      --muted:#88a4c6;
+      --shadow:0 0 0 1px rgba(82,230,255,.08),0 0 24px rgba(0,180,255,.08);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(94,156,255,.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(255,79,216,.12), transparent 26%),
+        linear-gradient(180deg,#050912 0%,#09111f 100%);
+      min-height:100vh;
+    }
+
+    .wrap{max-width:1700px;margin:0 auto;padding:22px}
+    .hero{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:14px}
+    .title{
+      font-size:30px;font-weight:800;letter-spacing:.03em;color:var(--cyan);
+      text-shadow:0 0 16px rgba(82,230,255,.25)
+    }
+    .sub{color:var(--muted);margin-top:6px}
+
+    .nav{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    .nav button{
+      padding:8px 12px;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .muted{color:var(--muted)}
+    .ok{color:var(--green)}
+    .warn{color:var(--yellow)}
+    .pink{color:var(--pink)}
+    .red{color:var(--red)}
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+    }
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .stat{grid-column:span 2;padding:16px}
+    .stat .k{
+      color:var(--muted);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.12em
+    }
+    .stat .v{
+      font-size:24px;
+      font-weight:800;
+      margin-top:8px;
+      color:var(--green)
+    }
+
+    .wide{grid-column:span 12;padding:16px}
+    .half{grid-column:span 6;padding:16px}
+    .third{grid-column:span 4;padding:16px}
+    .four{grid-column:span 4;padding:16px}
+    .eight{grid-column:span 8;padding:16px}
+    .six{grid-column:span 6;padding:16px}
+
+    .title2{
+      font-size:14px;
+      color:var(--cyan);
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      margin-bottom:12px
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:390px;
+      border-radius:12px;
+      border:1px solid rgba(82,230,255,.12);
+      background:rgba(9,16,28,.55)
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1100px;
+      background:rgba(9,16,28,.8)
+    }
+
+    th,td{
+      text-align:left;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(82,230,255,.08);
+      font-size:13px;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+
+    th{
+      position:sticky;
+      top:0;
+      background:rgba(8,14,24,.98);
+      color:var(--cyan);
+      font-weight:700;
+      z-index:2;
+    }
+
+    tr:hover td{background:rgba(82,230,255,.03)}
+    tr.active td{background:rgba(82,230,255,.08)}
+    .game-row{cursor:pointer}
+
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:160px}
+    label{
+      font-size:12px;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.12em
+    }
+
+    input{
+      background:#07111f;
+      color:var(--text);
+      border:1px solid rgba(82,230,255,.18);
+      border-radius:10px;
+      padding:10px 12px;
+      outline:none;
+    }
+
+    input:focus{
+      border-color:rgba(82,230,255,.42);
+      box-shadow:0 0 0 3px rgba(82,230,255,.08);
+    }
+
+    button{
+      background:linear-gradient(90deg,#0c1e38,#10284c);
+      color:var(--cyan);
+      border:1px solid rgba(82,230,255,.25);
+      border-radius:12px;
+      padding:10px 14px;
+      cursor:pointer;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns:170px 1fr;
+      gap:8px 10px;
+      font-size:13px;
+      align-items:start;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .mini{
+      padding:12px;
+      border:1px solid rgba(82,230,255,.12);
+      border-radius:12px;
+      background:rgba(7,17,31,.7);
+    }
+
+    .mini .k{
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      margin-bottom:6px;
+    }
+
+    .mini .v{
+      font-size:16px;
+      font-weight:700;
+      line-height:1.45;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border:1px solid rgba(82,230,255,.18);
+      border-radius:999px;
+      margin:2px 6px 2px 0;
+      background:#081321;
+      font-size:12px;
+    }
+
+    .pager{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-top:10px;
+    }
+
+    .note{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(82,230,255,.12);
+      background:rgba(7,17,31,.65);
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .asset-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .asset-inline{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .asset-inline img,
+    .asset-chip img{
+      width:16px;
+      height:16px;
+      object-fit:contain;
+      filter:drop-shadow(0 0 4px rgba(82,230,255,.12));
+    }
+
+    pre{
+      white-space:pre-wrap;
+      background:#07111f;
+      border:1px solid rgba(82,230,255,.12);
+      padding:12px;
+      border-radius:12px;
+      color:#cde8ff
+    }
+
+    @media (max-width:1300px){
+      .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <div class="title">Collider Agent Monitor</div>
+      <div class="sub">Games-first operator view • selected-game drill-down • live settings • bank + payout flow</div>
+    </div>
+    <div class="row">
+      <span class="pill ok" id="saveBadge">SETTINGS LIVE</span>
+      <span class="pill" id="selectionBadge">ALL GAMES</span>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button data-jump="gamesSection">Games</button>
+    <button data-jump="selectedSection">Selected Game</button>
+    <button data-jump="settingsSection">Settings</button>
+    <button data-jump="resolvedSection">Resolved</button>
+  </div>
+
+  <div class="grid">
+    <div class="panel stat"><div class="k">Tracked Games</div><div id="gamesCount" class="v">0</div></div>
+    <div class="panel stat"><div class="k">Resolved Games</div><div id="resolvedGamesCount" class="v">0</div></div>
+    <div class="panel stat"><div class="k">Pending Throws</div><div id="pendingThrowsCount" class="v">0</div></div>
+    <div class="panel stat"><div class="k">Total PnL USD</div><div id="pnlTotal" class="v">0</div></div>
+    <div class="panel stat"><div class="k">Pending USD</div><div id="pendingUsd" class="v">0</div></div>
+    <div class="panel stat"><div class="k">Total In System</div><div id="inSystemUsd" class="v">0</div></div>
+
+    <div class="panel wide" id="gamesSection">
+      <div class="title2">Games</div>
+      <div class="table-wrap" style="max-height:430px">
+        <table>
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th>Status</th>
+              <th>Scans</th>
+              <th>Candidates</th>
+              <th>Throws</th>
+              <th>Pending</th>
+              <th>Game Total</th>
+              <th>PnL USD</th>
+              <th>Pending USD</th>
+              <th>Points</th>
+              <th>Assets In</th>
+              <th>Assets Out</th>
+              <th>Last Seen</th>
+            </tr>
+          </thead>
+          <tbody id="gamesBody"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <div class="row">
+          <button id="gamesPrev">Prev</button>
+          <button id="gamesNext">Next</button>
+          <button id="clearSelection">Clear Selection</button>
+        </div>
+        <div class="muted" id="gamesPageInfo">Page 1</div>
+      </div>
+    </div>
+
+    <div class="panel four">
+      <div class="title2">Selected Game Scoreboard</div>
+      <div id="scoreboardPanel" class="kv"></div>
+    </div>
+
+    <div class="panel four">
+      <div class="title2">Session Health</div>
+      <div id="healthPanel" class="kv"></div>
+    </div>
+
+    <div class="panel four">
+      <div class="title2">Bank</div>
+      <div class="table-wrap" style="max-height:250px">
+        <table style="min-width:100%">
+          <thead>
+            <tr><th>Asset</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
+          </thead>
+          <tbody id="bankBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel half">
+      <div class="title2">Profit / Game Total</div>
+      <canvas id="profitChart" height="180"></canvas>
+    </div>
+
+    <div class="panel half">
+      <div class="title2">Throw Positions</div>
+      <canvas id="positionChart" height="180"></canvas>
+    </div>
+
+    <div class="panel eight" id="selectedSection">
+      <div class="title2">Selected Game Throw Detail</div>
+      <div class="row">
+        <span class="pill" id="selGameId">Game: All Games</span>
+        <span class="pill" id="selGameStatus">Status: -</span>
+        <span class="pill" id="selGamePnl">PnL: -</span>
+        <span class="pill" id="selGamePending">Pending: -</span>
+        <span class="pill" id="selGamePoints">Points: -</span>
+      </div>
+      <div class="table-wrap" style="max-height:330px;margin-top:12px">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th><th>Decision</th><th>Submitted</th><th>Asset</th><th>Amount</th><th>X</th><th>Y</th><th>Angle</th><th>VX</th><th>VY</th><th>Spin</th><th>Score</th><th>Hole</th><th>Value USD</th><th>Mass USD</th>
+            </tr>
+          </thead>
+          <tbody id="selectedThrowsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel four">
+      <div class="title2">Selected Game Analytics</div>
+      <div class="cards" id="analyticsCards"></div>
+    </div>
+
+    <div class="panel wide" id="settingsSection">
+      <div class="title2">Settings</div>
+      <div class="row">
+        <div class="field"><label>RPC URL</label><input id="s_rpc" /></div>
+        <div class="field"><label>WASM Path</label><input id="s_wasm" /></div>
+        <div class="field"><label>User</label><input id="s_user" /></div>
+        <div class="field"><label>Asset</label><input id="s_asset" /></div>
+        <div class="field"><label>Amount</label><input id="s_amount" /></div>
+        <div class="field"><label>Max Candidates</label><input id="s_maxCandidates" /></div>
+        <div class="field"><label>Max ms</label><input id="s_maxMs" /></div>
+        <div class="field"><label>Poll ms</label><input id="s_pollMs" /></div>
+        <div class="field"><label>Max Throws / Game</label><input id="s_maxThrowsPerGame" /></div>
+        <div class="field"><label>Max Throws / Session</label><input id="s_maxThrowsPerSession" /></div>
+        <div class="field"><label>Min ms Between Live</label><input id="s_minMillisBetweenLiveThrows" /></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="saveSettingsBtn">Save Settings</button>
+        <span class="muted">Settings also auto-save after a short debounce and apply to the running agent on the next cycle.</span>
+      </div>
+      <div class="title2" style="margin-top:16px">Launch Summary</div>
+      <pre id="cmdPreview"></pre>
+    </div>
+
+    <div class="panel wide" id="resolvedSection">
+      <div class="title2">Resolved Outcomes</div>
+      <div class="table-wrap" style="max-height:900px">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th><th>Game</th><th>Matched</th><th>Hole</th><th>Stake USD</th><th>Returned USD</th><th>PnL USD</th><th>Input Assets</th><th>Output Assets</th><th>Bonuses</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let runs = [], throwsRows = [], results = [], settings = {};
+let gamesPage = 0;
+const GAMES_PAGE_SIZE = 12;
+let selectedGameId = null;
+let saveTimer = null;
+let profitChart = null;
+let positionChart = null;
+
+const defaultAssetMeta = {
+  "0101010101010101010101010101010101010101010101010101010101010101": { symbol: "USDC", decimals: 8 },
+  "0303030303030303030303030303030303030303030303030303030303030303": { symbol: "CLC", decimals: 12 },
+  "0505050505050505050505050505050505050505050505050505050505050505": { symbol: "WAVAX", decimals: 18 }
+};
+
+function cleanHex(v){ return String(v ?? "").toLowerCase().replace(/^0x/,""); }
+function shortHex(v){ if(!v||typeof v!=="string") return "-"; return v.length>14 ? `${v.slice(0,10)}…` : v; }
+function fmtNum(v,d=2){ const n=Number(v); return Number.isFinite(n)?n.toFixed(d):"-"; }
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+async function fetchJson(url){ const r=await fetch(url,{cache:"no-store"}); return await r.json(); }
+
+function buildAssetMetaMap() {
+  const map = { ...defaultAssetMeta };
+
+  for (const r of results) {
+    const meta = r?.actual?.wholeGame?.asset_meta;
+    if (Array.isArray(meta)) {
+      for (const m of meta) {
+        const k = cleanHex(m.asset);
+        map[k] = {
+          symbol: m.symbol || map[k]?.symbol || shortHex(k),
+          decimals: Number(m.decimals ?? map[k]?.decimals ?? 8)
+        };
+      }
+    }
+  }
+
+  if (settings.asset) {
+    const k = cleanHex(settings.asset);
+    if (!map[k]) map[k] = { symbol: shortHex(k), decimals: 8 };
+  }
+
+  return map;
+}
+
+function assetIcon(symbol){
+  const s = String(symbol || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  return `<img src="img/${s}.png" alt="${esc(s)}" onerror="this.style.display='none'">`;
+}
+
+function symbolForAsset(asset, metaMap){
+  const k = cleanHex(asset);
+  return metaMap[k]?.symbol || shortHex(k);
+}
+
+function decimalsForAsset(asset, metaMap){
+  const k = cleanHex(asset);
+  return metaMap[k]?.decimals ?? 8;
+}
+
+function formatBaseUnits(amount, asset, metaMap){
+  try{
+    const dec = decimalsForAsset(asset, metaMap);
+    const s = String(amount ?? "0");
+    const neg = s.startsWith("-");
+    const raw = neg ? s.slice(1) : s;
+    const padded = raw.padStart(dec + 1, "0");
+    const whole = padded.slice(0, padded.length - dec);
+    const frac = padded.slice(padded.length - dec).replace(/0+$/,"");
+    return `${neg ? "-" : ""}${frac ? `${whole}.${frac}` : whole} ${symbolForAsset(asset, metaMap)}`;
+  }catch{
+    return `${amount ?? "-"} ${symbolForAsset(asset, metaMap)}`;
+  }
+}
+
+function assetInline(amount, asset, metaMap){
+  const symbol = symbolForAsset(asset, metaMap);
+  return `<span class="asset-inline">${assetIcon(symbol)}<span>${esc(formatBaseUnits(amount, asset, metaMap))}</span></span>`;
+}
+
+function objectEntriesDisplayUnits(obj, metaMap){
+  if(!obj || typeof obj !== "object") return "-";
+  return Object.entries(obj).map(([k,v]) => formatBaseUnits(v, k, metaMap)).join(" | ");
+}
+
+function bonusPoints(bonuses){
+  return Array.isArray(bonuses) ? bonuses.reduce((s,b)=>s+Number(b?.points ?? 0),0) : 0;
+}
+
+function statusLabel(code){
+  switch(Number(code)){
+    case 0: return "Open";
+    case 1: return "Armed";
+    case 2: return "Closed";
+    case 3: return "Finalized";
+    case 4: return "Settled";
+    default: return null;
+  }
+}
+
+function buildResolvedDecisionSet(){
+  const resolved = new Set();
+  for (const r of results) {
+    if (r?.decisionId && (r?.actual?.matched || r?.actual?.throwMatch?.throw_id)) {
+      resolved.add(r.decisionId);
+    }
+  }
+  return resolved;
+}
+
+function knownUsdPrice(symbol){
+  if (symbol === "USDC") return 1;
+  return null;
+}
+
+function pendingUsdForThrow(t, metaMap){
+  const p = t?.payload || {};
+  const asset = cleanHex(p.asset || "");
+  const symbol = symbolForAsset(asset, metaMap);
+  const price = knownUsdPrice(symbol);
+  if (price == null) return 0;
+
+  try{
+    const amount = BigInt(String(p.amount || "0"));
+    const dec = BigInt(decimalsForAsset(asset, metaMap));
+    const denom = 10n ** dec;
+    return Number(amount) / Number(denom) * price;
+  }catch{
+    return 0;
+  }
+}
+
+function buildGamesIndex(metaMap){
+  const map = new Map();
+  const resolvedDecisionIds = buildResolvedDecisionSet();
+
+  const ensure = (gameId) => {
+    if (!map.has(gameId)) {
+      map.set(gameId, {
+        gameId,
+        scans: 0,
+        candidateObservedSum: 0,
+        submittedThrows: 0,
+        pendingThrows: 0,
+        resolvedCount: 0,
+        lastSeenTs: null,
+        latestStake: null,
+        latestMinThrow: null,
+        latestStatus: null,
+        pnlUsd: 0,
+        stakeUsd: 0,
+        returnedUsd: 0,
+        pendingUsd: 0,
+        points: 0,
+        inputsByAsset: {},
+        outputsByAsset: {},
+        rowsRuns: [],
+        rowsThrows: [],
+        rowsResults: [],
+        latestHoleType: null,
+        payoutsByKind: {},
+        payoutsByAsset: {},
+        perUserScoreboard: [],
+        holeTypeCounts: {},
+        payoutTimeline: [],
+        bonusTimeline: []
+      });
+    }
+    return map.get(gameId);
+  };
+
+  for (const r of runs) {
+    if (!r?.gameId) continue;
+    const g = ensure(r.gameId);
+    g.scans += 1;
+    g.candidateObservedSum += Number(r?.search?.examinedCount ?? r?.search?.maxCandidates ?? 0);
+    if (r.submitted) g.submittedThrows += 1;
+    g.lastSeenTs = r.ts || g.lastSeenTs;
+    g.latestStake = r?.game?.stake ?? g.latestStake;
+    g.latestMinThrow = r?.game?.minThrowValue ?? g.latestMinThrow;
+    if (r?.game?.status != null) g.latestStatus = Number(r.game.status);
+    g.rowsRuns.push(r);
+  }
+
+  for (const t of throwsRows) {
+    if (!t?.gameId) continue;
+    const g = ensure(t.gameId);
+    g.lastSeenTs = t.ts || g.lastSeenTs;
+    g.rowsThrows.push(t);
+
+    if (t.submitted && !resolvedDecisionIds.has(t.decisionId)) {
+      g.pendingThrows += 1;
+      g.pendingUsd += pendingUsdForThrow(t, metaMap);
+    }
+  }
+
+  for (const r of results) {
+    if (!r?.gameId) continue;
+    const g = ensure(r.gameId);
+    const wg = r?.actual?.wholeGame || {};
+    const tm = r?.actual?.throwMatch || {};
+    const payouts = r?.actual?.payouts || {};
+
+    g.resolvedCount += 1;
+    g.lastSeenTs = r.ts || g.lastSeenTs;
+    g.pnlUsd += Number(wg?.pnl_usd ?? 0);
+    g.stakeUsd += Number(wg?.stake_usd ?? 0);
+    g.returnedUsd += Number(wg?.returned_usd ?? 0);
+    g.points += bonusPoints(r?.actual?.bonuses);
+    g.latestHoleType = tm?.hole_type ?? g.latestHoleType;
+    g.perUserScoreboard = wg?.per_user_scoreboard || g.perUserScoreboard;
+    g.holeTypeCounts = wg?.hole_type_counts || g.holeTypeCounts;
+    g.payoutTimeline = r?.actual?.payouts?.timeline || g.payoutTimeline;
+    g.bonusTimeline = r?.actual?.bonus_timeline || g.bonusTimeline;
+
+    for (const [k,v] of Object.entries(wg?.inputs_by_asset || {})) {
+      g.inputsByAsset[k] = (BigInt(g.inputsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+    for (const [k,v] of Object.entries(wg?.outputs_by_asset || {})) {
+      g.outputsByAsset[k] = (BigInt(g.outputsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+    for (const [k,v] of Object.entries(payouts?.by_kind || {})) {
+      g.payoutsByKind[k] = (BigInt(g.payoutsByKind[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+    for (const [k,v] of Object.entries(payouts?.by_asset || {})) {
+      g.payoutsByAsset[k] = (BigInt(g.payoutsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+
+    g.rowsResults.push(r);
+  }
+
+  return [...map.values()].sort((a,b) =>
+    new Date(b.lastSeenTs || 0).getTime() - new Date(a.lastSeenTs || 0).getTime()
+  );
+}
+
+function displayGameStatus(g){
+  const actual = statusLabel(g.latestStatus);
+  if (actual) return actual;
+  if (g.resolvedCount > 0) return "Resolved";
+  if (g.submittedThrows > 0 || g.pendingThrows > 0) return "Open/Armed";
+  return "Scanned";
+}
+
+function updateTopStats(games){
+  const pnl = games.reduce((s,g)=>s+Number(g.pnlUsd||0),0);
+  const pending = games.reduce((s,g)=>s+Number(g.pendingUsd||0),0);
+  const pendingCount = games.reduce((s,g)=>s+Number(g.pendingThrows||0),0);
+
+  document.getElementById("gamesCount").textContent = String(games.length);
+  document.getElementById("resolvedGamesCount").textContent = String(games.filter(g=>g.resolvedCount>0).length);
+  document.getElementById("pendingThrowsCount").textContent = String(pendingCount);
+  document.getElementById("pnlTotal").textContent = fmtNum(pnl,2);
+  document.getElementById("pendingUsd").textContent = fmtNum(pending,2);
+  document.getElementById("inSystemUsd").textContent = fmtNum(pnl + pending,2);
+}
+
+function renderGames(games, metaMap){
+  const body = document.getElementById("gamesBody");
+  body.innerHTML = "";
+
+  const start = gamesPage * GAMES_PAGE_SIZE;
+  const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
+
+  for (const g of pageRows) {
+    const tr = document.createElement("tr");
+    tr.className = `game-row ${selectedGameId === g.gameId ? "active" : ""}`;
+    tr.onclick = () => {
+      selectedGameId = g.gameId;
+      document.getElementById("selectionBadge").textContent = `SELECTED ${shortHex(g.gameId)}`;
+      renderAll();
+    };
+
+    const unresolvedTotal = g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : (g.latestStake ?? "-");
+    const gameTotalDisplay = g.resolvedCount > 0 ? "$" + fmtNum(g.stakeUsd,2) : unresolvedTotal;
+
+    tr.innerHTML = `
+      <td>${esc(shortHex(g.gameId))}</td>
+      <td>${esc(displayGameStatus(g))}</td>
+      <td>${g.scans}</td>
+      <td>${g.candidateObservedSum}</td>
+      <td>${g.submittedThrows}</td>
+      <td>${g.pendingThrows}</td>
+      <td>${esc(gameTotalDisplay)}</td>
+      <td class="${Number(g.pnlUsd) >= 0 ? "ok" : "pink"}">${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}</td>
+      <td>${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}</td>
+      <td>${g.points}</td>
+      <td>${esc(objectEntriesDisplayUnits(g.inputsByAsset, metaMap))}</td>
+      <td>${esc(objectEntriesDisplayUnits(g.outputsByAsset, metaMap))}</td>
+      <td>${esc(g.lastSeenTs || "-")}</td>
+    `;
+    body.appendChild(tr);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
+  document.getElementById("gamesPageInfo").textContent = `Page ${gamesPage + 1} / ${totalPages}`;
+}
+
+function renderBank(games, metaMap){
+  const body = document.getElementById("bankBody");
+  body.innerHTML = "";
+
+  const inByAsset = {};
+  const outByAsset = {};
+  const pendingByAsset = {};
+  const resolvedDecisionIds = buildResolvedDecisionSet();
+
+  for (const g of games) {
+    for (const [k,v] of Object.entries(g.inputsByAsset || {})) {
+      inByAsset[k] = (BigInt(inByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+    for (const [k,v] of Object.entries(g.outputsByAsset || {})) {
+      outByAsset[k] = (BigInt(outByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    }
+  }
+
+  for (const t of throwsRows) {
+    if (!t?.submitted || resolvedDecisionIds.has(t.decisionId)) continue;
+    const p = t.payload || {};
+    const asset = cleanHex(p.asset || "");
+    pendingByAsset[asset] = (BigInt(pendingByAsset[asset] || "0") + BigInt(String(p.amount || "0"))).toString();
+  }
+
+  const assets = [...new Set([...Object.keys(inByAsset), ...Object.keys(outByAsset), ...Object.keys(pendingByAsset)])];
+  if (!assets.length) {
+    body.innerHTML = `<tr><td colspan="5" class="muted">No asset flow yet</td></tr>`;
+    return;
+  }
+
+  for (const asset of assets) {
+    const inAmt = inByAsset[asset] || "0";
+    const outAmt = outByAsset[asset] || "0";
+    const pendingAmt = pendingByAsset[asset] || "0";
+    const net = (BigInt(outAmt) - BigInt(inAmt)).toString();
+    const sym = symbolForAsset(asset, metaMap);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${assetIcon(sym)} ${esc(sym)}</td>
+      <td>${esc(formatBaseUnits(net, asset, metaMap))}</td>
+      <td>${esc(formatBaseUnits(pendingAmt, asset, metaMap))}</td>
+      <td>${esc(formatBaseUnits(outAmt, asset, metaMap))}</td>
+      <td>${esc(formatBaseUnits(inAmt, asset, metaMap))}</td>
+    `;
+    body.appendChild(tr);
+  }
+}
+
+function renderScoreboard(games, metaMap){
+  const panel = document.getElementById("scoreboardPanel");
+  const g = selectedGameId ? games.find(x => x.gameId === selectedGameId) : null;
+
+  if (!g) {
+    panel.innerHTML = `
+      <div class="muted">Mode</div><div>All Games</div>
+      <div class="muted">Tracked Games</div><div>${games.length}</div>
+      <div class="muted">Resolved Games</div><div>${games.filter(g=>g.resolvedCount>0).length}</div>
+      <div class="muted">Total PnL</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pnlUsd||0),0),2)}</div>
+      <div class="muted">Pending USD</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
+      <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.pendingThrows||0),0)}</div>
+      <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || "0", settings.asset, metaMap) : "-"}</div>
+    `;
+    return;
+  }
+
+  panel.innerHTML = `
+    <div class="muted">Game</div><div>${esc(shortHex(g.gameId))}</div>
+    <div class="muted">Status</div><div>${esc(displayGameStatus(g))}</div>
+    <div class="muted">Scans</div><div>${g.scans}</div>
+    <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
+    <div class="muted">Agent Throws</div><div>${g.submittedThrows}</div>
+    <div class="muted">Pending Throws</div><div>${g.pendingThrows}</div>
+    <div class="muted">Game Total</div><div>${g.resolvedCount > 0 ? "$" + fmtNum(g.stakeUsd,2) : (g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : esc(g.latestStake ?? "-"))}</div>
+    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? "ok":"pink"}">${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}</div>
+    <div class="muted">Pending</div><div>${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}</div>
+    <div class="muted">Points</div><div>${g.points}</div>
+    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType ?? "-"}</div>
+  `;
+}
+
+function renderHealth(games){
+  document.getElementById("healthPanel").innerHTML = `
+    <div class="muted">Runs Logged</div><div>${runs.length}</div>
+    <div class="muted">Throws Logged</div><div>${throwsRows.length}</div>
+    <div class="muted">Results Logged</div><div>${results.length}</div>
+    <div class="muted">Tracked Games</div><div>${games.length}</div>
+    <div class="muted">Configured Asset</div><div>${esc(settings.asset || "-")}</div>
+    <div class="muted">Poll ms</div><div>${settings.pollMs ?? "-"}</div>
+    <div class="muted">Max Throws / Game</div><div>${settings.maxThrowsPerGame ?? "-"}</div>
+    <div class="muted">Max Throws / Session</div><div>${settings.maxThrowsPerSession ?? "-"}</div>
+  `;
+}
+
+function renderSelectedDetail(games, metaMap){
+  const g = selectedGameId ? games.find(x => x.gameId === selectedGameId) : null;
+  const body = document.getElementById("selectedThrowsBody");
+  const analytics = document.getElementById("analyticsCards");
+
+  if (!g) {
+    document.getElementById("selGameId").textContent = "Game: All Games";
+    document.getElementById("selGameStatus").textContent = "Status: -";
+    document.getElementById("selGamePnl").textContent = "PnL: -";
+    document.getElementById("selGamePending").textContent = "Pending: -";
+    document.getElementById("selGamePoints").textContent = "Points: -";
+    body.innerHTML = "";
+    analytics.innerHTML = `<div class="mini"><div class="k">Select Game</div><div class="v">Choose a game row to inspect scoreboard, hole distribution, payout timeline, and bonus timeline.</div></div>`;
+    return;
+  }
+
+  document.getElementById("selGameId").textContent = `Game: ${shortHex(g.gameId)}`;
+  document.getElementById("selGameStatus").textContent = `Status: ${displayGameStatus(g)}`;
+  document.getElementById("selGamePnl").textContent = `PnL: ${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}`;
+  document.getElementById("selGamePending").textContent = `Pending: ${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}`;
+  document.getElementById("selGamePoints").textContent = `Points: ${g.points}`;
+
+  const resultByDecision = new Map();
+  for (const r of g.rowsResults) {
+    if (r?.decisionId) resultByDecision.set(r.decisionId, r);
+  }
+
+  body.innerHTML = "";
+  for (const t of g.rowsThrows.slice().reverse()) {
+    const p = t.payload || {};
+    const match = resultByDecision.get(t.decisionId)?.actual?.throwMatch || {};
+    const angleDeg = Number(p?.init_pose?.angle_rad ?? 0) * 180 / Math.PI;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(t.ts)}</td>
+      <td>${esc(t.decisionId)}</td>
+      <td class="${t.submitted ? "ok" : "warn"}">${t.submitted ? "yes" : "no"}</td>
+      <td>${assetIcon(symbolForAsset(p.asset, metaMap))} ${esc(symbolForAsset(p.asset, metaMap))}</td>
+      <td>${esc(formatBaseUnits(p.amount, p.asset, metaMap))}</td>
+      <td>${fmtNum(p?.init_pose?.pos?.x,0)}</td>
+      <td>${fmtNum(p?.init_pose?.pos?.y,0)}</td>
+      <td>${fmtNum(angleDeg,1)}</td>
+      <td>${fmtNum(p?.init_linvel?.x,2)}</td>
+      <td>${fmtNum(p?.init_linvel?.y,2)}</td>
+      <td>${fmtNum(p?.init_angvel,2)}</td>
+      <td>${fmtNum(t?.score?.final,2)}</td>
+      <td>${match.hole_type ?? "-"}</td>
+      <td>${match.value_usd_e8 ? "$" + fmtNum(Number(match.value_usd_e8)/1e8,2) : "-"}</td>
+      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : "-"}</td>
+    `;
+    body.appendChild(tr);
+  }
+
+  const scoreboardRows = (g.perUserScoreboard || [])
+    .sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0))
+    .slice(0,8);
+
+  const holeEntries = Object.entries(g.holeTypeCounts || {}).sort((a,b)=>Number(b[1])-Number(a[1]));
+  const payoutRows = (g.payoutTimeline || []).slice(0, 16);
+  const bonusRows = (g.bonusTimeline || []).slice(0, 16);
+
+  analytics.innerHTML = `
+    <div class="mini">
+      <div class="k">Per-User Scoreboard</div>
+      <div class="v">
+        ${scoreboardRows.length ? scoreboardRows.map(r =>
+          `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`
+        ).join("") : "No scoreboard data yet"}
+      </div>
+    </div>
+
+    <div class="mini">
+      <div class="k">Hole-Type Distribution</div>
+      <div class="v">
+        ${holeEntries.length ? holeEntries.map(([k,v]) =>
+          `<span class="pill">${esc(k)} • ${esc(v)}</span>`
+        ).join("") : "No hole outcomes yet"}
+      </div>
+    </div>
+
+    <div class="mini">
+      <div class="k">Payout Kind Timeline</div>
+      <div class="v">
+        ${payoutRows.length ? payoutRows.map(r =>
+          `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${assetIcon(symbolForAsset(r.asset, metaMap))} ${esc(formatBaseUnits(r.amount, r.asset, metaMap))} • ${esc(shortHex(r.user))}</div>`
+        ).join("") : "No payout rows yet"}
+      </div>
+    </div>
+
+    <div class="mini">
+      <div class="k">Bonus Awards Timeline</div>
+      <div class="v">
+        ${bonusRows.length ? bonusRows.map(r =>
+          `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${esc(String(r.points))} pts • ${esc(shortHex(r.user))}</div>`
+        ).join("") : "No bonus awards yet"}
+      </div>
+    </div>
+  `;
+}
+
+function renderResolvedBottom(metaMap){
+  const body = document.getElementById("resultsBody");
+  body.innerHTML = "";
+
+  for (const r of results.slice().reverse().slice(0,100)) {
+    const a = r.actual || {};
+    const wg = a.wholeGame || {};
+    const tm = a.throwMatch || {};
+    const bonuses = Array.isArray(a.bonuses) ? a.bonuses.map(b => `${b.kind}(${b.points})`).join(", ") : "-";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.ts)}</td>
+      <td>${esc(shortHex(r.gameId))}</td>
+      <td class="${a.matched ? "ok" : "warn"}">${a.matched ? "yes" : "no"}</td>
+      <td>${tm.hole_type ?? "-"}</td>
+      <td>${fmtNum(wg.stake_usd,2)}</td>
+      <td>${fmtNum(wg.returned_usd,2)}</td>
+      <td class="${Number(wg.pnl_usd ?? 0) >= 0 ? "ok" : "pink"}">${fmtNum(wg.pnl_usd,2)}</td>
+      <td>${esc(objectEntriesDisplayUnits(wg.inputs_by_asset, metaMap))}</td>
+      <td>${esc(objectEntriesDisplayUnits(wg.outputs_by_asset, metaMap))}</td>
+      <td>${esc(bonuses)}</td>
+    `;
+    body.appendChild(tr);
+  }
+}
+
+function renderCharts(games){
+  if (profitChart) profitChart.destroy();
+  if (positionChart) positionChart.destroy();
+
+  if (!selectedGameId) {
+    const rows = games.slice(0,20).reverse();
+    const labels = rows.map(g => shortHex(g.gameId));
+    const pnlSeries = rows.map(g => Number(g.pnlUsd || 0));
+    const totalSeries = rows.map(g => Number(g.resolvedCount > 0 ? g.stakeUsd : g.pendingUsd || 0));
+
+    profitChart = new Chart(document.getElementById("profitChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Game PnL USD", data: pnlSeries, backgroundColor: "rgba(101,255,176,.35)", borderColor: "#65ffb0" },
+          { label: "Game Total USD", data: totalSeries, backgroundColor: "rgba(82,230,255,.24)", borderColor: "#52e6ff" }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#d9ecff" } } },
+        scales: {
+          x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
+          y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+        }
+      }
+    });
+
+    const allPos = throwsRows.map(t => ({
+      x: Number(t?.payload?.init_pose?.pos?.x ?? 0),
+      y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
+    }));
+
+    positionChart = new Chart(document.getElementById("positionChart"), {
+      type: "scatter",
+      data: {
+        datasets: [
+          { label: "All Throws", data: allPos, backgroundColor: "rgba(255,79,216,.35)", borderColor: "#ff4fd8" }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#d9ecff" } } },
+        scales: {
+          x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
+          y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+        }
+      }
+    });
+
+    return;
+  }
+
+  const g = games.find(x => x.gameId === selectedGameId);
+  if (!g) return;
+
+  const labels = g.rowsResults.map((r,i) => `${i+1}`);
+  const pnlSeries = g.rowsResults.map(r => Number(r?.actual?.wholeGame?.pnl_usd ?? 0));
+  const returnedSeries = g.rowsResults.map(r => Number(r?.actual?.wholeGame?.returned_usd ?? 0));
+
+  profitChart = new Chart(document.getElementById("profitChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Selected Game PnL USD", data: pnlSeries, borderColor: "#65ffb0", backgroundColor: "rgba(101,255,176,.12)", tension:.2 },
+        { label: "Selected Game Returned USD", data: returnedSeries, borderColor: "#52e6ff", backgroundColor: "rgba(82,230,255,.12)", tension:.2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#d9ecff" } } },
+      scales: {
+        x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
+        y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+      }
+    }
+  });
+
+  const selectedPos = g.rowsThrows.map(t => ({
+    x: Number(t?.payload?.init_pose?.pos?.x ?? 0),
+    y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
+  }));
+
+  positionChart = new Chart(document.getElementById("positionChart"), {
+    type: "scatter",
+    data: {
+      datasets: [
+        { label: "Selected Game Throws", data: selectedPos, backgroundColor: "rgba(255,79,216,.35)", borderColor: "#ff4fd8" }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#d9ecff" } } },
+      scales: {
+        x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
+        y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+      }
+    }
+  });
+}
+
+function updateCommandPreview(){
+  const cmd = [
+    "node dist/cli/main.js",
+    "--loop --serve-monitor",
+    `--rpc ${document.getElementById("s_rpc").value.trim()}`,
+    `--wasm ${document.getElementById("s_wasm").value.trim()}`,
+    `--user ${document.getElementById("s_user").value.trim()}`,
+    `--asset ${document.getElementById("s_asset").value.trim()}`,
+    `--amount ${document.getElementById("s_amount").value.trim()}`,
+    `--max-candidates ${document.getElementById("s_maxCandidates").value.trim()}`,
+    `--max-ms ${document.getElementById("s_maxMs").value.trim()}`,
+    `--poll-ms ${document.getElementById("s_pollMs").value.trim()}`
+  ].join(" \\\n  ");
+  document.getElementById("cmdPreview").textContent = cmd;
+}
+
+async function saveSettings(){
+  settings = {
+    rpc: document.getElementById("s_rpc").value.trim(),
+    wasm: document.getElementById("s_wasm").value.trim(),
+    user: document.getElementById("s_user").value.trim(),
+    asset: document.getElementById("s_asset").value.trim(),
+    amount: document.getElementById("s_amount").value.trim(),
+    maxCandidates: Number(document.getElementById("s_maxCandidates").value.trim() || "50"),
+    maxMs: Number(document.getElementById("s_maxMs").value.trim() || "20000"),
+    pollMs: Number(document.getElementById("s_pollMs").value.trim() || "15000"),
+    maxThrowsPerGame: Number(document.getElementById("s_maxThrowsPerGame").value.trim() || "3"),
+    maxThrowsPerSession: Number(document.getElementById("s_maxThrowsPerSession").value.trim() || "50"),
+    minMillisBetweenLiveThrows: Number(document.getElementById("s_minMillisBetweenLiveThrows").value.trim() || "20000"),
+    monitorPort: settings.monitorPort || 8787
+  };
+
+  await fetch("/api/settings", {
+    method:"POST",
+    headers:{ "content-type":"application/json" },
+    body: JSON.stringify(settings)
+  });
+
+  document.getElementById("saveBadge").textContent = "SETTINGS LIVE";
+  document.getElementById("saveBadge").className = "pill ok";
+  updateCommandPreview();
+}
+
+function scheduleSave(){
+  document.getElementById("saveBadge").textContent = "SETTINGS DIRTY";
+  document.getElementById("saveBadge").className = "pill warn";
+  updateCommandPreview();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveSettings().catch(console.error), 450);
+}
+
+async function loadSettings(){
+  settings = await fetchJson("/api/settings");
+  const set = (id,v) => { document.getElementById(id).value = v ?? ""; };
+  set("s_rpc", settings.rpc);
+  set("s_wasm", settings.wasm);
+  set("s_user", settings.user);
+  set("s_asset", settings.asset);
+  set("s_amount", settings.amount);
+  set("s_maxCandidates", settings.maxCandidates ?? 50);
+  set("s_maxMs", settings.maxMs ?? 20000);
+  set("s_pollMs", settings.pollMs ?? 15000);
+  set("s_maxThrowsPerGame", settings.maxThrowsPerGame ?? 3);
+  set("s_maxThrowsPerSession", settings.maxThrowsPerSession ?? 50);
+  set("s_minMillisBetweenLiveThrows", settings.minMillisBetweenLiveThrows ?? 20000);
+  updateCommandPreview();
+}
+
+function renderAll(){
+  const metaMap = buildAssetMetaMap();
+  const games = buildGamesIndex(metaMap);
+
+  if (selectedGameId && !games.find(g => g.gameId === selectedGameId)) {
+    selectedGameId = null;
+    document.getElementById("selectionBadge").textContent = "ALL GAMES";
+  }
+
+  updateTopStats(games);
+  renderGames(games, metaMap);
+  renderScoreboard(games, metaMap);
+  renderHealth(games);
+  renderBank(games, metaMap);
+  renderSelectedDetail(games, metaMap);
+  renderResolvedBottom(metaMap);
+  renderCharts(games);
+}
+
+async function refresh(){
+  try{
+    [runs, throwsRows, results] = await Promise.all([
+      fetchJson("/api/logs/runs"),
+      fetchJson("/api/logs/throws"),
+      fetchJson("/api/logs/results")
+    ]);
+    renderAll();
+  }catch(err){
+    console.error(err);
+  }
+}
+
+document.querySelectorAll("[data-jump]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const id = btn.getAttribute("data-jump");
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+});
+
+document.getElementById("gamesPrev").addEventListener("click", () => {
+  gamesPage = Math.max(0, gamesPage - 1);
+  renderAll();
+});
+document.getElementById("gamesNext").addEventListener("click", () => {
+  const totalPages = Math.max(1, Math.ceil(buildGamesIndex(buildAssetMetaMap()).length / GAMES_PAGE_SIZE));
+  gamesPage = Math.min(totalPages - 1, gamesPage + 1);
+  renderAll();
+});
+document.getElementById("clearSelection").addEventListener("click", () => {
+  selectedGameId = null;
+  document.getElementById("selectionBadge").textContent = "ALL GAMES";
+  renderAll();
+});
+document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+  saveSettings().catch(console.error);
+});
+
+[
+  "s_rpc","s_wasm","s_user","s_asset","s_amount",
+  "s_maxCandidates","s_maxMs","s_pollMs",
+  "s_maxThrowsPerGame","s_maxThrowsPerSession","s_minMillisBetweenLiveThrows"
+].forEach(id => {
+  document.getElementById(id).addEventListener("input", scheduleSave);
+});
+
+loadSettings().then(refresh);
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
