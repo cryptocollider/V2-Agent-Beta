@@ -1,3 +1,5 @@
+<img width="1772" height="988" alt="image" src="https://github.com/user-attachments/assets/28f9f099-9f15-4af2-818a-5aec75ddd621" />
+
 # Collider Agent 1 - Beta
 
 Local Node-based agent player and monitor for Collider V2.
