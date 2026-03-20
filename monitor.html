@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Collider Agent Monitor</title>
+  <title>Collider V2: Agent Monitor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -244,11 +244,12 @@
     }
 
     .asset-inline img,
-    .asset-chip img{
-      width:16px;
-      height:16px;
+    .asset-chip img, .asset-icon {
+      width:28px;
+      height:28px;
       object-fit:contain;
       filter:drop-shadow(0 0 4px rgba(82,230,255,.12));
+      vertical-align: middle;
     }
 
     pre{
@@ -269,12 +270,12 @@
 <div class="wrap">
   <div class="hero">
     <div>
-      <div class="title">Collider Agent Monitor</div>
-      <div class="sub">Games-first operator view • selected-game drill-down • live settings • bank + payout flow</div>
+      <div class="title">Collider V2: Agent Monitor</div>
+      <div class="sub">Agent dashboard & maintainance</div>
     </div>
     <div class="row">
-      <span class="pill ok" id="saveBadge">SETTINGS LIVE</span>
-      <span class="pill" id="selectionBadge">ALL GAMES</span>
+      <span class="pill ok" id="saveBadge"></span>
+      <span class="pill" id="selectionBadge">VIEWING ALL GAMES</span>
     </div>
   </div>
 
@@ -342,7 +343,7 @@
       <div class="table-wrap" style="max-height:250px">
         <table style="min-width:100%">
           <thead>
-            <tr><th>Asset</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
+            <tr><th>Asset</th><th>Current</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
           </thead>
           <tbody id="bankBody"></tbody>
         </table>
@@ -402,7 +403,7 @@
       </div>
       <div class="row" style="margin-top:12px">
         <button id="saveSettingsBtn">Save Settings</button>
-        <span class="muted">Settings also auto-save after a short debounce and apply to the running agent on the next cycle.</span>
+        <span class="muted">Settings also auto-save and apply to the running agent on the next cycle</span>
       </div>
       <div class="title2" style="margin-top:16px">Launch Summary</div>
       <pre id="cmdPreview"></pre>
@@ -432,11 +433,16 @@ let selectedGameId = null;
 let saveTimer = null;
 let profitChart = null;
 let positionChart = null;
+let holePieChart = null;
+let payoutPieChart = null;
+let bonusPieChart = null;
+let vmBalances = {};
+let lastVmBalancesFetch = 0;
 
 const defaultAssetMeta = {
   "0101010101010101010101010101010101010101010101010101010101010101": { symbol: "USDC", decimals: 8 },
   "0303030303030303030303030303030303030303030303030303030303030303": { symbol: "CLC", decimals: 12 },
-  "0505050505050505050505050505050505050505050505050505050505050505": { symbol: "WAVAX", decimals: 18 }
+  "0505050505050505050505050505050505050505050505050505050505050505": { symbol: "AVAX", decimals: 18 }
 };
 
 function cleanHex(v){ return String(v ?? "").toLowerCase().replace(/^0x/,""); }
@@ -471,7 +477,7 @@ function buildAssetMetaMap() {
 
 function assetIcon(symbol){
   const s = String(symbol || "").replace(/[^a-zA-Z0-9_-]/g, "");
-  return `<img src="img/${s}.png" alt="${esc(s)}" onerror="this.style.display='none'">`;
+  return `<img class="asset-icon" src="img/${s}.png" alt="${esc(s)}" onerror="this.style.display='none'">`;
 }
 
 function symbolForAsset(asset, metaMap){
@@ -484,16 +490,38 @@ function decimalsForAsset(asset, metaMap){
   return metaMap[k]?.decimals ?? 8;
 }
 
+function formatDisplayNumber(value){
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+  if (n === 0) return "0";
+  const abs = Math.abs(n);
+  const maxFrac = abs >= 0.01 ? 3 : 8;
+  return n.toLocaleString(undefined, { maximumFractionDigits:maxFrac, minimumFractionDigits:0 });
+}
+
+function parseBaseUnitsToDisplayNumber(amount, asset, metaMap){
+  try {
+    const dec = decimalsForAsset(asset, metaMap);
+    const n = Number(String(amount ?? "0"));
+    if (!Number.isFinite(n)) return 0;
+    return n / Math.pow(10, dec);
+  } catch {
+    return 0;
+  }
+}
+
+function formatStakeUsdLike(raw){
+  if (raw == null || raw === "") return "-";
+  const n = Number(String(raw));
+  if (!Number.isFinite(n)) return String(raw);
+  const usd = Math.abs(n) >= 100000 ? n / 1e8 : n;
+  return `$${formatDisplayNumber(usd)}`;
+}
+
 function formatBaseUnits(amount, asset, metaMap){
   try{
-    const dec = decimalsForAsset(asset, metaMap);
-    const s = String(amount ?? "0");
-    const neg = s.startsWith("-");
-    const raw = neg ? s.slice(1) : s;
-    const padded = raw.padStart(dec + 1, "0");
-    const whole = padded.slice(0, padded.length - dec);
-    const frac = padded.slice(padded.length - dec).replace(/0+$/,"");
-    return `${neg ? "-" : ""}${frac ? `${whole}.${frac}` : whole} ${symbolForAsset(asset, metaMap)}`;
+    const display = parseBaseUnitsToDisplayNumber(amount, asset, metaMap);
+    return `${formatDisplayNumber(display)} ${symbolForAsset(asset, metaMap)}`;
   }catch{
     return `${amount ?? "-"} ${symbolForAsset(asset, metaMap)}`;
   }
@@ -506,7 +534,10 @@ function assetInline(amount, asset, metaMap){
 
 function objectEntriesDisplayUnits(obj, metaMap){
   if(!obj || typeof obj !== "object") return "-";
-  return Object.entries(obj).map(([k,v]) => formatBaseUnits(v, k, metaMap)).join(" | ");
+  return Object.entries(obj)
+    .filter(([_,v]) => String(v ?? "0") !== "0")
+    .map(([k,v]) => formatBaseUnits(v, k, metaMap))
+    .join(" | ") || "0";
 }
 
 function bonusPoints(bonuses){
@@ -524,14 +555,96 @@ function statusLabel(code){
   }
 }
 
+function latestByKey(rows, keyFn){
+  const map = new Map();
+  for (const row of rows) {
+    const key = keyFn(row);
+    if (!key) continue;
+    const prev = map.get(key);
+    const ts = new Date(row?.ts || 0).getTime();
+    const prevTs = new Date(prev?.ts || 0).getTime();
+    if (!prev || ts >= prevTs) map.set(key, row);
+  }
+  return map;
+}
+
+function saveScrollState(){
+  const state = { windowY: window.scrollY, tables: {} };
+  document.querySelectorAll('.table-wrap[id], .table-wrap').forEach((el, idx) => {
+    const key = el.id || `tablewrap_${idx}`;
+    state.tables[key] = { top: el.scrollTop, left: el.scrollLeft };
+    if (!el.dataset.scrollKey) el.dataset.scrollKey = key;
+  });
+  return state;
+}
+
+function restoreScrollState(state){
+  if (!state) return;
+  requestAnimationFrame(() => {
+    window.scrollTo(0, state.windowY || 0);
+    document.querySelectorAll('.table-wrap').forEach((el, idx) => {
+      const key = el.dataset.scrollKey || el.id || `tablewrap_${idx}`;
+      const saved = state.tables?.[key];
+      if (saved) {
+        el.scrollTop = saved.top || 0;
+        el.scrollLeft = saved.left || 0;
+      }
+    });
+  });
+}
+
+function patchTableBody(bodyId, rows, keyFn, renderFn){
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  const existing = new Map();
+  Array.from(body.children).forEach((tr) => {
+    const key = tr.dataset.key;
+    if (key) existing.set(key, tr);
+  });
+
+  const used = new Set();
+  rows.forEach((row, idx) => {
+    const key = String(keyFn(row, idx));
+    let tr = existing.get(key);
+    if (!tr) {
+      tr = document.createElement('tr');
+      tr.dataset.key = key;
+    }
+    renderFn(tr, row, idx);
+    body.appendChild(tr);
+    used.add(key);
+  });
+
+  Array.from(body.children).forEach((tr) => {
+    const key = tr.dataset.key;
+    if (key && !used.has(key)) tr.remove();
+  });
+}
+
+function holeTypeLabel(id){
+  const n = Number(id);
+  return ({
+    1: 'Draw',
+    2: 'Lose 100%',
+    3: 'Winner',
+    4: 'Lose 50%',
+    5: 'Special'
+  }[n] || `Type ${id}`);
+}
+
 function buildResolvedDecisionSet(){
   const resolved = new Set();
   for (const r of results) {
-    if (r?.decisionId && (r?.actual?.matched || r?.actual?.throwMatch?.throw_id)) {
+    if (!r?.decisionId) continue;
+    if (r?.actual?.matched || r?.actual?.throwMatch?.throw_id || (r?.actual?.wholeGame && Number(r?.actual?.wholeGame?.pnl_usd ?? 0) !== 0)) {
       resolved.add(r.decisionId);
     }
   }
   return resolved;
+}
+
+function buildLatestResultsByDecision(){
+  return [...latestByKey(results, r => r?.decisionId).values()].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
 }
 
 function knownUsdPrice(symbol){
@@ -545,20 +658,50 @@ function pendingUsdForThrow(t, metaMap){
   const symbol = symbolForAsset(asset, metaMap);
   const price = knownUsdPrice(symbol);
   if (price == null) return 0;
+  return parseBaseUnitsToDisplayNumber(p.amount || "0", asset, metaMap) * price;
+}
 
-  try{
-    const amount = BigInt(String(p.amount || "0"));
-    const dec = BigInt(decimalsForAsset(asset, metaMap));
-    const denom = 10n ** dec;
-    return Number(amount) / Number(denom) * price;
-  }catch{
-    return 0;
+async function rpcCall(url, method, params = []){
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type':'application/json' },
+    body: JSON.stringify({ jsonrpc:'2.0', id: Date.now(), method, params }),
+    cache: 'no-store'
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message || 'rpc failed');
+  return json.result;
+}
+
+async function maybeRefreshVmBalances(){
+  if (!settings?.rpc || !settings?.user) return;
+  const now = Date.now();
+  if (now - lastVmBalancesFetch < 10000) return;
+  lastVmBalancesFetch = now;
+  try {
+    const raw = await rpcCall(settings.rpc, 'colliderV2.getBalances', [settings.user]);
+    if (raw && typeof raw === 'object') {
+      const norm = {};
+      for (const [k,v] of Object.entries(raw)) norm[cleanHex(k)] = String(v ?? '0');
+      vmBalances = norm;
+    }
+  } catch (err) {
+    console.warn('getBalances failed', err);
   }
+}
+
+function getConfiguredUserScore(perUserScoreboard){
+  const target = cleanHex(settings?.user || '');
+  if (!target || !Array.isArray(perUserScoreboard)) return null;
+  return perUserScoreboard.find(r => cleanHex(r?.user || '') === target) || null;
 }
 
 function buildGamesIndex(metaMap){
   const map = new Map();
-  const resolvedDecisionIds = buildResolvedDecisionSet();
+  const latestRunsByGame = latestByKey(runs, r => r?.gameId);
+  const latestThrowsByDecision = latestByKey(throwsRows, t => t?.decisionId);
+  const latestResults = buildLatestResultsByDecision();
+  const latestResultByGame = latestByKey(latestResults, r => r?.gameId);
 
   const ensure = (gameId) => {
     if (!map.has(gameId)) {
@@ -570,7 +713,7 @@ function buildGamesIndex(metaMap){
         pendingThrows: 0,
         resolvedCount: 0,
         lastSeenTs: null,
-        latestStake: null,
+        latestStakeRaw: null,
         latestMinThrow: null,
         latestStatus: null,
         pnlUsd: 0,
@@ -589,7 +732,9 @@ function buildGamesIndex(metaMap){
         perUserScoreboard: [],
         holeTypeCounts: {},
         payoutTimeline: [],
-        bonusTimeline: []
+        bonusTimeline: [],
+        submittedDecisionIds: new Set(),
+        canonicalResult: null,
       });
     }
     return map.get(gameId);
@@ -600,72 +745,98 @@ function buildGamesIndex(metaMap){
     const g = ensure(r.gameId);
     g.scans += 1;
     g.candidateObservedSum += Number(r?.search?.examinedCount ?? r?.search?.maxCandidates ?? 0);
-    if (r.submitted) g.submittedThrows += 1;
     g.lastSeenTs = r.ts || g.lastSeenTs;
-    g.latestStake = r?.game?.stake ?? g.latestStake;
-    g.latestMinThrow = r?.game?.minThrowValue ?? g.latestMinThrow;
-    if (r?.game?.status != null) g.latestStatus = Number(r.game.status);
     g.rowsRuns.push(r);
   }
 
-  for (const t of throwsRows) {
+  for (const [gameId, row] of latestRunsByGame.entries()) {
+    const g = ensure(gameId);
+    g.latestStakeRaw = row?.game?.stake != null ? String(row.game.stake) : g.latestStakeRaw;
+    g.latestMinThrow = row?.game?.minThrowValue ?? g.latestMinThrow;
+    if (row?.game?.status != null) g.latestStatus = Number(row.game.status);
+  }
+
+  for (const t of latestThrowsByDecision.values()) {
     if (!t?.gameId) continue;
     const g = ensure(t.gameId);
     g.lastSeenTs = t.ts || g.lastSeenTs;
     g.rowsThrows.push(t);
-
-    if (t.submitted && !resolvedDecisionIds.has(t.decisionId)) {
-      g.pendingThrows += 1;
-      g.pendingUsd += pendingUsdForThrow(t, metaMap);
-    }
+    if (t.submitted && t.decisionId) g.submittedDecisionIds.add(t.decisionId);
   }
 
-  for (const r of results) {
+  for (const r of latestResults) {
     if (!r?.gameId) continue;
     const g = ensure(r.gameId);
-    const wg = r?.actual?.wholeGame || {};
-    const tm = r?.actual?.throwMatch || {};
-    const payouts = r?.actual?.payouts || {};
-
-    g.resolvedCount += 1;
     g.lastSeenTs = r.ts || g.lastSeenTs;
-    g.pnlUsd += Number(wg?.pnl_usd ?? 0);
-    g.stakeUsd += Number(wg?.stake_usd ?? 0);
-    g.returnedUsd += Number(wg?.returned_usd ?? 0);
-    g.points += bonusPoints(r?.actual?.bonuses);
-    g.latestHoleType = tm?.hole_type ?? g.latestHoleType;
-    g.perUserScoreboard = wg?.per_user_scoreboard || g.perUserScoreboard;
-    g.holeTypeCounts = wg?.hole_type_counts || g.holeTypeCounts;
-    g.payoutTimeline = r?.actual?.payouts?.timeline || g.payoutTimeline;
-    g.bonusTimeline = r?.actual?.bonus_timeline || g.bonusTimeline;
-
-    for (const [k,v] of Object.entries(wg?.inputs_by_asset || {})) {
-      g.inputsByAsset[k] = (BigInt(g.inputsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
-    }
-    for (const [k,v] of Object.entries(wg?.outputs_by_asset || {})) {
-      g.outputsByAsset[k] = (BigInt(g.outputsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
-    }
-    for (const [k,v] of Object.entries(payouts?.by_kind || {})) {
-      g.payoutsByKind[k] = (BigInt(g.payoutsByKind[k] || "0") + BigInt(String(v || "0"))).toString();
-    }
-    for (const [k,v] of Object.entries(payouts?.by_asset || {})) {
-      g.payoutsByAsset[k] = (BigInt(g.payoutsByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
-    }
-
     g.rowsResults.push(r);
   }
 
-  return [...map.values()].sort((a,b) =>
-    new Date(b.lastSeenTs || 0).getTime() - new Date(a.lastSeenTs || 0).getTime()
-  );
+  for (const [gameId, g] of map.entries()) {
+    const canonical = latestResultByGame.get(gameId) || null;
+    g.canonicalResult = canonical;
+    g.resolvedCount = g.rowsResults.length;
+    g.submittedThrows = g.submittedDecisionIds.size;
+
+    const hasClosedStatus = Number(g.latestStatus ?? -1) >= 2 || !!canonical;
+    g.pendingThrows = hasClosedStatus ? 0 : g.submittedThrows;
+
+    if (!hasClosedStatus) {
+      for (const t of g.rowsThrows) {
+        if (t.submitted) g.pendingUsd += pendingUsdForThrow(t, metaMap);
+      }
+    }
+
+    if (canonical) {
+      const a = canonical?.actual || {};
+      const wg = a?.wholeGame || {};
+      const tm = a?.throwMatch || {};
+      const payouts = a?.payouts || {};
+      const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard || []);
+
+      g.stakeUsd = Number(configuredUser?.stake_usd ?? wg?.stake_usd ?? 0);
+      g.returnedUsd = Number(configuredUser?.returned_usd ?? wg?.returned_usd ?? 0);
+      g.pnlUsd = Number(configuredUser?.pnl_usd ?? wg?.pnl_usd ?? 0);
+      g.points = bonusPoints(a?.bonuses);
+      g.latestHoleType = tm?.hole_type ?? null;
+      g.perUserScoreboard = Array.isArray(wg?.per_user_scoreboard) ? wg.per_user_scoreboard : [];
+      g.holeTypeCounts = wg?.hole_type_counts || {};
+      g.payoutTimeline = Array.isArray(payouts?.timeline) ? payouts.timeline : [];
+      g.bonusTimeline = Array.isArray(a?.bonus_timeline) ? a.bonus_timeline : [];
+      g.inputsByAsset = wg?.inputs_by_asset || {};
+      g.outputsByAsset = wg?.outputs_by_asset || {};
+      g.payoutsByKind = payouts?.by_kind || {};
+      g.payoutsByAsset = payouts?.by_asset || {};
+      if (g.latestStatus == null) g.latestStatus = 2;
+    }
+
+    g.rowsThrows.sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
+    g.rowsResults.sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
+  }
+
+  const statusPriority = (g) => {
+    const s = Number(g.latestStatus ?? -1);
+    if (s === 1) return 0;
+    if (s === 0) return 1;
+    if (s >= 2) return 2;
+    if (g.pendingThrows > 0) return 0;
+    if (g.submittedThrows > 0) return 1;
+    return 3;
+  };
+
+  return [...map.values()].sort((a,b) => {
+    const pa = statusPriority(a), pb = statusPriority(b);
+    if (pa !== pb) return pa - pb;
+    return new Date(b.lastSeenTs || 0).getTime() - new Date(a.lastSeenTs || 0).getTime();
+  });
 }
 
 function displayGameStatus(g){
   const actual = statusLabel(g.latestStatus);
   if (actual) return actual;
-  if (g.resolvedCount > 0) return "Resolved";
-  if (g.submittedThrows > 0 || g.pendingThrows > 0) return "Open/Armed";
-  return "Scanned";
+  if (g.resolvedCount > 0) return 'Closed';
+  if (g.pendingThrows > 0) return 'Armed';
+  if (g.submittedThrows > 0) return 'Open';
+  return 'Scanned';
 }
 
 function updateTopStats(games){
@@ -673,32 +844,29 @@ function updateTopStats(games){
   const pending = games.reduce((s,g)=>s+Number(g.pendingUsd||0),0);
   const pendingCount = games.reduce((s,g)=>s+Number(g.pendingThrows||0),0);
 
-  document.getElementById("gamesCount").textContent = String(games.length);
-  document.getElementById("resolvedGamesCount").textContent = String(games.filter(g=>g.resolvedCount>0).length);
-  document.getElementById("pendingThrowsCount").textContent = String(pendingCount);
-  document.getElementById("pnlTotal").textContent = fmtNum(pnl,2);
-  document.getElementById("pendingUsd").textContent = fmtNum(pending,2);
-  document.getElementById("inSystemUsd").textContent = fmtNum(pnl + pending,2);
+  document.getElementById('gamesCount').textContent = String(games.length);
+  document.getElementById('resolvedGamesCount').textContent = String(games.filter(g=>g.resolvedCount>0).length);
+  document.getElementById('pendingThrowsCount').textContent = String(pendingCount);
+  document.getElementById('pnlTotal').textContent = fmtNum(pnl,2);
+  document.getElementById('pendingUsd').textContent = fmtNum(pending,2);
+  document.getElementById('inSystemUsd').textContent = fmtNum(pnl + pending,2);
 }
 
 function renderGames(games, metaMap){
-  const body = document.getElementById("gamesBody");
-  body.innerHTML = "";
-
+  document.getElementById('saveBadge').innerHTML = 'AGENT LIVE';
   const start = gamesPage * GAMES_PAGE_SIZE;
   const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
 
-  for (const g of pageRows) {
-    const tr = document.createElement("tr");
-    tr.className = `game-row ${selectedGameId === g.gameId ? "active" : ""}`;
+  patchTableBody('gamesBody', pageRows, g => g.gameId, (tr, g) => {
+    tr.className = `game-row ${selectedGameId === g.gameId ? 'active' : ''}`;
     tr.onclick = () => {
       selectedGameId = g.gameId;
-      document.getElementById("selectionBadge").textContent = `SELECTED ${shortHex(g.gameId)}`;
+      document.getElementById('selectionBadge').textContent = `VIEWING SELECTED GAME: ${shortHex(g.gameId)}`;
       renderAll();
     };
 
-    const unresolvedTotal = g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : (g.latestStake ?? "-");
-    const gameTotalDisplay = g.resolvedCount > 0 ? "$" + fmtNum(g.stakeUsd,2) : unresolvedTotal;
+    const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-';
+    const gameTotalDisplay = g.resolvedCount > 0 ? `$${fmtNum(g.stakeUsd,2)}` : openStakeDisplay;
 
     tr.innerHTML = `
       <td>${esc(shortHex(g.gameId))}</td>
@@ -708,72 +876,68 @@ function renderGames(games, metaMap){
       <td>${g.submittedThrows}</td>
       <td>${g.pendingThrows}</td>
       <td>${esc(gameTotalDisplay)}</td>
-      <td class="${Number(g.pnlUsd) >= 0 ? "ok" : "pink"}">${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}</td>
-      <td>${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}</td>
+      <td class="${Number(g.pnlUsd) >= 0 ? 'ok' : 'pink'}">${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}</td>
+      <td>${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}</td>
       <td>${g.points}</td>
       <td>${esc(objectEntriesDisplayUnits(g.inputsByAsset, metaMap))}</td>
       <td>${esc(objectEntriesDisplayUnits(g.outputsByAsset, metaMap))}</td>
-      <td>${esc(g.lastSeenTs || "-")}</td>
+      <td>${esc(g.lastSeenTs || '-')}</td>
     `;
-    body.appendChild(tr);
-  }
+  });
 
   const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
-  document.getElementById("gamesPageInfo").textContent = `Page ${gamesPage + 1} / ${totalPages}`;
+  document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages}`;
 }
 
 function renderBank(games, metaMap){
-  const body = document.getElementById("bankBody");
-  body.innerHTML = "";
-
   const inByAsset = {};
   const outByAsset = {};
   const pendingByAsset = {};
-  const resolvedDecisionIds = buildResolvedDecisionSet();
 
   for (const g of games) {
-    for (const [k,v] of Object.entries(g.inputsByAsset || {})) {
-      inByAsset[k] = (BigInt(inByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
-    }
-    for (const [k,v] of Object.entries(g.outputsByAsset || {})) {
-      outByAsset[k] = (BigInt(outByAsset[k] || "0") + BigInt(String(v || "0"))).toString();
+    for (const [k,v] of Object.entries(g.inputsByAsset || {})) inByAsset[cleanHex(k)] = (BigInt(inByAsset[cleanHex(k)] || '0') + BigInt(String(v || '0'))).toString();
+    for (const [k,v] of Object.entries(g.outputsByAsset || {})) outByAsset[cleanHex(k)] = (BigInt(outByAsset[cleanHex(k)] || '0') + BigInt(String(v || '0'))).toString();
+  }
+
+  for (const g of games) {
+    if (g.pendingThrows === 0) continue;
+    for (const t of g.rowsThrows) {
+      if (!t?.submitted) continue;
+      const p = t.payload || {};
+      const asset = cleanHex(p.asset || '');
+      pendingByAsset[asset] = (BigInt(pendingByAsset[asset] || '0') + BigInt(String(p.amount || '0'))).toString();
     }
   }
 
-  for (const t of throwsRows) {
-    if (!t?.submitted || resolvedDecisionIds.has(t.decisionId)) continue;
-    const p = t.payload || {};
-    const asset = cleanHex(p.asset || "");
-    pendingByAsset[asset] = (BigInt(pendingByAsset[asset] || "0") + BigInt(String(p.amount || "0"))).toString();
-  }
+  const normBalances = {};
+  for (const [k,v] of Object.entries(vmBalances || {})) normBalances[cleanHex(k)] = String(v || '0');
 
-  const assets = [...new Set([...Object.keys(inByAsset), ...Object.keys(outByAsset), ...Object.keys(pendingByAsset)])];
+  const assets = [...new Set([...Object.keys(inByAsset), ...Object.keys(outByAsset), ...Object.keys(pendingByAsset), ...Object.keys(normBalances)])];
   if (!assets.length) {
-    body.innerHTML = `<tr><td colspan="5" class="muted">No asset flow yet</td></tr>`;
+    document.getElementById('bankBody').innerHTML = `<tr><td colspan="6" class="muted">No asset flow yet</td></tr>`;
     return;
   }
 
-  for (const asset of assets) {
-    const inAmt = inByAsset[asset] || "0";
-    const outAmt = outByAsset[asset] || "0";
-    const pendingAmt = pendingByAsset[asset] || "0";
+  patchTableBody('bankBody', assets, a => a, (tr, asset) => {
+    const inAmt = inByAsset[asset] || '0';
+    const outAmt = outByAsset[asset] || '0';
+    const pendingAmt = pendingByAsset[asset] || '0';
+    const currentAmt = normBalances[asset] || '0';
     const net = (BigInt(outAmt) - BigInt(inAmt)).toString();
     const sym = symbolForAsset(asset, metaMap);
-
-    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${assetIcon(sym)} ${esc(sym)}</td>
+      <td>${esc(formatBaseUnits(currentAmt, asset, metaMap))}</td>
       <td>${esc(formatBaseUnits(net, asset, metaMap))}</td>
       <td>${esc(formatBaseUnits(pendingAmt, asset, metaMap))}</td>
       <td>${esc(formatBaseUnits(outAmt, asset, metaMap))}</td>
       <td>${esc(formatBaseUnits(inAmt, asset, metaMap))}</td>
     `;
-    body.appendChild(tr);
-  }
+  });
 }
 
 function renderScoreboard(games, metaMap){
-  const panel = document.getElementById("scoreboardPanel");
+  const panel = document.getElementById('scoreboardPanel');
   const g = selectedGameId ? games.find(x => x.gameId === selectedGameId) : null;
 
   if (!g) {
@@ -784,7 +948,7 @@ function renderScoreboard(games, metaMap){
       <div class="muted">Total PnL</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pnlUsd||0),0),2)}</div>
       <div class="muted">Pending USD</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
       <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.pendingThrows||0),0)}</div>
-      <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || "0", settings.asset, metaMap) : "-"}</div>
+      <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-'}</div>
     `;
     return;
   }
@@ -796,65 +960,74 @@ function renderScoreboard(games, metaMap){
     <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
     <div class="muted">Agent Throws</div><div>${g.submittedThrows}</div>
     <div class="muted">Pending Throws</div><div>${g.pendingThrows}</div>
-    <div class="muted">Game Total</div><div>${g.resolvedCount > 0 ? "$" + fmtNum(g.stakeUsd,2) : (g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : esc(g.latestStake ?? "-"))}</div>
-    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? "ok":"pink"}">${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}</div>
-    <div class="muted">Pending</div><div>${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}</div>
+    <div class="muted">Game Total</div><div>${g.resolvedCount > 0 ? `$${fmtNum(g.stakeUsd,2)}` : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-')}</div>
+    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}</div>
+    <div class="muted">Pending</div><div>${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}</div>
     <div class="muted">Points</div><div>${g.points}</div>
-    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType ?? "-"}</div>
+    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType ?? '-'}</div>
   `;
 }
 
-function renderHealth(games){
-  document.getElementById("healthPanel").innerHTML = `
+function renderHealth(games, metaMap){
+  const configuredAsset = settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-';
+  document.getElementById('healthPanel').innerHTML = `
     <div class="muted">Runs Logged</div><div>${runs.length}</div>
     <div class="muted">Throws Logged</div><div>${throwsRows.length}</div>
     <div class="muted">Results Logged</div><div>${results.length}</div>
     <div class="muted">Tracked Games</div><div>${games.length}</div>
-    <div class="muted">Configured Asset</div><div>${esc(settings.asset || "-")}</div>
-    <div class="muted">Poll ms</div><div>${settings.pollMs ?? "-"}</div>
-    <div class="muted">Max Throws / Game</div><div>${settings.maxThrowsPerGame ?? "-"}</div>
-    <div class="muted">Max Throws / Session</div><div>${settings.maxThrowsPerSession ?? "-"}</div>
+    <div class="muted">Configured Asset</div><div>${configuredAsset}</div>
+    <div class="muted">Poll ms</div><div>${settings.pollMs ?? '-'}</div>
+    <div class="muted">Max Throws / Game</div><div>${settings.maxThrowsPerGame ?? '-'}</div>
+    <div class="muted">Max Throws / Session</div><div>${settings.maxThrowsPerSession ?? '-'}</div>
   `;
+}
+
+function destroyAnalyticsCharts(){
+  [holePieChart, payoutPieChart, bonusPieChart].forEach(ch => { try { ch && ch.destroy(); } catch {} });
+  holePieChart = payoutPieChart = bonusPieChart = null;
+}
+
+function chartColors(n){
+  const palette = ['#52e6ff','#65ffb0','#ff4fd8','#ffe66d','#5e9cff','#ff6b88','#9b7bff','#24d3b5','#ff9f40','#c9ff5e'];
+  const out=[]; for(let i=0;i<n;i++) out.push(palette[i % palette.length]); return out;
+}
+
+function legendTable(entries, formatter){
+  if (!entries.length) return '<div class="muted">No data</div>';
+  return `<table style="width:100%;min-width:100%;border-collapse:collapse;font-size:12px">${entries.map(([k,v]) => `<tr><td style="padding:4px 0">${esc(k)}</td><td style="padding:4px 0;text-align:right">${formatter(v)}</td></tr>`).join('')}</table>`;
 }
 
 function renderSelectedDetail(games, metaMap){
   const g = selectedGameId ? games.find(x => x.gameId === selectedGameId) : null;
-  const body = document.getElementById("selectedThrowsBody");
-  const analytics = document.getElementById("analyticsCards");
+  const analytics = document.getElementById('analyticsCards');
+  destroyAnalyticsCharts();
 
   if (!g) {
-    document.getElementById("selGameId").textContent = "Game: All Games";
-    document.getElementById("selGameStatus").textContent = "Status: -";
-    document.getElementById("selGamePnl").textContent = "PnL: -";
-    document.getElementById("selGamePending").textContent = "Pending: -";
-    document.getElementById("selGamePoints").textContent = "Points: -";
-    body.innerHTML = "";
-    analytics.innerHTML = `<div class="mini"><div class="k">Select Game</div><div class="v">Choose a game row to inspect scoreboard, hole distribution, payout timeline, and bonus timeline.</div></div>`;
+    document.getElementById('selGameId').textContent = 'Game: All Games';
+    document.getElementById('selGameStatus').textContent = 'Status: -';
+    document.getElementById('selGamePnl').textContent = 'PnL: -';
+    document.getElementById('selGamePending').textContent = 'Pending: -';
+    document.getElementById('selGamePoints').textContent = 'Points: -';
+    document.getElementById('selectedThrowsBody').innerHTML = '';
+    analytics.innerHTML = `<div class="mini"><div class="k">Select Game</div><div class="v">Choose a game row to inspect scoreboard, hole distribution, payout breakdown, and bonus timeline.</div></div>`;
     return;
   }
 
-  document.getElementById("selGameId").textContent = `Game: ${shortHex(g.gameId)}`;
-  document.getElementById("selGameStatus").textContent = `Status: ${displayGameStatus(g)}`;
-  document.getElementById("selGamePnl").textContent = `PnL: ${g.resolvedCount > 0 ? "$" + fmtNum(g.pnlUsd,2) : "-"}`;
-  document.getElementById("selGamePending").textContent = `Pending: ${g.pendingUsd > 0 ? "$" + fmtNum(g.pendingUsd,2) : "-"}`;
-  document.getElementById("selGamePoints").textContent = `Points: ${g.points}`;
+  document.getElementById('selGameId').textContent = `Game: ${shortHex(g.gameId)}`;
+  document.getElementById('selGameStatus').textContent = `Status: ${displayGameStatus(g)}`;
+  document.getElementById('selGamePnl').textContent = `PnL: ${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}`;
+  document.getElementById('selGamePending').textContent = `Pending: ${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}`;
+  document.getElementById('selGamePoints').textContent = `Points: ${g.points}`;
 
-  const resultByDecision = new Map();
-  for (const r of g.rowsResults) {
-    if (r?.decisionId) resultByDecision.set(r.decisionId, r);
-  }
-
-  body.innerHTML = "";
-  for (const t of g.rowsThrows.slice().reverse()) {
+  const resultByDecision = latestByKey(g.rowsResults, r => r?.decisionId);
+  patchTableBody('selectedThrowsBody', g.rowsThrows.slice().reverse(), t => t.decisionId || t.ts, (tr, t) => {
     const p = t.payload || {};
     const match = resultByDecision.get(t.decisionId)?.actual?.throwMatch || {};
     const angleDeg = Number(p?.init_pose?.angle_rad ?? 0) * 180 / Math.PI;
-
-    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(t.ts)}</td>
       <td>${esc(t.decisionId)}</td>
-      <td class="${t.submitted ? "ok" : "warn"}">${t.submitted ? "yes" : "no"}</td>
+      <td class="${t.submitted ? 'ok' : 'warn'}">${t.submitted ? 'yes' : 'no'}</td>
       <td>${assetIcon(symbolForAsset(p.asset, metaMap))} ${esc(symbolForAsset(p.asset, metaMap))}</td>
       <td>${esc(formatBaseUnits(p.amount, p.asset, metaMap))}</td>
       <td>${fmtNum(p?.init_pose?.pos?.x,0)}</td>
@@ -864,85 +1037,129 @@ function renderSelectedDetail(games, metaMap){
       <td>${fmtNum(p?.init_linvel?.y,2)}</td>
       <td>${fmtNum(p?.init_angvel,2)}</td>
       <td>${fmtNum(t?.score?.final,2)}</td>
-      <td>${match.hole_type ?? "-"}</td>
-      <td>${match.value_usd_e8 ? "$" + fmtNum(Number(match.value_usd_e8)/1e8,2) : "-"}</td>
-      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : "-"}</td>
+      <td>${match.hole_type != null ? holeTypeLabel(match.hole_type) : '-'}</td>
+      <td>${match.value_usd_e8 ? `$${fmtNum(Number(match.value_usd_e8)/1e8,2)}` : '-'}</td>
+      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : '-'}</td>
     `;
-    body.appendChild(tr);
+  });
+
+  const scoreboardRows = (g.perUserScoreboard || []).slice().sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0)).slice(0,8);
+  const holeValueTotals = {};
+  for (const t of g.rowsThrows) {
+    const match = resultByDecision.get(t.decisionId)?.actual?.throwMatch || {};
+    if (match.hole_type == null) continue;
+    const label = holeTypeLabel(match.hole_type);
+    const usd = Number(match.value_usd_e8 || 0) / 1e8;
+    holeValueTotals[label] = (holeValueTotals[label] || 0) + usd;
   }
+  const holeEntries = Object.entries(holeValueTotals).sort((a,b)=>Number(b[1])-Number(a[1]));
 
-  const scoreboardRows = (g.perUserScoreboard || [])
-    .sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0))
-    .slice(0,8);
+  const payoutKindCounts = {};
+  const payoutKindAmounts = {};
+  for (const row of (g.payoutTimeline || [])) {
+    payoutKindCounts[row.kind] = (payoutKindCounts[row.kind] || 0) + 1;
+    const key = `${row.kind}__${row.asset}`;
+    payoutKindAmounts[key] = (BigInt(payoutKindAmounts[key] || '0') + BigInt(String(row.amount || '0'))).toString();
+  }
+  const payoutKindCountEntries = Object.entries(payoutKindCounts).sort((a,b)=>Number(b[1])-Number(a[1]));
+  const payoutAmountEntries = Object.entries(payoutKindAmounts).sort((a,b)=> String(b[1]).localeCompare(String(a[1])));
 
-  const holeEntries = Object.entries(g.holeTypeCounts || {}).sort((a,b)=>Number(b[1])-Number(a[1]));
-  const payoutRows = (g.payoutTimeline || []).slice(0, 16);
-  const bonusRows = (g.bonusTimeline || []).slice(0, 16);
+  const bonusKindTotalsMap = {};
+  for (const row of (g.bonusTimeline || [])) bonusKindTotalsMap[row.kind] = (bonusKindTotalsMap[row.kind] || 0) + Number(row.points || 0);
+  const bonusKindTotals = Object.entries(bonusKindTotalsMap).sort((a,b)=>Number(b[1])-Number(a[1]));
 
   analytics.innerHTML = `
     <div class="mini">
       <div class="k">Per-User Scoreboard</div>
-      <div class="v">
-        ${scoreboardRows.length ? scoreboardRows.map(r =>
-          `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`
-        ).join("") : "No scoreboard data yet"}
-      </div>
+      <div class="v">${scoreboardRows.length ? scoreboardRows.map(r => `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`).join('') : 'No scoreboard data yet'}</div>
     </div>
 
     <div class="mini">
-      <div class="k">Hole-Type Distribution</div>
-      <div class="v">
-        ${holeEntries.length ? holeEntries.map(([k,v]) =>
-          `<span class="pill">${esc(k)} • ${esc(v)}</span>`
-        ).join("") : "No hole outcomes yet"}
-      </div>
+      <div class="k">Hole Value Distribution</div>
+      <div style="height:220px"><canvas id="holePieCanvas"></canvas></div>
+      <div class="v">${legendTable(holeEntries, v => `$${formatDisplayNumber(v)}`)}</div>
     </div>
 
     <div class="mini">
-      <div class="k">Payout Kind Timeline</div>
-      <div class="v">
-        ${payoutRows.length ? payoutRows.map(r =>
-          `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${assetIcon(symbolForAsset(r.asset, metaMap))} ${esc(formatBaseUnits(r.amount, r.asset, metaMap))} • ${esc(shortHex(r.user))}</div>`
-        ).join("") : "No payout rows yet"}
-      </div>
+      <div class="k">Payout Kind Breakdown</div>
+      <div style="height:220px"><canvas id="payoutPieCanvas"></canvas></div>
+      <div class="v">${legendTable(payoutKindCountEntries, v => esc(String(v)) + ' rows')}</div>
     </div>
 
     <div class="mini">
-      <div class="k">Bonus Awards Timeline</div>
-      <div class="v">
-        ${bonusRows.length ? bonusRows.map(r =>
-          `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${esc(String(r.points))} pts • ${esc(shortHex(r.user))}</div>`
-        ).join("") : "No bonus awards yet"}
-      </div>
+      <div class="k">Bonus Awards Breakdown</div>
+      <div style="height:220px"><canvas id="bonusPieCanvas"></canvas></div>
+      <div class="v">${legendTable(bonusKindTotals, v => esc(String(v)) + ' pts')}</div>
+    </div>
+
+    <div class="mini">
+      <div class="k">Payout Key</div>
+      <div class="v">${payoutAmountEntries.length ? payoutAmountEntries.map(([key,amt]) => {
+        const [kind, asset] = key.split('__');
+        return `<div>${esc(kind)} • ${assetIcon(symbolForAsset(asset, metaMap))} ${esc(formatBaseUnits(amt, asset, metaMap))}</div>`;
+      }).join('') : 'No payout rows yet'}</div>
+    </div>
+
+    <div class="mini">
+      <div class="k">Bonus Timeline</div>
+      <div class="v">${(g.bonusTimeline || []).length ? g.bonusTimeline.slice(0,12).map(r => `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${esc(String(r.points))} pts • ${esc(shortHex(r.user))}</div>`).join('') : 'No bonus awards yet'}</div>
     </div>
   `;
+
+  const holeCtx = document.getElementById('holePieCanvas');
+  if (holeCtx && holeEntries.length) {
+    holePieChart = new Chart(holeCtx, {
+      type:'doughnut',
+      data:{ labels: holeEntries.map(([k])=>String(k)), datasets:[{ data: holeEntries.map(([_,v])=>Number(v)), backgroundColor: chartColors(holeEntries.length) }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  const payoutCtx = document.getElementById('payoutPieCanvas');
+  if (payoutCtx && payoutKindCountEntries.length) {
+    payoutPieChart = new Chart(payoutCtx, {
+      type:'doughnut',
+      data:{ labels: payoutKindCountEntries.map(([k])=>String(k)), datasets:[{ data: payoutKindCountEntries.map(([_,v])=>Number(v)), backgroundColor: chartColors(payoutKindCountEntries.length) }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  const bonusCtx = document.getElementById('bonusPieCanvas');
+  if (bonusCtx && bonusKindTotals.length) {
+    bonusPieChart = new Chart(bonusCtx, {
+      type:'doughnut',
+      data:{ labels: bonusKindTotals.map(([k])=>String(k)), datasets:[{ data: bonusKindTotals.map(([_,v])=>Number(v)), backgroundColor: chartColors(bonusKindTotals.length) }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
 }
 
 function renderResolvedBottom(metaMap){
-  const body = document.getElementById("resultsBody");
-  body.innerHTML = "";
+  const rows = buildLatestResultsByDecision().slice(0,100);
 
-  for (const r of results.slice().reverse().slice(0,100)) {
+  patchTableBody('resultsBody', rows, r => r.decisionId || r.ts, (tr, r) => {
     const a = r.actual || {};
     const wg = a.wholeGame || {};
     const tm = a.throwMatch || {};
-    const bonuses = Array.isArray(a.bonuses) ? a.bonuses.map(b => `${b.kind}(${b.points})`).join(", ") : "-";
+    const bonuses = Array.isArray(a.bonuses) ? a.bonuses.map(b => `${b.kind}(${b.points})`).join(', ') : '-';
+    const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard || []);
+    const stakeUsd = Number(configuredUser?.stake_usd ?? wg?.stake_usd ?? 0);
+    const returnedUsd = Number(configuredUser?.returned_usd ?? wg?.returned_usd ?? 0);
+    const pnlUsd = Number(configuredUser?.pnl_usd ?? wg?.pnl_usd ?? 0);
 
-    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.ts)}</td>
       <td>${esc(shortHex(r.gameId))}</td>
-      <td class="${a.matched ? "ok" : "warn"}">${a.matched ? "yes" : "no"}</td>
-      <td>${tm.hole_type ?? "-"}</td>
-      <td>${fmtNum(wg.stake_usd,2)}</td>
-      <td>${fmtNum(wg.returned_usd,2)}</td>
-      <td class="${Number(wg.pnl_usd ?? 0) >= 0 ? "ok" : "pink"}">${fmtNum(wg.pnl_usd,2)}</td>
+      <td class="${a.matched ? 'ok' : 'warn'}">${a.matched ? 'yes' : 'no'}</td>
+      <td>${tm.hole_type != null ? holeTypeLabel(tm.hole_type) : '-'}</td>
+      <td>${fmtNum(stakeUsd,2)}</td>
+      <td>${fmtNum(returnedUsd,2)}</td>
+      <td class="${Number(pnlUsd) >= 0 ? 'ok' : 'pink'}">${fmtNum(pnlUsd,2)}</td>
       <td>${esc(objectEntriesDisplayUnits(wg.inputs_by_asset, metaMap))}</td>
       <td>${esc(objectEntriesDisplayUnits(wg.outputs_by_asset, metaMap))}</td>
       <td>${esc(bonuses)}</td>
     `;
-    body.appendChild(tr);
-  }
+  });
 }
 
 function renderCharts(games){
@@ -953,23 +1170,23 @@ function renderCharts(games){
     const rows = games.slice(0,20).reverse();
     const labels = rows.map(g => shortHex(g.gameId));
     const pnlSeries = rows.map(g => Number(g.pnlUsd || 0));
-    const totalSeries = rows.map(g => Number(g.resolvedCount > 0 ? g.stakeUsd : g.pendingUsd || 0));
+    const totalSeries = rows.map(g => Number(g.resolvedCount > 0 ? g.stakeUsd : (g.pendingUsd || (Number(String(g.latestStakeRaw || 0))/1e8 || 0))));
 
-    profitChart = new Chart(document.getElementById("profitChart"), {
-      type: "bar",
+    profitChart = new Chart(document.getElementById('profitChart'), {
+      type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: "Game PnL USD", data: pnlSeries, backgroundColor: "rgba(101,255,176,.35)", borderColor: "#65ffb0" },
-          { label: "Game Total USD", data: totalSeries, backgroundColor: "rgba(82,230,255,.24)", borderColor: "#52e6ff" }
+          { label: 'Game PnL USD', data: pnlSeries, backgroundColor: 'rgba(101,255,176,.35)', borderColor: '#65ffb0' },
+          { label: 'Game Total USD', data: totalSeries, backgroundColor: 'rgba(82,230,255,.24)', borderColor: '#52e6ff' }
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: "#d9ecff" } } },
+        plugins: { legend: { labels: { color: '#d9ecff' } } },
         scales: {
-          x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
-          y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+          x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+          y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
         }
       }
     });
@@ -979,19 +1196,19 @@ function renderCharts(games){
       y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
     }));
 
-    positionChart = new Chart(document.getElementById("positionChart"), {
-      type: "scatter",
+    positionChart = new Chart(document.getElementById('positionChart'), {
+      type: 'scatter',
       data: {
         datasets: [
-          { label: "All Throws", data: allPos, backgroundColor: "rgba(255,79,216,.35)", borderColor: "#ff4fd8" }
+          { label: 'All Throws', data: allPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: "#d9ecff" } } },
+        plugins: { legend: { labels: { color: '#d9ecff' } } },
         scales: {
-          x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
-          y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+          x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+          y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
         }
       }
     });
@@ -1002,25 +1219,25 @@ function renderCharts(games){
   const g = games.find(x => x.gameId === selectedGameId);
   if (!g) return;
 
-  const labels = g.rowsResults.map((r,i) => `${i+1}`);
-  const pnlSeries = g.rowsResults.map(r => Number(r?.actual?.wholeGame?.pnl_usd ?? 0));
-  const returnedSeries = g.rowsResults.map(r => Number(r?.actual?.wholeGame?.returned_usd ?? 0));
+  const labels = g.rowsResults.slice().reverse().map((r,i) => `${i+1}`);
+  const pnlSeries = g.rowsResults.slice().reverse().map(r => Number(r?.actual?.wholeGame?.pnl_usd ?? 0));
+  const returnedSeries = g.rowsResults.slice().reverse().map(r => Number(r?.actual?.wholeGame?.returned_usd ?? 0));
 
-  profitChart = new Chart(document.getElementById("profitChart"), {
-    type: "line",
+  profitChart = new Chart(document.getElementById('profitChart'), {
+    type: 'line',
     data: {
       labels,
       datasets: [
-        { label: "Selected Game PnL USD", data: pnlSeries, borderColor: "#65ffb0", backgroundColor: "rgba(101,255,176,.12)", tension:.2 },
-        { label: "Selected Game Returned USD", data: returnedSeries, borderColor: "#52e6ff", backgroundColor: "rgba(82,230,255,.12)", tension:.2 }
+        { label: 'Selected Game PnL USD', data: pnlSeries, borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension:.2 },
+        { label: 'Selected Game Returned USD', data: returnedSeries, borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension:.2 }
       ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { color: "#d9ecff" } } },
+      plugins: { legend: { labels: { color: '#d9ecff' } } },
       scales: {
-        x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
-        y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+        x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+        y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
       }
     }
   });
@@ -1030,19 +1247,19 @@ function renderCharts(games){
     y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
   }));
 
-  positionChart = new Chart(document.getElementById("positionChart"), {
-    type: "scatter",
+  positionChart = new Chart(document.getElementById('positionChart'), {
+    type: 'scatter',
     data: {
       datasets: [
-        { label: "Selected Game Throws", data: selectedPos, backgroundColor: "rgba(255,79,216,.35)", borderColor: "#ff4fd8" }
+        { label: 'Selected Game Throws', data: selectedPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }
       ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { color: "#d9ecff" } } },
+      plugins: { legend: { labels: { color: '#d9ecff' } } },
       scales: {
-        x: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } },
-        y: { ticks: { color: "#88a4c6" }, grid: { color: "rgba(82,230,255,.08)" } }
+        x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+        y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
       }
     }
   });
@@ -1122,13 +1339,13 @@ function renderAll(){
 
   if (selectedGameId && !games.find(g => g.gameId === selectedGameId)) {
     selectedGameId = null;
-    document.getElementById("selectionBadge").textContent = "ALL GAMES";
+    document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
   }
 
   updateTopStats(games);
   renderGames(games, metaMap);
   renderScoreboard(games, metaMap);
-  renderHealth(games);
+  renderHealth(games, metaMap);
   renderBank(games, metaMap);
   renderSelectedDetail(games, metaMap);
   renderResolvedBottom(metaMap);
@@ -1142,6 +1359,7 @@ async function refresh(){
       fetchJson("/api/logs/throws"),
       fetchJson("/api/logs/results")
     ]);
+    await maybeRefreshVmBalances();
     renderAll();
   }catch(err){
     console.error(err);
@@ -1167,7 +1385,7 @@ document.getElementById("gamesNext").addEventListener("click", () => {
 });
 document.getElementById("clearSelection").addEventListener("click", () => {
   selectedGameId = null;
-  document.getElementById("selectionBadge").textContent = "ALL GAMES";
+  document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
   renderAll();
 });
 document.getElementById("saveSettingsBtn").addEventListener("click", () => {
