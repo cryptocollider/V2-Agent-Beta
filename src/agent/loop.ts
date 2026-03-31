@@ -12,13 +12,13 @@ import {
   type StoragePaths,
 } from "../core/storage.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
-import { generateGridCandidates } from "../strategy/candidate-gen.js";
+import { generateGridCandidates, shuffleCandidates } from "../strategy/candidate-gen.js";
 import { rankPlannedCandidates, chooseBestRanked, type SearchBudget } from "../strategy/choose.js";
 import { isCandidateBlockedByBankroll } from "../strategy/bankroll.js";
 import { runCandidateAcrossQueueScenarios } from "../sim/planner.js";
 import { controlThrowToPlaceThrowArgs } from "../collider/throw-builder.js";
-import { shuffleCandidates } from "../strategy/candidate-gen.js";
-import { RecentShot } from "../strategy/score.js";
+import type { RecentShot } from "../strategy/score.js";
+import { summarizePredictionFromPlan } from "./prediction-log.js";
 
 export type ColliderClientLike = {
   listGames(statusMask?: number): Promise<GameListItem[]>;
@@ -33,12 +33,9 @@ export type LoopConfig = {
   botUser: Hex32;
   defaultAsset: Hex32;
   defaultAmount: string;
-
   dryRun?: boolean;
   includeSlip1?: boolean;
-
   candidateBudget?: SearchBudget;
-
   candidateGen?: {
     xSteps?: number;
     ySteps?: number;
@@ -46,7 +43,6 @@ export type LoopConfig = {
     speedPcts?: number[];
     spinPcts?: number[];
   };
-
   scoreConfig?: {
     preferredHoleTypes?: number[];
     blockedHoleTypes?: number[];
@@ -54,7 +50,6 @@ export type LoopConfig = {
     fragilityWeight?: number;
     recentShots?: RecentShot[];
   };
-
   sessionId: string;
   storage?: StoragePaths;
 };
@@ -80,6 +75,11 @@ export type RunOnceResult = {
   winnerPayload?: unknown;
   top: TopCandidateView[];
   stoppedBy?: string;
+  diagnostics?: {
+    generatedCandidates: number;
+    eligibleCandidates: number;
+    examinedCount: number;
+  };
 };
 
 function asNumberStringUsd(amountBase: string): number {
@@ -95,19 +95,11 @@ function nextAcceptedHeightFromGame(game: unknown): number {
 
 function pickBestLiveGame(games: GameListItem[], policy: AgentPolicy): GameListItem | null {
   let best: GameListItem | null = null;
-
   for (const g of games) {
     const stakeUsd = Number(g.stake ?? 0);
-
-    if (policy.minGameStakeUsd != null && stakeUsd < policy.minGameStakeUsd) {
-      continue;
-    }
-
-    if (!best || Number(g.stake ?? 0) > Number(best.stake ?? 0)) {
-      best = g;
-    }
+    if (policy.minGameStakeUsd != null && stakeUsd < policy.minGameStakeUsd) continue;
+    if (!best || Number(g.stake ?? 0) > Number(best.stake ?? 0)) best = g;
   }
-
   return best;
 }
 
@@ -117,6 +109,23 @@ function passesGameMinThrow(candidateAmount: string, gameMinThrow: string): bool
   } catch {
     return false;
   }
+}
+
+function sameControl(a: AgentControlThrow, b: AgentControlThrow): boolean {
+  return (
+    a.x === b.x &&
+    a.y === b.y &&
+    a.angleDeg === b.angleDeg &&
+    a.speedPct === b.speedPct &&
+    a.spinPct === b.spinPct &&
+    String(a.amount) === String(b.amount) &&
+    String(a.asset).toLowerCase() === String(b.asset).toLowerCase()
+  );
+}
+
+function normalizeStoppedBy(raw: string | undefined, eligibleCount: number, generatedCount: number): string | undefined {
+  if (raw === "empty" && eligibleCount === 0 && generatedCount > 0) return "empty_no_eligible_candidates";
+  return raw;
 }
 
 function printCycleSummary(
@@ -130,7 +139,6 @@ function printCycleSummary(
     `[${now}] game ${game.game_id.slice(0, 10)}... | throws=${game.throws} | stake=${game.stake} | minThrow=${game.throw_min_value}`,
   );
   console.log(`search stopped=${stoppedBy ?? "unknown"} submitted=${submitted ? "yes" : "no"}`);
-
   for (const row of top.slice(0, 3)) {
     console.log(
       `  #${row.rank} x=${row.x} y=${row.y} ang=${row.angleDeg} spd=${row.speedPct} spin=${row.spinPct} final=${row.final.toFixed(2)} robust=${row.weightedTotal.toFixed(2)} frag=${row.fragilityPenalty.toFixed(2)}`,
@@ -168,7 +176,6 @@ export async function runAgentOnce(
         top: [],
       });
     }
-
     return empty;
   }
 
@@ -196,10 +203,7 @@ export async function runAgentOnce(
   });
 
   const filtered: AgentControlThrow[] = rawCandidates.filter((c) => {
-    if (!passesGameMinThrow(c.amount, chosenGame.throw_min_value)) {
-      return false;
-    }
-
+    if (!passesGameMinThrow(c.amount, chosenGame.throw_min_value)) return false;
     const candidateUsd = asNumberStringUsd(c.amount);
     return !isCandidateBlockedByBankroll(candidateUsd, policy, {
       smallThrowsPlaced: 0,
@@ -210,7 +214,6 @@ export async function runAgentOnce(
   const maxCandidates = cfg.candidateBudget?.maxCandidates ?? filtered.length;
   const shuffled = shuffleCandidates(filtered);
   const limited = shuffled.slice(0, maxCandidates);
-
   const nextAcceptedHeight = nextAcceptedHeightFromGame(game);
 
   const planned = await Promise.all(
@@ -231,6 +234,7 @@ export async function runAgentOnce(
 
   const ranked = rankPlannedCandidates(planned, cfg.scoreConfig);
   const chosen = chooseBestRanked(ranked, cfg.candidateBudget);
+  const normalizedStoppedBy = normalizeStoppedBy(chosen.stoppedBy, filtered.length, rawCandidates.length);
 
   const top: TopCandidateView[] = chosen.ranked.slice(0, 5).map((r, i) => ({
     rank: i + 1,
@@ -247,8 +251,7 @@ export async function runAgentOnce(
   }));
 
   if (!chosen.winner) {
-    printCycleSummary(chosenGame, top, chosen.stoppedBy, false);
-
+    printCycleSummary(chosenGame, top, normalizedStoppedBy, false);
     if (cfg.storage) {
       await appendRunLog(cfg.storage, {
         ts: new Date().toISOString(),
@@ -257,11 +260,12 @@ export async function runAgentOnce(
         gameId,
         botUser: cfg.botUser,
         submitted: false,
-        stoppedBy: chosen.stoppedBy,
+        stoppedBy: normalizedStoppedBy,
         game: {
           throws: chosenGame.throws,
           stake: chosenGame.stake,
           minThrowValue: chosenGame.throw_min_value,
+          status: chosenGame.status,
         },
         search: {
           generatedCandidates: rawCandidates.length,
@@ -274,13 +278,17 @@ export async function runAgentOnce(
         top,
       });
     }
-
     return {
       decisionId: null,
       gameId,
       winnerSubmitted: false,
       top,
-      stoppedBy: chosen.stoppedBy,
+      stoppedBy: normalizedStoppedBy,
+      diagnostics: {
+        generatedCandidates: rawCandidates.length,
+        eligibleCandidates: filtered.length,
+        examinedCount: chosen.examinedCount,
+      },
     };
   }
 
@@ -290,15 +298,16 @@ export async function runAgentOnce(
     chosen.winner.candidate,
     simInput,
   );
-
   const decisionId = makeDecisionId();
+  const chosenPlan = planned.find((p) => sameControl(p.control, chosen.winner!.candidate)) ?? null;
+  const prediction = chosenPlan ? summarizePredictionFromPlan(chosenPlan, cfg.botUser) : null;
 
   if (!cfg.dryRun) {
     console.log("SUBMIT winnerPayload:", JSON.stringify(winnerPayload, null, 2));
     await client.placeThrow(winnerPayload);
   }
 
-  printCycleSummary(chosenGame, top, chosen.stoppedBy, !cfg.dryRun);
+  printCycleSummary(chosenGame, top, normalizedStoppedBy, !cfg.dryRun);
 
   if (cfg.storage) {
     await appendRunLog(cfg.storage, {
@@ -308,7 +317,7 @@ export async function runAgentOnce(
       gameId,
       botUser: cfg.botUser,
       submitted: !cfg.dryRun,
-      stoppedBy: chosen.stoppedBy,
+      stoppedBy: normalizedStoppedBy,
       game: {
         throws: chosenGame.throws,
         stake: chosenGame.stake,
@@ -325,6 +334,17 @@ export async function runAgentOnce(
       },
       top,
       chosenPayload: winnerPayload,
+      prediction: prediction ? {
+        pnlUsd: prediction.pnlUsd,
+        bestPnlUsd: prediction.bestPnlUsd,
+        worstPnlUsd: prediction.worstPnlUsd,
+        scenarioCount: prediction.scenarioCount,
+        winnerValuePct: prediction.winnerValuePct,
+        holeType: prediction.holeType,
+        valueUsd: prediction.valueUsd,
+        valueUsdE8: prediction.valueUsdE8,
+        massUsd: prediction.massUsd,
+      } : undefined,
     });
 
     await appendThrowLog(cfg.storage, {
@@ -343,6 +363,19 @@ export async function runAgentOnce(
         bestCaseTotal: chosen.winner.score.bestCaseTotal,
         fragilityPenalty: chosen.winner.score.fragilityPenalty,
       },
+      prediction: prediction ? {
+        pnlUsd: prediction.pnlUsd,
+        bestPnlUsd: prediction.bestPnlUsd,
+        worstPnlUsd: prediction.worstPnlUsd,
+        scenarioCount: prediction.scenarioCount,
+        winnerScenarioCount: prediction.winnerScenarioCount,
+        winnerValuePct: prediction.winnerValuePct,
+        holeType: prediction.holeType,
+        holeTypeCounts: prediction.holeTypeCounts,
+        valueUsd: prediction.valueUsd,
+        valueUsdE8: prediction.valueUsdE8,
+        massUsd: prediction.massUsd,
+      } : undefined,
     });
   }
 
@@ -352,6 +385,11 @@ export async function runAgentOnce(
     winnerSubmitted: !cfg.dryRun,
     winnerPayload,
     top,
-    stoppedBy: chosen.stoppedBy,
+    stoppedBy: normalizedStoppedBy,
+    diagnostics: {
+      generatedCandidates: rawCandidates.length,
+      eligibleCandidates: filtered.length,
+      examinedCount: chosen.examinedCount,
+    },
   };
 }

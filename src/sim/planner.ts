@@ -11,6 +11,7 @@ import { decodeGameResult, type DecodedGameResult } from "./decode.js";
 export type CandidateScenarioRun = {
   scenario: QueueScenario;
   syntheticThrowId: Hex32;
+  syntheticInput: SimRunInput;
   rawFinalizeBytes: Uint8Array;
   decoded: DecodedGameResult;
   meta: Record<string, unknown>;
@@ -64,6 +65,7 @@ export async function runCandidateAcrossQueueScenarios(
       return {
         scenario,
         syntheticThrowId,
+        syntheticInput,
         rawFinalizeBytes,
         decoded,
         meta: {

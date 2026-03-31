@@ -261,6 +261,56 @@
       color:#cde8ff
     }
 
+    
+
+    .hps-wrap{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:stretch}
+    .hps-main{grid-column:span 8;display:grid;grid-template-columns:repeat(10,1fr);gap:12px}
+    .hps-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px}
+    .hps-card{padding:14px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72)}
+    .hps-card.hero{grid-column:span 4;display:flex;flex-direction:column;justify-content:center;min-height:150px}
+    .hps-card.metric{grid-column:span 3}
+    .hps-card.metric.wide{grid-column:span 6}
+    .hps-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
+    .hps-big{font-size:34px;font-weight:900;color:var(--green);line-height:1.05}
+    .hps-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.4}
+    .hps-value{font-size:24px;font-weight:800;line-height:1.15}
+    .hps-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-top:6px}
+    .hps-small{font-size:12px;color:var(--muted)}
+    .hps-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .info-btn{width:22px;height:22px;min-width:22px;padding:0;border-radius:999px;font-size:12px;line-height:1;border-color:rgba(82,230,255,.18);background:rgba(8,19,33,.9)}
+    .mini-chart{width:100%;height:56px;max-height:56px;margin-top:10px}
+    .hps-card.metric,.hps-card.hero{position:relative}
+    .kpi-help-body{font-size:14px;line-height:1.55;color:var(--text)}
+    .kpi-help-body code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--cyan)}
+    .control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .control-btn{min-height:52px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .control-btn.stop{border-color:rgba(255,107,136,.45);color:#ffd5de}
+    .control-btn.cal{border-color:rgba(255,230,109,.35)}
+    .control-btn.clean{border-color:rgba(255,79,216,.35)}
+    .status-box{padding:12px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72)}
+    .message-bar{min-height:96px;display:flex;flex-direction:column;gap:8px}
+    .message-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+    .message-body{font-size:15px;line-height:1.45;color:var(--text)}
+    .message-meta{font-size:12px;color:var(--muted)}
+    .message-log{max-height:150px;overflow:auto;border-radius:12px;border:1px solid rgba(82,230,255,.12);background:rgba(9,16,28,.55);padding:10px}
+    .message-item{font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid rgba(82,230,255,.08)}
+    .message-item:last-child{border-bottom:0}
+    .section-anchor{scroll-margin-top:18px}
+    @media (max-width:1300px){.hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.chart{grid-column:span 12}.hps-wrap,.hps-main{grid-template-columns:repeat(12,1fr)}}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(3,7,14,.74);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1200;padding:24px}
+    .modal-backdrop.hidden{display:none}
+    .modal-card{width:min(1180px,96vw);max-height:88vh;overflow:auto;border:1px solid rgba(82,230,255,.18);border-radius:18px;background:rgba(10,18,33,.97);box-shadow:0 0 0 1px rgba(82,230,255,.08),0 0 28px rgba(0,180,255,.16);padding:18px}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+    .modal-head h3{margin:0;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;font-size:15px}
+    .modal-close{min-width:42px;padding:8px 12px}
+    .hps-card.chart{grid-column:span 10;min-height:250px}
+    .hps-chart-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+    .hps-badges{display:flex;gap:8px;flex-wrap:wrap}
+    .control-grid.wide{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .pill.active-scope{border-color:rgba(255,230,109,.4);color:var(--yellow)}
+    .view-hidden{display:none!important}
+
     @media (max-width:1300px){
       .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
     }
@@ -274,27 +324,117 @@
       <div class="sub">Agent dashboard & maintainance</div>
     </div>
     <div class="row">
-      <span class="pill ok" id="saveBadge"></span>
+      <span class="pill ok" id="saveBadge">AGENT LIVE</span>
       <span class="pill" id="selectionBadge">VIEWING ALL GAMES</span>
     </div>
   </div>
 
   <div class="nav">
-    <button data-jump="gamesSection">Games</button>
-    <button data-jump="selectedSection">Selected Game</button>
-    <button data-jump="settingsSection">Settings</button>
-    <button data-jump="resolvedSection">Resolved</button>
+    <button id="navHonestBtn" type="button">Honest Score</button>
+    <button id="navGamesBtn" type="button">Games Review</button>
+    <button id="navSettingsBtn" type="button">Settings</button>
+    <button id="navResolvedBtn" type="button">Throws Resolved</button>
   </div>
 
   <div class="grid">
-    <div class="panel stat"><div class="k">Tracked Games</div><div id="gamesCount" class="v">0</div></div>
-    <div class="panel stat"><div class="k">Resolved Games</div><div id="resolvedGamesCount" class="v">0</div></div>
-    <div class="panel stat"><div class="k">Pending Throws</div><div id="pendingThrowsCount" class="v">0</div></div>
-    <div class="panel stat"><div class="k">Total PnL USD</div><div id="pnlTotal" class="v">0</div></div>
-    <div class="panel stat"><div class="k">Pending USD</div><div id="pendingUsd" class="v">0</div></div>
-    <div class="panel stat"><div class="k">Total In System</div><div id="inSystemUsd" class="v">0</div></div>
+    <div class="panel wide section-anchor" id="honestySection">
+      <div class="title2">Honest Performance Score</div>
+      <div class="hps-wrap">
+        <div class="hps-main">
+          <div class="hps-card hero">
+            <div class="hps-head"><div class="hps-label">Honest Performance Score</div><button class="info-btn" data-kpi-info="honest_score" type="button">?</button></div>
+            <div class="hps-big" id="honestScoreValue">Waiting</div>
+            <div class="hps-sub" id="honestScoreSummary">This score measures whether the agent’s own expectations are converging toward reality while real performance improves. Profit is tracked per game. Win quality is tracked per throw, but the headline win % is based on USD value into Winner holes, not raw throw count.</div>
+            <div class="row" style="margin-top:10px">
+              <span class="pill active-scope" id="scoreScopeBadge">Scope: All Data</span>
+              <span class="pill" id="scoreProgressBadge">Progress: 0</span>
+            </div>
+            <canvas class="mini-chart" id="miniHonestScoreChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric">
+            <div class="hps-head"><div class="hps-label">Predicted Profit</div><button class="info-btn" data-kpi-info="predicted_profit" type="button">?</button></div>
+            <div class="hps-value" id="hpsPredictedProfit">Waiting</div>
+            <div class="hps-small" id="hpsPredictedProfitMeta">Per-game prediction • waiting for logged expected outcome</div>
+            <canvas class="mini-chart" id="miniPredictedProfitChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric">
+            <div class="hps-head"><div class="hps-label">Actual Profit</div><button class="info-btn" data-kpi-info="actual_profit" type="button">?</button></div>
+            <div class="hps-value" id="hpsActualProfit">$0</div>
+            <div class="hps-small" id="hpsActualProfitMeta">0 games / $0 per game</div>
+            <canvas class="mini-chart" id="miniActualProfitChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric">
+            <div class="hps-head"><div class="hps-label">Predicted Win-Hole %</div><button class="info-btn" data-kpi-info="predicted_win_pct" type="button">?</button></div>
+            <div class="hps-value" id="hpsPredictedWinPct">Waiting</div>
+            <div class="hps-small" id="hpsPredictedWinPctMeta">Throw-level expectation • waiting for logged predicted hole outcomes</div>
+            <canvas class="mini-chart" id="miniPredictedWinChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric">
+            <div class="hps-head"><div class="hps-label">Actual Win-Hole %</div><button class="info-btn" data-kpi-info="actual_win_pct" type="button">?</button></div>
+            <div class="hps-value" id="hpsActualWinPct">0%</div>
+            <div class="hps-small" id="hpsActualWinPctMeta">0 throws / 0 wins • % is USD into Winner</div>
+            <canvas class="mini-chart" id="miniActualWinChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric wide">
+            <div class="hps-head"><div class="hps-label">Calibration Gap</div><button class="info-btn" data-kpi-info="calibration_gap" type="button">?</button></div>
+            <div class="hps-row"><div class="hps-value" id="hpsCalibrationGap">Waiting</div><div class="hps-small" id="hpsCalibrationGapMeta">((real / expected) - 1) × 100 • profit + win components</div></div>
+            <canvas class="mini-chart" id="miniGapChart" height="56"></canvas>
+          </div>
+          <div class="hps-card metric wide">
+            <div class="hps-head"><div class="hps-label">Consistency Over Time</div><button class="info-btn" data-kpi-info="consistency" type="button">?</button></div>
+            <div class="hps-row"><div class="hps-value" id="hpsConsistency">Waiting</div><div class="hps-small" id="hpsConsistencyMeta">Gap should shrink while real performance rises</div></div>
+            <canvas class="mini-chart" id="miniConsistencyChart" height="56"></canvas>
+          </div>
+          <div class="hps-card chart">
+            <div class="hps-chart-meta">
+              <div>
+                <div class="hps-label" style="margin-bottom:4px">Score Flow</div>
+                <div class="hps-small" id="hpsTrendMeta">Tracks honest score, actual profit, and actual win quality across the current scoring window.</div>
+              </div>
+              <div class="hps-badges">
+                <span class="pill" id="hpsTrendGames">0 games</span>
+                <span class="pill" id="hpsTrendThrows">0 throws</span>
+                <span class="pill" id="hpsTrendPredictions">0 predictions</span>
+              </div>
+            </div>
+            <canvas id="hpsTrendChart" height="180"></canvas>
+          </div>
+        </div>
+        <div class="hps-side">
+          <div class="status-box">
+            <div class="hps-label">Controls</div>
+            <div class="control-grid wide">
+              <button class="control-btn" id="ctlStart">Start</button>
+              <button class="control-btn stop" id="ctlStop">Stop</button>
+              <button class="control-btn" id="ctlSettings">Settings</button>
+              <button class="control-btn cal" id="ctlCalibrate">Calibrate 50</button>
+              <button class="control-btn clean" id="ctlFullClean">Full Clean 2000</button>
+              <button class="control-btn" id="ctlUseAllData">Use All Data</button>
+              <button class="control-btn" id="ctlResetScores">Reset Scores</button>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <span class="pill" id="controlStateBadge">State: Live</span>
+              <span class="pill" id="controlModeBadge">Mode: Regular</span>
+            </div>
+          </div>
+          <div class="status-box message-bar">
+            <div class="message-title">Real-time Agent Feedback</div>
+            <div class="message-body" id="agentMessageBody">Waiting for agent activity…</div>
+            <div class="message-meta" id="agentMessageMeta">No recent cycle yet.</div>
+          </div>
+          <div class="message-log" id="agentMessageLog"></div>
+        </div>
+      </div>
+    </div>
 
-    <div class="panel wide" id="gamesSection">
+    <div class="panel stat games-review view-hidden" id="statsTrackedPanel"><div class="k">Tracked Games</div><div id="gamesCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsResolvedPanel"><div class="k">Resolved Games</div><div id="resolvedGamesCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsPendingPanel"><div class="k">Pending Throws</div><div id="pendingThrowsCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsPnlPanel"><div class="k">Total PnL USD</div><div id="pnlTotal" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsPendingUsdPanel"><div class="k">Pending USD</div><div id="pendingUsd" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsSystemPanel"><div class="k">Total In System</div><div id="inSystemUsd" class="v">0</div></div>
+
+    <div class="panel wide games-review view-hidden" id="gamesSection">
       <div class="title2">Games</div>
       <div class="table-wrap" style="max-height:430px">
         <table>
@@ -304,11 +444,11 @@
               <th>Status</th>
               <th>Scans</th>
               <th>Candidates</th>
-              <th>Throws</th>
-              <th>Pending</th>
+              <th>Throws A/T</th>
+              <th>Pending A</th>
               <th>Game Total</th>
               <th>PnL USD</th>
-              <th>Pending USD</th>
+              <th>Predicted PnL</th>
               <th>Points</th>
               <th>Assets In</th>
               <th>Assets Out</th>
@@ -328,17 +468,17 @@
       </div>
     </div>
 
-    <div class="panel four">
+    <div class="panel four games-review view-hidden" id="gamesReviewScoreboardPanel">
       <div class="title2">Selected Game Scoreboard</div>
       <div id="scoreboardPanel" class="kv"></div>
     </div>
 
-    <div class="panel four">
+    <div class="panel four games-review view-hidden" id="gamesReviewHealthPanel">
       <div class="title2">Session Health</div>
       <div id="healthPanel" class="kv"></div>
     </div>
 
-    <div class="panel four">
+    <div class="panel four games-review view-hidden" id="gamesReviewBankPanel">
       <div class="title2">Bank</div>
       <div class="table-wrap" style="max-height:250px">
         <table style="min-width:100%">
@@ -350,17 +490,17 @@
       </div>
     </div>
 
-    <div class="panel half">
+    <div class="panel half games-review view-hidden" id="gamesReviewProfitPanel">
       <div class="title2">Profit / Game Total</div>
       <canvas id="profitChart" height="180"></canvas>
     </div>
 
-    <div class="panel half">
+    <div class="panel half games-review view-hidden" id="gamesReviewPositionPanel">
       <div class="title2">Throw Positions</div>
       <canvas id="positionChart" height="180"></canvas>
     </div>
 
-    <div class="panel eight" id="selectedSection">
+    <div class="panel eight games-review view-hidden" id="selectedSection">
       <div class="title2">Selected Game Throw Detail</div>
       <div class="row">
         <span class="pill" id="selGameId">Game: All Games</span>
@@ -373,7 +513,7 @@
         <table>
           <thead>
             <tr>
-              <th>Time</th><th>Decision</th><th>Submitted</th><th>Asset</th><th>Amount</th><th>X</th><th>Y</th><th>Angle</th><th>VX</th><th>VY</th><th>Spin</th><th>Score</th><th>Hole</th><th>Value USD</th><th>Mass USD</th>
+              <th>Time</th><th>Decision</th><th>Submitted</th><th>Asset</th><th>Amount</th><th>X</th><th>Y</th><th>Angle</th><th>VX</th><th>VY</th><th>Spin</th><th>Score</th><th>Predicted Hole</th><th>Hole</th><th>Value USD</th><th>Mass USD</th>
             </tr>
           </thead>
           <tbody id="selectedThrowsBody"></tbody>
@@ -381,51 +521,68 @@
       </div>
     </div>
 
-    <div class="panel four">
+    <div class="panel four games-review view-hidden" id="gamesReviewAnalyticsPanel">
       <div class="title2">Selected Game Analytics</div>
       <div class="cards" id="analyticsCards"></div>
     </div>
 
-    <div class="panel wide" id="settingsSection">
-      <div class="title2">Settings</div>
-      <div class="row">
-        <div class="field"><label>RPC URL</label><input id="s_rpc" /></div>
-        <div class="field"><label>WASM Path</label><input id="s_wasm" /></div>
-        <div class="field"><label>User</label><input id="s_user" /></div>
-        <div class="field"><label>Asset</label><input id="s_asset" /></div>
-        <div class="field"><label>Amount</label><input id="s_amount" /></div>
-        <div class="field"><label>Max Candidates</label><input id="s_maxCandidates" /></div>
-        <div class="field"><label>Max ms</label><input id="s_maxMs" /></div>
-        <div class="field"><label>Poll ms</label><input id="s_pollMs" /></div>
-        <div class="field"><label>Max Throws / Game</label><input id="s_maxThrowsPerGame" /></div>
-        <div class="field"><label>Max Throws / Session</label><input id="s_maxThrowsPerSession" /></div>
-        <div class="field"><label>Min ms Between Live</label><input id="s_minMillisBetweenLiveThrows" /></div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button id="saveSettingsBtn">Save Settings</button>
-        <span class="muted">Settings also auto-save and apply to the running agent on the next cycle</span>
-      </div>
-      <div class="title2" style="margin-top:16px">Launch Summary</div>
-      <pre id="cmdPreview"></pre>
-    </div>
 
-    <div class="panel wide" id="resolvedSection">
+    <div class="panel wide view-hidden" id="resolvedSection">
       <div class="title2">Resolved Outcomes</div>
       <div class="table-wrap" style="max-height:900px">
         <table>
           <thead>
             <tr>
-              <th>Time</th><th>Game</th><th>Matched</th><th>Hole</th><th>Stake USD</th><th>Returned USD</th><th>PnL USD</th><th>Input Assets</th><th>Output Assets</th><th>Bonuses</th>
+              <th>Time</th><th>Game</th><th>Matched</th><th>Predicted Hole</th><th>Hole</th><th>Stake USD Δ</th><th>Returned USD Δ</th><th>PnL USD Δ</th><th>Input Assets</th><th>Output Assets</th><th>Bonuses</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
     </div>
+  
+</div>
+
+<div id="settingsModal" class="modal-backdrop hidden" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Settings</h3>
+      <button class="modal-close" id="settingsModalClose" type="button">✕</button>
+    </div>
+    <div class="row">
+      <div class="field"><label>RPC URL</label><input id="s_rpc" /></div>
+      <div class="field"><label>WASM Path</label><input id="s_wasm" /></div>
+      <div class="field"><label>User</label><input id="s_user" /></div>
+      <div class="field"><label>Asset</label><input id="s_asset" /></div>
+      <div class="field"><label>Amount</label><input id="s_amount" /></div>
+      <div class="field"><label>Max Candidates</label><input id="s_maxCandidates" /></div>
+      <div class="field"><label>Max ms</label><input id="s_maxMs" /></div>
+      <div class="field"><label>Poll ms</label><input id="s_pollMs" /></div>
+      <div class="field"><label>Max Throws / Game</label><input id="s_maxThrowsPerGame" /></div>
+      <div class="field"><label>Max Throws / Session</label><input id="s_maxThrowsPerSession" /></div>
+      <div class="field"><label>Min ms Between Live</label><input id="s_minMillisBetweenLiveThrows" /></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="saveSettingsBtn" type="button">Save Settings</button>
+      <span class="muted">Settings auto-save and apply to the running agent on the next cycle.</span>
+    </div>
+    <div class="title2" style="margin-top:16px">Launch Summary</div>
+    <pre id="cmdPreview"></pre>
+  </div>
+</div>
+
+<div id="kpiInfoModal" class="modal-backdrop hidden" aria-hidden="true">
+  <div class="modal-card" style="width:min(760px,94vw)">
+    <div class="modal-head">
+      <h3 id="kpiInfoTitle">KPI</h3>
+      <button class="modal-close" id="kpiInfoClose" type="button">✕</button>
+    </div>
+    <div class="kpi-help-body" id="kpiInfoBody"></div>
   </div>
 </div>
 
 <script>
+
 let runs = [], throwsRows = [], results = [], settings = {};
 let gamesPage = 0;
 const GAMES_PAGE_SIZE = 12;
@@ -438,6 +595,15 @@ let payoutPieChart = null;
 let bonusPieChart = null;
 let vmBalances = {};
 let lastVmBalancesFetch = 0;
+let liveGameStates = new Map();
+let lastVmGameStatesFetch = 0;
+let controlState = { mode: "regular", state: "live", lastAction: null, lastMessage: null };
+let lastControlFetch = 0;
+let hpsTrendChart = null;
+let miniCharts = {};
+let controlApiAvailable = false;
+const SCORE_SCOPE_KEY = "cc_agent_monitor_score_scope_v1";
+let scoreScopeState = { mode:"all_data", startTs:null, targetThrows:null, exclusive:false, label:"All Data" };
 
 const defaultAssetMeta = {
   "0101010101010101010101010101010101010101010101010101010101010101": { symbol: "USDC", decimals: 8 },
@@ -447,6 +613,54 @@ const defaultAssetMeta = {
 
 function cleanHex(v){ return String(v ?? "").toLowerCase().replace(/^0x/,""); }
 function shortHex(v){ if(!v||typeof v!=="string") return "-"; return v.length>14 ? `${v.slice(0,10)}…` : v; }
+
+function with0x(v){ const h = cleanHex(v); return h ? (String(v).startsWith('0x') ? String(v) : `0x${h}`) : ''; }
+function safeJsonParse(text, fallback){ try { return JSON.parse(text); } catch { return fallback; } }
+function loadScoreScopeState(){
+  const raw = localStorage.getItem(SCORE_SCOPE_KEY);
+  if (!raw) return;
+  const parsed = safeJsonParse(raw, null);
+  if (parsed && typeof parsed === 'object') scoreScopeState = { ...scoreScopeState, ...parsed };
+}
+function persistScoreScopeState(){
+  localStorage.setItem(SCORE_SCOPE_KEY, JSON.stringify(scoreScopeState));
+}
+function setScoreScope(mode, opts = {}){
+  const startTs = opts.startTs || new Date().toISOString();
+  scoreScopeState = {
+    mode,
+    startTs: mode === 'all_data' ? null : startTs,
+    targetThrows: opts.targetThrows ?? null,
+    exclusive: !!opts.exclusive,
+    label: opts.label || (mode === 'all_data' ? 'All Data' : mode === 'reset_window' ? 'Since Reset' : mode === 'calibrate_50' ? 'Calibration 50' : mode === 'full_clean_2000' ? 'Full Clean 2000' : mode)
+  };
+  persistScoreScopeState();
+}
+function inScoreScope(ts){
+  if (scoreScopeState.mode === 'all_data' || !scoreScopeState.startTs) return true;
+  return new Date(ts || 0).getTime() >= new Date(scoreScopeState.startTs).getTime();
+}
+function scopeFilter(rows){ return (rows || []).filter(r => inScoreScope(r?.ts)); }
+function extractPredictedPnlUsd(row){
+  const candidates = [row?.predictedPnlUsd, row?.prediction?.pnlUsd, row?.prediction?.predictedPnlUsd, row?.winner?.predictedPnlUsd, row?.scorePrediction?.pnlUsd];
+  for (const v of candidates){ const n = Number(v); if (Number.isFinite(n)) return n; }
+  return null;
+}
+function extractPredictedWinPct(row){
+  const candidates = [row?.predictedWinHolePct, row?.prediction?.winHolePct, row?.prediction?.predictedWinHolePct, row?.prediction?.winnerValuePct];
+  for (const v of candidates){ const n = Number(v); if (Number.isFinite(n)) return n; }
+  return null;
+}
+function extractPredictedHoleType(row){
+  const candidates = [row?.predictedHoleType, row?.prediction?.holeType, row?.prediction?.predictedHoleType];
+  for (const v of candidates){ if (v != null && v !== '') return Number(v); }
+  return null;
+}
+function extractPredictedValueUsd(row){
+  const candidates = [row?.predictedValueUsd, row?.prediction?.valueUsd, row?.prediction?.predictedValueUsd];
+  for (const v of candidates){ const n = Number(v); if (Number.isFinite(n)) return n; }
+  return null;
+}
 function fmtNum(v,d=2){ const n=Number(v); return Number.isFinite(n)?n.toFixed(d):"-"; }
 function esc(s){ return String(s ?? "").replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
 async function fetchJson(url){ const r=await fetch(url,{cache:"no-store"}); return await r.json(); }
@@ -553,6 +767,563 @@ function statusLabel(code){
     case 4: return "Settled";
     default: return null;
   }
+}
+
+
+
+function winnerHoleTypes(){
+  return new Set([3]);
+}
+
+function holeTypeLabel(id){
+  const n = Number(id);
+  return ({
+    1: 'Return',
+    2: 'Lose 100%',
+    3: 'Winner',
+    4: 'Lose 50%',
+    5: 'Tournament / Special'
+  }[n] || `Type ${id}`);
+}
+
+function gameStatePriority(status){
+  const s = Number(status ?? -1);
+  if (s === 0) return 0;
+  if (s === 1) return 1;
+  if (s >= 2) return 2;
+  return 3;
+}
+
+function extractRpcGameState(raw){
+  if (!raw || typeof raw !== 'object') return null;
+  const src = (raw.game && typeof raw.game === 'object' && raw.game.game_id != null) ? raw.game : raw;
+  return {
+    gameId: cleanHex(src.game_id || src.id || ''),
+    status: src.status != null ? Number(src.status) : null,
+    stakeRaw: src.stake != null ? String(src.stake) : null,
+    throwsCount: src.throws != null ? Number(src.throws) : null,
+    throwMinValue: src.throw_min_value != null ? src.throw_min_value : (src.params?.throw_min_value ?? null),
+    updatedAt: Date.now()
+  };
+}
+
+async function maybeRefreshVmGameStates(gameIds){
+  if (!settings?.rpc || !Array.isArray(gameIds) || !gameIds.length) return;
+  const now = Date.now();
+  if (now - lastVmGameStatesFetch < 4000) return;
+  lastVmGameStatesFetch = now;
+  try {
+    const next = new Map(liveGameStates);
+    const jobs = gameIds.slice(0, 100).map(async (gid) => {
+      const prev = next.get(cleanHex(gid));
+      if (Number(prev?.status ?? -1) >= 4) return;
+      try {
+        const raw = await rpcCall(settings.rpc, 'colliderV2.getGame', [with0x(gid)]);
+        const parsed = extractRpcGameState(raw);
+        if (parsed?.gameId) next.set(parsed.gameId, parsed);
+      } catch (err) {
+        console.warn('getGame failed', gid, err);
+      }
+    });
+    await Promise.all(jobs);
+    liveGameStates = next;
+  } catch (err) {
+    console.warn('maybeRefreshVmGameStates failed', err);
+  }
+}
+
+async function maybeRefreshControlState(){
+  return;
+}
+
+async function postControlAction(action, payload = {}){
+  const friendly = {
+    start: 'Start requested.',
+    stop: 'Stop requested.',
+    calibrate: 'Calibration run requested (50 throws).',
+    full_clean: 'Full clean requested (2000 throws, exclusive).'
+  }[action] || `Action ${action} requested.`;
+
+  controlState = {
+    ...controlState,
+    lastAction: { action, ts: new Date().toISOString(), ...payload },
+    lastMessage: friendly,
+    mode: action === 'calibrate' ? 'calibrate-50' : action === 'full_clean' ? 'full-clean-2000' : (action === 'stop' ? 'stopping' : 'regular'),
+    state: action === 'stop' ? 'stopping' : 'live'
+  };
+
+  try {
+    const res = await fetch('/api/control/action', {
+      method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ action, ...payload })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json().catch(() => ({}));
+    if (json && typeof json === 'object') controlState = { ...controlState, ...json };
+    controlApiAvailable = true;
+  } catch (err) {
+    controlApiAvailable = false;
+    controlState.lastMessage = `${friendly} Control endpoint unavailable; add /api/control/action to make buttons live.`;
+  }
+  renderAll();
+}
+
+function describeScoreScopeProgress(){
+  const scopedThrows = scopeFilter(throwsRows).filter(t => t?.submitted);
+  const count = scopedThrows.length;
+  if (scoreScopeState.mode === 'all_data') return `All data • ${count} submitted throws in scope.`;
+  if (scoreScopeState.targetThrows) {
+    const pct = Math.min(100, (count / Math.max(scoreScopeState.targetThrows, 1)) * 100);
+    return `${scoreScopeState.label} • ${count}/${scoreScopeState.targetThrows} throws (${formatDisplayNumber(pct)}%)`;
+  }
+  return `${scoreScopeState.label} • ${count} submitted throws in scope.`;
+}
+function openSettingsModal(){
+  const el = document.getElementById('settingsModal');
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.setAttribute('aria-hidden', 'false');
+}
+function closeSettingsModal(){
+  const el = document.getElementById('settingsModal');
+  if (!el) return;
+  el.classList.add('hidden');
+  el.setAttribute('aria-hidden', 'true');
+}
+
+function latestAgentSignal(){
+  const latestRun = [...runs].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0))[0] || null;
+  const latestThrow = [...throwsRows].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0))[0] || null;
+  const latestResult = [...results].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0))[0] || null;
+  return { latestRun, latestThrow, latestResult };
+}
+
+function buildPredictedThrowStatsByGame(rows){
+  const out = new Map();
+  for (const row of (rows || [])) {
+    if (!row?.submitted) continue;
+    const gid = cleanHex(row?.gameId);
+    if (!gid) continue;
+    const prev = out.get(gid) || { throws: 0, wins: 0, value: 0, winValue: 0 };
+    const ph = extractPredictedHoleType(row);
+    const pv = extractPredictedValueUsd(row);
+    const pp = extractPredictedWinPct(row);
+
+    if (ph != null) {
+      prev.throws += 1;
+      if (winnerHoleTypes().has(Number(ph))) prev.wins += 1;
+    }
+
+    const value = Number(pv);
+    if (Number.isFinite(value) && value > 0) {
+      prev.value += value;
+      if (pp != null && Number.isFinite(Number(pp))) prev.winValue += value * (Number(pp) / 100);
+      else if (ph != null && winnerHoleTypes().has(Number(ph))) prev.winValue += value;
+    }
+
+    out.set(gid, prev);
+  }
+  return out;
+}
+
+let dataDiagnostics = new Set();
+function resetDataDiagnostics(){ dataDiagnostics = new Set(); }
+function addDataDiagnostic(message, sample){
+  if (!dataDiagnostics.has(message)) {
+    console.error(message, sample ?? '');
+    dataDiagnostics.add(message);
+  }
+}
+function errorText(message){ return `ERR ${message}`; }
+function getConfiguredUserScoreExact(perUserScoreboard, context){
+  const target = cleanHex(settings?.user || '');
+  if (!target) { addDataDiagnostic('missing settings.user', context); return null; }
+  if (!Array.isArray(perUserScoreboard)) { addDataDiagnostic('missing actual.wholeGame.per_user_scoreboard', context); return null; }
+  const row = perUserScoreboard.find(r => cleanHex(r?.user || '') === target) || null;
+  if (!row) addDataDiagnostic(`configured user not found in per_user_scoreboard (${context || 'unknown'})`, perUserScoreboard);
+  return row;
+}
+function getRunPredictionExact(runRow){
+  if (!runRow?.prediction) return null;
+  return runRow.prediction;
+}
+function getThrowPredictionExact(throwRow){
+  if (!throwRow?.prediction) return null;
+  return throwRow.prediction;
+}
+function getActualHoleInfo(resultRow){
+  const ht = resultRow?.actual?.throwMatch?.hole_type;
+  if (ht == null) {
+    addDataDiagnostic(`missing actual.throwMatch.hole_type (${resultRow?.decisionId || 'unknown'})`, resultRow);
+    return { ok:false, value:null, label:errorText('missing actual.throwMatch.hole_type') };
+  }
+  return { ok:true, value:Number(ht), label:holeTypeLabel(Number(ht)) };
+}
+function getPredictedHoleInfo(throwRow){
+  const ht = throwRow?.prediction?.holeType;
+  if (ht == null) {
+    addDataDiagnostic(`missing throw.prediction.holeType (${throwRow?.decisionId || 'unknown'})`, throwRow);
+    return { ok:false, value:null, label:errorText('missing throw.prediction.holeType') };
+  }
+  return { ok:true, value:Number(ht), label:holeTypeLabel(Number(ht)) };
+}
+function getPredictedRunByGame(){
+  return latestByKey((runs || []).filter(r => r?.prediction?.pnlUsd != null && r?.gameId), r => cleanHex(r.gameId));
+}
+function buildResolvedDeltaRows(rows){
+  const byGame = new Map();
+  for (const row of (rows || [])) {
+    const gid = cleanHex(row?.gameId || '');
+    if (!gid) continue;
+    if (!byGame.has(gid)) byGame.set(gid, []);
+    byGame.get(gid).push(row);
+  }
+  const out = [];
+  for (const [gid, gameRows] of byGame.entries()) {
+    gameRows.sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+    let prevStake = 0, prevReturned = 0, prevPnl = 0;
+    for (const row of gameRows) {
+      const scoreboard = getConfiguredUserScoreExact(row?.actual?.wholeGame?.per_user_scoreboard, row?.decisionId || gid);
+      if (!scoreboard) {
+        out.push({ row, deltaStakeUsd:null, deltaReturnedUsd:null, deltaPnlUsd:null, actualHole:getActualHoleInfo(row) });
+        continue;
+      }
+      const curStake = Number(scoreboard?.stake_usd ?? 0);
+      const curReturned = Number(scoreboard?.returned_usd ?? 0);
+      const curPnl = Number(scoreboard?.pnl_usd ?? 0);
+      out.push({
+        row,
+        deltaStakeUsd: curStake - prevStake,
+        deltaReturnedUsd: curReturned - prevReturned,
+        deltaPnlUsd: curPnl - prevPnl,
+        actualHole: getActualHoleInfo(row)
+      });
+      prevStake = curStake;
+      prevReturned = curReturned;
+      prevPnl = curPnl;
+    }
+  }
+  out.sort((a,b) => new Date(b.row?.ts || 0) - new Date(a.row?.ts || 0));
+  return out;
+}
+function setMainView(mode){
+  const honest = document.getElementById('honestySection');
+  const resolved = document.getElementById('resolvedSection');
+  const reviewIds = ['statsTrackedPanel','statsResolvedPanel','statsPendingPanel','statsPnlPanel','statsPendingUsdPanel','statsSystemPanel','gamesSection','gamesReviewScoreboardPanel','gamesReviewHealthPanel','gamesReviewBankPanel','gamesReviewProfitPanel','gamesReviewPositionPanel','selectedSection','gamesReviewAnalyticsPanel'];
+  const showReview = mode === 'games';
+  if (honest) honest.classList.toggle('view-hidden', mode !== 'honest');
+  if (resolved) resolved.classList.toggle('view-hidden', mode !== 'resolved');
+  reviewIds.forEach(id => { const el=document.getElementById(id); if (el) el.classList.toggle('view-hidden', !showReview); });
+}
+
+function buildAgentMessages(metaMap){
+  const { latestRun, latestThrow, latestResult } = latestAgentSignal();
+  const items = [];
+
+  if (latestThrow) {
+    const p = latestThrow.payload || {};
+    items.push({
+      ts: latestThrow.ts,
+      text: latestThrow.submitted
+        ? `Submitted ${formatBaseUnits(p.amount || '0', p.asset || settings.asset || '', metaMap)} into ${shortHex(latestThrow.gameId)}.`
+        : `Prepared a throw candidate for ${shortHex(latestThrow.gameId)} but did not submit.`,
+      meta: latestThrow.decisionId ? `Decision ${latestThrow.decisionId}` : 'Throw log'
+    });
+  }
+
+  if (latestRun) {
+    let text = 'Scanned games.';
+    if (latestRun.submitted) text = `Cycle chose a live throw in ${shortHex(latestRun.gameId)}.`;
+    else if (latestRun.stoppedBy) text = `No throw placed: ${String(latestRun.stoppedBy) === 'empty' ? 'no eligible game after current filters / policy checks' : String(latestRun.stoppedBy).replace(/_/g,' ')}.`;
+    items.push({ ts: latestRun.ts, text, meta: `Run row • ${latestRun.gameId ? shortHex(latestRun.gameId) : 'no game'}` });
+  }
+
+  if (latestResult) {
+    const pnl = Number(latestResult?.actual?.wholeGame?.pnl_usd ?? 0);
+    const hole = latestResult?.actual?.throwMatch?.hole_type;
+    items.push({
+      ts: latestResult.ts,
+      text: `Resolved result from ${shortHex(latestResult.gameId)}: ${hole != null ? holeTypeLabel(hole) : 'no hole'} • PnL ${pnl >= 0 ? '+' : ''}$${formatDisplayNumber(pnl)}.`,
+      meta: latestResult.decisionId ? `Result ${latestResult.decisionId}` : 'Result row'
+    });
+  }
+
+  if (controlState?.state === 'paused') {
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: 'Agent is paused. No new throws should be attempted until Start is requested.', meta: 'Control state' });
+  }
+  if (controlState?.state === 'stopping') {
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: 'Stop requested. Waiting for the current cycle to wind down cleanly.', meta: 'Control state' });
+  }
+  items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: describeScoreScopeProgress(), meta: 'Scoring window' });
+  if (controlState?.lastMessage) {
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: controlState.lastMessage, meta: 'Control state' });
+  }
+
+  return items
+    .filter(Boolean)
+    .sort((a,b) => new Date(b.ts || 0) - new Date(a.ts || 0))
+    .slice(0, 8);
+}
+
+
+
+const KPI_INFO = {
+  honest_score: {
+    title: 'Honest Performance Score',
+    body: `This is the benchmark headline. It combines <code>Calibration Gap</code> and <code>Consistency Over Time</code>. If prediction data exists, the score rises when predicted profit and predicted win-hole quality converge toward what actually happened. If prediction data is missing, the display falls back to a weaker consistency-only proxy, which is why the aggregate can show a number while the predicted KPI boxes still say Waiting.`
+  },
+  predicted_profit: {
+    title: 'Predicted Profit',
+    body: `This is the agent's expected final <code>PnL USD</code> for a chosen game, logged at decision time. It must come from the agent logs, not from the monitor. The correct source is one prediction per chosen game. Without that logging patch, this box stays Waiting.`
+  },
+  actual_profit: {
+    title: 'Actual Profit',
+    body: `This is the configured agent user's real game-level profit from settled game reports. It is read from <code>per_user_scoreboard</code> when available, because that is the canonical per-player summary for multiplayer games.`
+  },
+  predicted_win_pct: {
+    title: 'Predicted Win-Hole %',
+    body: `This is not raw win count. It is the predicted value-weighted percentage of throw USD expected to land in Winner holes. Each chosen throw can contribute a probability-weighted win expectation based on simulated scenarios. Without prediction logging, this box must stay Waiting.`
+  },
+  actual_win_pct: {
+    title: 'Actual Win-Hole %',
+    body: `This is the realized value-weighted percentage of throw USD that actually landed in Winner holes. It uses resolved throw outcomes and <code>value_usd_e8</code>, not just raw throw count.`
+  },
+  calibration_gap: {
+    title: 'Calibration Gap',
+    body: `This shows the distance between expectation and reality. The formula is <code>((real / expected) - 1) × 100</code>. The monitor combines profit-gap and win-quality-gap when prediction data exists.`
+  },
+  consistency: {
+    title: 'Consistency Over Time',
+    body: `This score rises when the calibration gap shrinks while real performance keeps improving. The point is not just being right once. The point is tightening alignment between what the agent thinks it can do and what it repeatedly proves.`
+  }
+};
+
+function openKpiInfo(key){
+  const cfg = KPI_INFO[key];
+  if (!cfg) return;
+  document.getElementById('kpiInfoTitle').textContent = cfg.title;
+  document.getElementById('kpiInfoBody').innerHTML = cfg.body;
+  const el = document.getElementById('kpiInfoModal');
+  el.classList.remove('hidden');
+  el.setAttribute('aria-hidden', 'false');
+}
+function closeKpiInfo(){
+  const el = document.getElementById('kpiInfoModal');
+  el.classList.add('hidden');
+  el.setAttribute('aria-hidden', 'true');
+}
+function destroyMiniCharts(){
+  Object.values(miniCharts).forEach(ch => { try { ch && ch.destroy(); } catch {} });
+  miniCharts = {};
+}
+function renderMiniLineChart(id, labels, data, color){
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (miniCharts[id]) { try { miniCharts[id].destroy(); } catch {} }
+  miniCharts[id] = new Chart(el, {
+    type:'line',
+    data:{ labels, datasets:[{ data, borderColor:color, backgroundColor:'transparent', tension:.22, pointRadius:0, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, animation:false, plugins:{ legend:{ display:false }, tooltip:{ enabled:false } }, scales:{ x:{ display:false }, y:{ display:false } }, elements:{ line:{ capBezierPoints:true } } }
+  });
+}
+function displayThrowCount(agentCount, totalCount){
+  return totalCount != null && Number(totalCount) > 0 ? `${agentCount} / ${totalCount}` : String(agentCount);
+}
+function computeHonestPerformance(games, metaMap){
+  const scopedRuns = scopeFilter(runs || []);
+  const scopedThrows = scopeFilter(throwsRows || []).filter(t => t?.submitted);
+  const scopedResults = scopeFilter(buildLatestResultsByDecision());
+
+  const actualGames = [...latestByKey(scopedResults.filter(r => r?.actual?.wholeGame?.per_user_scoreboard), r => cleanHex(r?.gameId || '')).values()]
+    .sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+
+  const resultRowsWithActualHole = scopedResults
+    .map(r => ({ row:r, hole:getActualHoleInfo(r) }))
+    .filter(x => x.hole.ok)
+    .sort((a,b) => new Date(a.row?.ts || 0) - new Date(b.row?.ts || 0));
+
+  const predictedGames = [...latestByKey(scopedRuns.filter(r => r?.prediction?.pnlUsd != null && r?.gameId), r => cleanHex(r?.gameId || '')).values()]
+    .sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+
+  const totalActualProfit = actualGames.reduce((sum, r) => {
+    const score = getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId);
+    return sum + Number(score?.pnl_usd ?? 0);
+  }, 0);
+
+  const totalPredictedProfit = predictedGames.reduce((sum, r) => sum + Number(r?.prediction?.pnlUsd || 0), 0);
+  const actualProfitGames = actualGames.length;
+  const predictedProfitGames = predictedGames.length;
+
+  const totalActualResolvedValue = resultRowsWithActualHole.reduce((sum, x) => sum + (Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8), 0);
+  const totalActualWinValue = resultRowsWithActualHole.reduce((sum, x) => sum + (winnerHoleTypes().has(Number(x.hole.value)) ? (Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8) : 0), 0);
+  const actualWinPct = totalActualResolvedValue > 0 ? (totalActualWinValue / totalActualResolvedValue) * 100 : null;
+  const actualWinCount = resultRowsWithActualHole.filter(x => winnerHoleTypes().has(Number(x.hole.value))).length;
+  const actualThrowCount = resultRowsWithActualHole.length;
+
+  const predictedThrowStatsByGame = buildPredictedThrowStatsByGame(scopedThrows.filter(t => t?.prediction?.winnerValuePct != null || t?.prediction?.holeType != null));
+  let predictedThrowCount = 0, predictedWinCount = 0, totalPredictedValue = 0, totalPredictedWinValue = 0;
+  for (const stats of predictedThrowStatsByGame.values()) {
+    predictedThrowCount += Number(stats.throws || 0);
+    predictedWinCount += Number(stats.wins || 0);
+    totalPredictedValue += Number(stats.value || 0);
+    totalPredictedWinValue += Number(stats.winValue || 0);
+  }
+  const predictedWinPct = totalPredictedValue > 0 ? (totalPredictedWinValue / totalPredictedValue) * 100 : null;
+
+  const profitGap = totalPredictedProfit ? (((totalActualProfit / totalPredictedProfit) - 1) * 100) : null;
+  const winGap = (predictedWinPct && actualWinPct != null) ? (((actualWinPct / predictedWinPct) - 1) * 100) : null;
+
+  const gameMapActual = new Map();
+  for (const r of actualGames) {
+    const score = getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId);
+    if (score) gameMapActual.set(cleanHex(r?.gameId), Number(score?.pnl_usd ?? 0));
+  }
+  const gameMapPred = new Map();
+  for (const r of predictedGames) gameMapPred.set(cleanHex(r?.gameId), Number(r?.prediction?.pnlUsd || 0));
+
+  const sampleGameIds = [...new Set([...gameMapActual.keys(), ...gameMapPred.keys(), ...predictedThrowStatsByGame.keys()])];
+  const samples = [];
+  let cumActual = 0, cumPred = 0, runningResolvedValue = 0, runningWinValue = 0, runningPredValue = 0, runningPredWinValue = 0;
+  for (const gid of sampleGameIds){
+    if (gameMapActual.has(gid)) cumActual += Number(gameMapActual.get(gid) || 0);
+    if (gameMapPred.has(gid)) cumPred += Number(gameMapPred.get(gid) || 0);
+
+    const gameResults = resultRowsWithActualHole.filter(x => cleanHex(x.row?.gameId) === gid);
+    for (const x of gameResults){
+      const val = Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8;
+      runningResolvedValue += val;
+      if (winnerHoleTypes().has(Number(x.hole.value))) runningWinValue += val;
+    }
+    const predStats = predictedThrowStatsByGame.get(gid);
+    if (predStats) {
+      runningPredValue += Number(predStats.value || 0);
+      runningPredWinValue += Number(predStats.winValue || 0);
+    }
+    const sampleActualWinPct = runningResolvedValue > 0 ? (runningWinValue / runningResolvedValue) * 100 : null;
+    const samplePredWinPct = runningPredValue > 0 ? (runningPredWinValue / runningPredValue) * 100 : null;
+    const sampleProfitGap = cumPred ? (((cumActual / cumPred) - 1) * 100) : null;
+    const sampleCombinedGap = (sampleProfitGap == null || samplePredWinPct == null || sampleActualWinPct == null) ? null : ((((sampleActualWinPct / Math.max(samplePredWinPct, 0.0001)) - 1) * 100) + sampleProfitGap) / 2;
+    samples.push({
+      label: shortHex(gid), actualProfit: cumActual, predictedProfit: cumPred || null,
+      actualWinPct: sampleActualWinPct, predictedWinPct: samplePredWinPct,
+      honestScore: sampleCombinedGap == null ? null : Math.max(0, Math.min(100, 100 - Math.abs(sampleCombinedGap))),
+      profitGap: sampleProfitGap, combinedGap: sampleCombinedGap
+    });
+  }
+
+  let consistency = null;
+  const gapSamples = samples.map(s => s.combinedGap).filter(v => Number.isFinite(v));
+  if (gapSamples.length >= 2) {
+    const first = Math.abs(gapSamples[0]);
+    const last = Math.abs(gapSamples[gapSamples.length - 1]);
+    consistency = first > 0 ? Math.max(0, Math.min(100, 50 + (((first - last) / first) * 50))) : null;
+  }
+
+  const availableGaps = [profitGap, winGap].filter(v => Number.isFinite(v));
+  const combinedGap = availableGaps.length ? (availableGaps.reduce((a,b)=>a+b,0) / availableGaps.length) : null;
+  const honestScore = combinedGap == null ? null : Math.max(0, Math.min(100, 100 - Math.abs(combinedGap)));
+
+  return { totalActualProfit, totalPredictedProfit: predictedProfitGames ? totalPredictedProfit : null, actualProfitGames, predictedProfitGames, actualWinPct, actualThrowCount, actualWinCount, predictedWinPct, predictedThrowCount: predictedThrowCount || null, predictedWinCount: predictedThrowCount ? predictedWinCount : null, profitGap, winGap, combinedGap, consistency, honestScore, samples };
+}
+
+function renderHonestPerformance(games, metaMap){
+  const model = computeHonestPerformance(games, metaMap);
+  const scoreEl = document.getElementById('honestScoreValue');
+  const summaryEl = document.getElementById('honestScoreSummary');
+
+  if (hpsTrendChart) { try { hpsTrendChart.destroy(); } catch {} hpsTrendChart = null; }
+
+  if (model.honestScore == null) {
+    scoreEl.textContent = 'Pending';
+    scoreEl.className = 'hps-big warn';
+    summaryEl.textContent = 'Exact benchmark data is incomplete. The monitor is now strict: if prediction or actual hole fields are missing in the logs, this score stays pending and the diagnostics are surfaced instead of guessed.';
+  } else {
+    scoreEl.textContent = `${formatDisplayNumber(model.honestScore)}%`;
+    scoreEl.className = `hps-big ${model.honestScore >= 70 ? 'ok' : model.honestScore >= 45 ? 'warn' : 'pink'}`;
+    summaryEl.textContent = `Profit is judged per game. Win quality is judged per throw, but the headline win % is value-weighted into Winner holes. This window is ${scoreScopeState.label.toLowerCase()}.`;
+  }
+
+  const predictedProfitText = model.totalPredictedProfit == null ? 'Waiting' : `$${formatDisplayNumber(model.totalPredictedProfit)}`;
+  document.getElementById('hpsPredictedProfit').textContent = predictedProfitText;
+  document.getElementById('hpsPredictedProfitMeta').textContent = model.totalPredictedProfit == null
+    ? errorText('missing run.prediction.pnlUsd rows in runs log')
+    : `${model.predictedProfitGames} games / $${formatDisplayNumber(model.totalPredictedProfit / Math.max(model.predictedProfitGames, 1))} per game`;
+
+  document.getElementById('hpsActualProfit').textContent = `$${formatDisplayNumber(model.totalActualProfit)}`;
+  document.getElementById('hpsActualProfitMeta').textContent = `${model.actualProfitGames} games / $${formatDisplayNumber(model.totalActualProfit / Math.max(model.actualProfitGames, 1))} per game`;
+
+  document.getElementById('hpsPredictedWinPct').textContent = model.predictedWinPct == null ? 'Waiting' : `${formatDisplayNumber(model.predictedWinPct)}%`;
+  document.getElementById('hpsPredictedWinPctMeta').textContent = model.predictedWinPct == null
+    ? errorText('missing throw.prediction.winnerValuePct / holeType rows in throws log')
+    : `${model.predictedThrowCount} throws / ${model.predictedWinCount} predicted wins`;
+
+  document.getElementById('hpsActualWinPct').textContent = model.actualWinPct == null ? 'Pending' : `${formatDisplayNumber(model.actualWinPct)}%`; 
+  document.getElementById('hpsActualWinPctMeta').textContent = model.actualWinPct == null ? errorText('missing actual.throwMatch.hole_type rows in results log') : `${model.actualThrowCount} throws / ${model.actualWinCount} wins • % is USD into Winner`; 
+
+  document.getElementById('hpsCalibrationGap').textContent = model.combinedGap == null ? 'Waiting' : `${formatDisplayNumber(model.combinedGap)}%`;
+  document.getElementById('hpsCalibrationGapMeta').textContent = model.combinedGap == null
+    ? errorText('missing prediction fields needed for calibration gap')
+    : `Profit gap ${model.profitGap == null ? '—' : `${formatDisplayNumber(model.profitGap)}%`} • Win gap ${model.winGap == null ? '—' : `${formatDisplayNumber(model.winGap)}%`}`;
+
+  document.getElementById('hpsConsistency').textContent = model.consistency == null ? 'Waiting' : `${formatDisplayNumber(model.consistency)}%`;
+  document.getElementById('hpsConsistencyMeta').textContent = model.consistency == null
+    ? 'Need more resolved data in scope'
+    : 'Higher means calibration is tightening while actual performance is building';
+
+  const scopedSubmittedThrows = scopeFilter(throwsRows).filter(t => t?.submitted).length;
+  const progressText = scoreScopeState.targetThrows
+    ? `${scopedSubmittedThrows}/${scoreScopeState.targetThrows} throws`
+    : `${scopedSubmittedThrows} throws in scope`;
+  document.getElementById('scoreScopeBadge').textContent = `Scope: ${scoreScopeState.label}`;
+  document.getElementById('scoreProgressBadge').textContent = `Progress: ${progressText}`;
+  document.getElementById('hpsTrendGames').textContent = `${model.actualProfitGames} games`;
+  document.getElementById('hpsTrendThrows').textContent = `${model.actualThrowCount} resolved throws`;
+  document.getElementById('hpsTrendPredictions').textContent = `${model.predictedProfitGames} game predictions`;
+  document.getElementById('hpsTrendMeta').textContent = scoreScopeState.mode === 'all_data'
+    ? 'Using all available log data.'
+    : `Using records from ${new Date(scoreScopeState.startTs).toLocaleString()} onward.`;
+
+  const labels = model.samples.map((s, i) => `${i + 1}`);
+  const datasets = [];
+  if (model.samples.some(s => s.honestScore != null)) datasets.push({ label: 'Honest Score %', data: model.samples.map(s => s.honestScore), borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension: .22, yAxisID:'yPct' });
+  datasets.push({ label: 'Actual Win %', data: model.samples.map(s => s.actualWinPct), borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension: .22, yAxisID:'yPct' });
+  datasets.push({ label: 'Actual Profit $', data: model.samples.map(s => s.actualProfit), borderColor: '#ff4fd8', backgroundColor: 'rgba(255,79,216,.10)', tension: .22, yAxisID:'yUsd' });
+
+  hpsTrendChart = new Chart(document.getElementById('hpsTrendChart'), {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ color:'#d9ecff' } } },
+      scales:{
+        x:{ ticks:{ color:'#88a4c6' }, grid:{ color:'rgba(82,230,255,.08)' } },
+        yPct:{ position:'left', min:0, max:100, ticks:{ color:'#88a4c6', callback:(v)=>`${v}%` }, grid:{ color:'rgba(82,230,255,.08)' } },
+        yUsd:{ position:'right', ticks:{ color:'#88a4c6', callback:(v)=>`$${formatDisplayNumber(v)}` }, grid:{ drawOnChartArea:false } }
+      }
+    }
+  });
+
+  renderMiniLineChart('miniHonestScoreChart', labels, model.samples.map(s => s.honestScore), '#65ffb0');
+  renderMiniLineChart('miniPredictedProfitChart', labels, model.samples.map(s => s.predictedProfit), '#ffe66d');
+  renderMiniLineChart('miniActualProfitChart', labels, model.samples.map(s => s.actualProfit), '#ff4fd8');
+  renderMiniLineChart('miniPredictedWinChart', labels, model.samples.map(s => s.predictedWinPct), '#ffe66d');
+  renderMiniLineChart('miniActualWinChart', labels, model.samples.map(s => s.actualWinPct), '#52e6ff');
+  renderMiniLineChart('miniGapChart', labels, model.samples.map(s => s.combinedGap ?? s.profitGap), '#ff9f40');
+  renderMiniLineChart('miniConsistencyChart', labels, model.samples.map(s => s.honestScore == null ? null : model.consistency), '#5e9cff');
+
+  const messages = buildAgentMessages(metaMap);
+  const first = messages[0];
+  document.getElementById('agentMessageBody').textContent = first?.text || 'Waiting for agent activity…';
+  document.getElementById('agentMessageMeta').textContent = first ? `${first.meta} • ${first.ts}` : 'No recent cycle yet.';
+  document.getElementById('agentMessageLog').innerHTML = messages.length
+    ? messages.map(m => `<div class="message-item"><div>${esc(m.text)}</div><div class="message-meta">${esc(m.meta)} • ${esc(m.ts)}</div></div>`).join('')
+    : `<div class="message-item">No recent agent messages.</div>`;
+
+  const stateLabel = controlState?.state || 'live';
+  const modeLabel = controlState?.mode || 'regular';
+  document.getElementById('controlStateBadge').textContent = `State: ${String(stateLabel).replace(/_/g,' ')}`;
+  document.getElementById('controlModeBadge').textContent = `Mode: ${String(modeLabel).replace(/_/g,' ')}`;
 }
 
 function latestByKey(rows, keyFn){
@@ -679,7 +1450,7 @@ async function maybeRefreshVmBalances(){
   if (now - lastVmBalancesFetch < 10000) return;
   lastVmBalancesFetch = now;
   try {
-    const raw = await rpcCall(settings.rpc, 'colliderV2.getBalances', [settings.user]);
+    const raw = await rpcCall(settings.rpc, 'colliderV2.getBalances', [with0x(settings.user)]);
     if (raw && typeof raw === 'object') {
       const norm = {};
       for (const [k,v] of Object.entries(raw)) norm[cleanHex(k)] = String(v ?? '0');
@@ -698,10 +1469,12 @@ function getConfiguredUserScore(perUserScoreboard){
 
 function buildGamesIndex(metaMap){
   const map = new Map();
-  const latestRunsByGame = latestByKey(runs, r => r?.gameId);
+  const latestRunsByGame = latestByKey(runs, r => cleanHex(r?.gameId || ''));
   const latestThrowsByDecision = latestByKey(throwsRows, t => t?.decisionId);
   const latestResults = buildLatestResultsByDecision();
-  const latestResultByGame = latestByKey(latestResults, r => r?.gameId);
+  const latestResultByGame = latestByKey(latestResults, r => cleanHex(r?.gameId || ''));
+  const predictedRunsByGame = getPredictedRunByGame();
+  const resolvedDecisionIds = new Set(latestResults.map(r => r?.decisionId).filter(Boolean));
 
   const ensure = (gameId) => {
     if (!map.has(gameId)) {
@@ -709,16 +1482,19 @@ function buildGamesIndex(metaMap){
         gameId,
         scans: 0,
         candidateObservedSum: 0,
-        submittedThrows: 0,
-        pendingThrows: 0,
+        agentSubmittedThrows: 0,
+        totalThrows: null,
+        agentPendingThrows: 0,
         resolvedCount: 0,
         lastSeenTs: null,
         latestStakeRaw: null,
         latestMinThrow: null,
         latestStatus: null,
-        pnlUsd: 0,
-        stakeUsd: 0,
-        returnedUsd: 0,
+        liveThrowsCount: null,
+        pnlUsd: null,
+        predictedPnlUsd: null,
+        stakeUsd: null,
+        returnedUsd: null,
         pendingUsd: 0,
         points: 0,
         inputsByAsset: {},
@@ -741,71 +1517,80 @@ function buildGamesIndex(metaMap){
   };
 
   for (const r of runs) {
-    if (!r?.gameId) continue;
-    const g = ensure(r.gameId);
+    const gid = cleanHex(r?.gameId || '');
+    if (!gid) continue;
+    const g = ensure(gid);
     g.scans += 1;
-    g.candidateObservedSum += Number(r?.search?.examinedCount ?? r?.search?.maxCandidates ?? 0);
+    g.candidateObservedSum += Number(r?.search?.examinedCount ?? 0);
     g.lastSeenTs = r.ts || g.lastSeenTs;
     g.rowsRuns.push(r);
   }
 
-  for (const [gameId, row] of latestRunsByGame.entries()) {
-    const g = ensure(gameId);
+  for (const [gid, row] of latestRunsByGame.entries()) {
+    const g = ensure(gid);
     g.latestStakeRaw = row?.game?.stake != null ? String(row.game.stake) : g.latestStakeRaw;
     g.latestMinThrow = row?.game?.minThrowValue ?? g.latestMinThrow;
     if (row?.game?.status != null) g.latestStatus = Number(row.game.status);
+    if (row?.game?.throws != null) g.totalThrows = Number(row.game.throws);
   }
 
   for (const t of latestThrowsByDecision.values()) {
-    if (!t?.gameId) continue;
-    const g = ensure(t.gameId);
+    const gid = cleanHex(t?.gameId || '');
+    if (!gid) continue;
+    const g = ensure(gid);
     g.lastSeenTs = t.ts || g.lastSeenTs;
     g.rowsThrows.push(t);
     if (t.submitted && t.decisionId) g.submittedDecisionIds.add(t.decisionId);
   }
 
   for (const r of latestResults) {
-    if (!r?.gameId) continue;
-    const g = ensure(r.gameId);
+    const gid = cleanHex(r?.gameId || '');
+    if (!gid) continue;
+    const g = ensure(gid);
     g.lastSeenTs = r.ts || g.lastSeenTs;
     g.rowsResults.push(r);
   }
 
-  for (const [gameId, g] of map.entries()) {
-    const canonical = latestResultByGame.get(gameId) || null;
+  for (const [gid, g] of map.entries()) {
+    const live = liveGameStates.get(gid);
+    const canonical = latestResultByGame.get(gid) || null;
+    const predRun = predictedRunsByGame.get(gid) || null;
     g.canonicalResult = canonical;
     g.resolvedCount = g.rowsResults.length;
-    g.submittedThrows = g.submittedDecisionIds.size;
+    g.agentSubmittedThrows = g.submittedDecisionIds.size;
+    g.agentPendingThrows = [...g.submittedDecisionIds].filter(id => !resolvedDecisionIds.has(id)).length;
 
-    const hasClosedStatus = Number(g.latestStatus ?? -1) >= 2 || !!canonical;
-    g.pendingThrows = hasClosedStatus ? 0 : g.submittedThrows;
+    if (live) {
+      if (live.status != null) g.latestStatus = live.status;
+      if (live.stakeRaw != null) g.latestStakeRaw = live.stakeRaw;
+      if (live.throwMinValue != null) g.latestMinThrow = live.throwMinValue;
+      if (live.throwsCount != null) g.liveThrowsCount = live.throwsCount;
+    }
+    if (g.liveThrowsCount != null) g.totalThrows = Number(g.liveThrowsCount);
+    if (predRun?.prediction?.pnlUsd != null) g.predictedPnlUsd = Number(predRun.prediction.pnlUsd);
 
-    if (!hasClosedStatus) {
-      for (const t of g.rowsThrows) {
-        if (t.submitted) g.pendingUsd += pendingUsdForThrow(t, metaMap);
-      }
+    for (const t of g.rowsThrows) {
+      if (t.submitted && t.decisionId && !resolvedDecisionIds.has(t.decisionId)) g.pendingUsd += pendingUsdForThrow(t, metaMap);
     }
 
     if (canonical) {
-      const a = canonical?.actual || {};
-      const wg = a?.wholeGame || {};
-      const tm = a?.throwMatch || {};
-      const payouts = a?.payouts || {};
-      const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard || []);
-
-      g.stakeUsd = Number(configuredUser?.stake_usd ?? wg?.stake_usd ?? 0);
-      g.returnedUsd = Number(configuredUser?.returned_usd ?? wg?.returned_usd ?? 0);
-      g.pnlUsd = Number(configuredUser?.pnl_usd ?? wg?.pnl_usd ?? 0);
-      g.points = bonusPoints(a?.bonuses);
-      g.latestHoleType = tm?.hole_type ?? null;
+      const wg = canonical?.actual?.wholeGame || {};
+      const configuredUser = getConfiguredUserScoreExact(wg?.per_user_scoreboard, canonical?.decisionId || gid);
+      if (configuredUser) {
+        g.stakeUsd = Number(configuredUser?.stake_usd ?? 0);
+        g.returnedUsd = Number(configuredUser?.returned_usd ?? 0);
+        g.pnlUsd = Number(configuredUser?.pnl_usd ?? 0);
+      }
+      g.points = bonusPoints(canonical?.actual?.bonuses);
+      g.latestHoleType = canonical?.actual?.throwMatch?.hole_type ?? null;
       g.perUserScoreboard = Array.isArray(wg?.per_user_scoreboard) ? wg.per_user_scoreboard : [];
       g.holeTypeCounts = wg?.hole_type_counts || {};
-      g.payoutTimeline = Array.isArray(payouts?.timeline) ? payouts.timeline : [];
-      g.bonusTimeline = Array.isArray(a?.bonus_timeline) ? a.bonus_timeline : [];
+      g.payoutTimeline = Array.isArray(canonical?.actual?.payouts?.timeline) ? canonical.actual.payouts.timeline : [];
+      g.bonusTimeline = Array.isArray(canonical?.actual?.bonus_timeline) ? canonical.actual.bonus_timeline : [];
       g.inputsByAsset = wg?.inputs_by_asset || {};
       g.outputsByAsset = wg?.outputs_by_asset || {};
-      g.payoutsByKind = payouts?.by_kind || {};
-      g.payoutsByAsset = payouts?.by_asset || {};
+      g.payoutsByKind = canonical?.actual?.payouts?.by_kind || {};
+      g.payoutsByAsset = canonical?.actual?.payouts?.by_asset || {};
       if (g.latestStatus == null) g.latestStatus = 2;
     }
 
@@ -813,18 +1598,9 @@ function buildGamesIndex(metaMap){
     g.rowsResults.sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
   }
 
-  const statusPriority = (g) => {
-    const s = Number(g.latestStatus ?? -1);
-    if (s === 1) return 0;
-    if (s === 0) return 1;
-    if (s >= 2) return 2;
-    if (g.pendingThrows > 0) return 0;
-    if (g.submittedThrows > 0) return 1;
-    return 3;
-  };
-
   return [...map.values()].sort((a,b) => {
-    const pa = statusPriority(a), pb = statusPriority(b);
+    const pa = gameStatePriority(a.latestStatus);
+    const pb = gameStatePriority(b.latestStatus);
     if (pa !== pb) return pa - pb;
     return new Date(b.lastSeenTs || 0).getTime() - new Date(a.lastSeenTs || 0).getTime();
   });
@@ -833,27 +1609,25 @@ function buildGamesIndex(metaMap){
 function displayGameStatus(g){
   const actual = statusLabel(g.latestStatus);
   if (actual) return actual;
-  if (g.resolvedCount > 0) return 'Closed';
-  if (g.pendingThrows > 0) return 'Armed';
-  if (g.submittedThrows > 0) return 'Open';
-  return 'Scanned';
+  addDataDiagnostic(`missing live/run game status (${g.gameId})`, g);
+  return errorText('missing game.status');
 }
 
 function updateTopStats(games){
   const pnl = games.reduce((s,g)=>s+Number(g.pnlUsd||0),0);
   const pending = games.reduce((s,g)=>s+Number(g.pendingUsd||0),0);
-  const pendingCount = games.reduce((s,g)=>s+Number(g.pendingThrows||0),0);
+  const pendingCount = games.reduce((s,g)=>s+Number(g.agentPendingThrows||0),0);
 
   document.getElementById('gamesCount').textContent = String(games.length);
-  document.getElementById('resolvedGamesCount').textContent = String(games.filter(g=>g.resolvedCount>0).length);
+  document.getElementById('resolvedGamesCount').textContent = String(games.filter(g=>Number(g.latestStatus ?? -1) >= 2 || g.resolvedCount>0).length);
   document.getElementById('pendingThrowsCount').textContent = String(pendingCount);
-  document.getElementById('pnlTotal').textContent = fmtNum(pnl,2);
-  document.getElementById('pendingUsd').textContent = fmtNum(pending,2);
-  document.getElementById('inSystemUsd').textContent = fmtNum(pnl + pending,2);
+  document.getElementById('pnlTotal').textContent = formatDisplayNumber(pnl);
+  document.getElementById('pendingUsd').textContent = formatDisplayNumber(pending);
+  document.getElementById('inSystemUsd').textContent = formatDisplayNumber(pnl + pending);
 }
 
 function renderGames(games, metaMap){
-  document.getElementById('saveBadge').innerHTML = 'AGENT LIVE';
+  document.getElementById('saveBadge').innerHTML = controlState?.state === 'paused' ? 'AGENT PAUSED' : controlState?.state === 'stopping' ? 'AGENT STOPPING' : 'AGENT LIVE';
   const start = gamesPage * GAMES_PAGE_SIZE;
   const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
 
@@ -862,22 +1636,25 @@ function renderGames(games, metaMap){
     tr.onclick = () => {
       selectedGameId = g.gameId;
       document.getElementById('selectionBadge').textContent = `VIEWING SELECTED GAME: ${shortHex(g.gameId)}`;
+      setMainView('games');
       renderAll();
     };
 
-    const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-';
-    const gameTotalDisplay = g.resolvedCount > 0 ? `$${fmtNum(g.stakeUsd,2)}` : openStakeDisplay;
+    const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake');
+    const gameTotalDisplay = Number(g.latestStatus ?? -1) >= 2 ? (g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : errorText('missing per_user_scoreboard stake_usd')) : openStakeDisplay;
+    const pnlDisplay = g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`;
+    const predDisplay = g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`;
 
     tr.innerHTML = `
       <td>${esc(shortHex(g.gameId))}</td>
       <td>${esc(displayGameStatus(g))}</td>
       <td>${g.scans}</td>
       <td>${g.candidateObservedSum}</td>
-      <td>${g.submittedThrows}</td>
-      <td>${g.pendingThrows}</td>
-      <td>${esc(gameTotalDisplay)}</td>
-      <td class="${Number(g.pnlUsd) >= 0 ? 'ok' : 'pink'}">${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}</td>
-      <td>${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}</td>
+      <td>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</td>
+      <td>${g.agentPendingThrows}</td>
+      <td>${gameTotalDisplay}</td>
+      <td class="${Number(g.pnlUsd) >= 0 ? 'ok' : 'pink'}">${pnlDisplay}</td>
+      <td>${predDisplay}</td>
       <td>${g.points}</td>
       <td>${esc(objectEntriesDisplayUnits(g.inputsByAsset, metaMap))}</td>
       <td>${esc(objectEntriesDisplayUnits(g.outputsByAsset, metaMap))}</td>
@@ -900,7 +1677,7 @@ function renderBank(games, metaMap){
   }
 
   for (const g of games) {
-    if (g.pendingThrows === 0) continue;
+    if ((g.agentPendingThrows ?? 0) === 0) continue;
     for (const t of g.rowsThrows) {
       if (!t?.submitted) continue;
       const p = t.payload || {};
@@ -945,9 +1722,9 @@ function renderScoreboard(games, metaMap){
       <div class="muted">Mode</div><div>All Games</div>
       <div class="muted">Tracked Games</div><div>${games.length}</div>
       <div class="muted">Resolved Games</div><div>${games.filter(g=>g.resolvedCount>0).length}</div>
-      <div class="muted">Total PnL</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pnlUsd||0),0),2)}</div>
+      <div class="muted">Total PnL</div><div>$${fmtNum(games.reduce((s,g)=>s+(Number.isFinite(Number(g.pnlUsd))?Number(g.pnlUsd):0),0),2)}</div>
       <div class="muted">Pending USD</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
-      <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.pendingThrows||0),0)}</div>
+      <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.agentPendingThrows||0),0)}</div>
       <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-'}</div>
     `;
     return;
@@ -958,13 +1735,13 @@ function renderScoreboard(games, metaMap){
     <div class="muted">Status</div><div>${esc(displayGameStatus(g))}</div>
     <div class="muted">Scans</div><div>${g.scans}</div>
     <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
-    <div class="muted">Agent Throws</div><div>${g.submittedThrows}</div>
-    <div class="muted">Pending Throws</div><div>${g.pendingThrows}</div>
-    <div class="muted">Game Total</div><div>${g.resolvedCount > 0 ? `$${fmtNum(g.stakeUsd,2)}` : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-')}</div>
-    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}</div>
-    <div class="muted">Pending</div><div>${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}</div>
+    <div class="muted">Agent Throws</div><div>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</div>
+    <div class="muted">Pending Throws</div><div>${g.agentPendingThrows}</div>
+    <div class="muted">Game Total</div><div>${Number(g.latestStatus ?? -1) >= 2 ? (g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : errorText('missing per_user_scoreboard stake_usd')) : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake'))}</div>
+    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`}</div>
+    <div class="muted">Predicted PnL</div><div>${g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`}</div>
     <div class="muted">Points</div><div>${g.points}</div>
-    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType ?? '-'}</div>
+    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType == null ? errorText('missing actual.throwMatch.hole_type') : holeTypeLabel(g.latestHoleType)}</div>
   `;
 }
 
@@ -1009,20 +1786,23 @@ function renderSelectedDetail(games, metaMap){
     document.getElementById('selGamePending').textContent = 'Pending: -';
     document.getElementById('selGamePoints').textContent = 'Points: -';
     document.getElementById('selectedThrowsBody').innerHTML = '';
-    analytics.innerHTML = `<div class="mini"><div class="k">Select Game</div><div class="v">Choose a game row to inspect scoreboard, hole distribution, payout breakdown, and bonus timeline.</div></div>`;
+    analytics.innerHTML = `<div class="mini"><div class="k">Select Game</div><div class="v">Choose a game row to inspect exact logged scoreboard, hole distribution, payout breakdown, and bonus timeline.</div></div>`;
     return;
   }
 
   document.getElementById('selGameId').textContent = `Game: ${shortHex(g.gameId)}`;
   document.getElementById('selGameStatus').textContent = `Status: ${displayGameStatus(g)}`;
-  document.getElementById('selGamePnl').textContent = `PnL: ${g.resolvedCount > 0 ? `$${fmtNum(g.pnlUsd,2)}` : '-'}`;
-  document.getElementById('selGamePending').textContent = `Pending: ${g.pendingUsd > 0 ? `$${fmtNum(g.pendingUsd,2)}` : '-'}`;
+  document.getElementById('selGamePnl').textContent = `PnL: ${g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`}`;
+  document.getElementById('selGamePending').textContent = `Pending: ${g.agentPendingThrows}`;
   document.getElementById('selGamePoints').textContent = `Points: ${g.points}`;
 
   const resultByDecision = latestByKey(g.rowsResults, r => r?.decisionId);
   patchTableBody('selectedThrowsBody', g.rowsThrows.slice().reverse(), t => t.decisionId || t.ts, (tr, t) => {
     const p = t.payload || {};
-    const match = resultByDecision.get(t.decisionId)?.actual?.throwMatch || {};
+    const resultRow = resultByDecision.get(t.decisionId) || null;
+    const actualHole = resultRow ? getActualHoleInfo(resultRow) : { ok:false, label:errorText('missing result row'), value:null };
+    const predictedHole = getPredictedHoleInfo(t);
+    const match = resultRow?.actual?.throwMatch || {};
     const angleDeg = Number(p?.init_pose?.angle_rad ?? 0) * 180 / Math.PI;
     tr.innerHTML = `
       <td>${esc(t.ts)}</td>
@@ -1037,19 +1817,20 @@ function renderSelectedDetail(games, metaMap){
       <td>${fmtNum(p?.init_linvel?.y,2)}</td>
       <td>${fmtNum(p?.init_angvel,2)}</td>
       <td>${fmtNum(t?.score?.final,2)}</td>
-      <td>${match.hole_type != null ? holeTypeLabel(match.hole_type) : '-'}</td>
-      <td>${match.value_usd_e8 ? `$${fmtNum(Number(match.value_usd_e8)/1e8,2)}` : '-'}</td>
-      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : '-'}</td>
+      <td>${predictedHole.label}</td>
+      <td>${actualHole.label}</td>
+      <td>${match.value_usd_e8 ? `$${fmtNum(Number(match.value_usd_e8)/1e8,2)}` : errorText('missing actual.throwMatch.value_usd_e8')}</td>
+      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : errorText('missing actual.throwMatch.mass_usd')}</td>
     `;
   });
 
   const scoreboardRows = (g.perUserScoreboard || []).slice().sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0)).slice(0,8);
+  const exactRows = buildResolvedDeltaRows(g.rowsResults);
   const holeValueTotals = {};
-  for (const t of g.rowsThrows) {
-    const match = resultByDecision.get(t.decisionId)?.actual?.throwMatch || {};
-    if (match.hole_type == null) continue;
-    const label = holeTypeLabel(match.hole_type);
-    const usd = Number(match.value_usd_e8 || 0) / 1e8;
+  for (const entry of exactRows) {
+    if (!entry.actualHole.ok) continue;
+    const label = holeTypeLabel(entry.actualHole.value);
+    const usd = Number(entry.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8;
     holeValueTotals[label] = (holeValueTotals[label] || 0) + usd;
   }
   const holeEntries = Object.entries(holeValueTotals).sort((a,b)=>Number(b[1])-Number(a[1]));
@@ -1071,25 +1852,25 @@ function renderSelectedDetail(games, metaMap){
   analytics.innerHTML = `
     <div class="mini">
       <div class="k">Per-User Scoreboard</div>
-      <div class="v">${scoreboardRows.length ? scoreboardRows.map(r => `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`).join('') : 'No scoreboard data yet'}</div>
+      <div class="v">${scoreboardRows.length ? scoreboardRows.map(r => `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`).join('') : errorText('missing actual.wholeGame.per_user_scoreboard')}</div>
     </div>
 
     <div class="mini">
       <div class="k">Hole Value Distribution</div>
-      <div style="height:220px"><canvas id="holePieCanvas"></canvas></div>
-      <div class="v">${legendTable(holeEntries, v => `$${formatDisplayNumber(v)}`)}</div>
+      <div style="height:220px">${holeEntries.length ? '<canvas id="holePieCanvas"></canvas>' : `<div class="red">${esc(errorText('missing actual.throwMatch.hole_type in selected game result rows'))}</div>`}</div>
+      <div class="v">${holeEntries.length ? legendTable(holeEntries, v => `$${formatDisplayNumber(v)}`) : ''}</div>
     </div>
 
     <div class="mini">
       <div class="k">Payout Kind Breakdown</div>
-      <div style="height:220px"><canvas id="payoutPieCanvas"></canvas></div>
-      <div class="v">${legendTable(payoutKindCountEntries, v => esc(String(v)) + ' rows')}</div>
+      <div style="height:220px">${payoutKindCountEntries.length ? '<canvas id="payoutPieCanvas"></canvas>' : '<div class="muted">No payout rows</div>'}</div>
+      <div class="v">${payoutKindCountEntries.length ? legendTable(payoutKindCountEntries, v => esc(String(v)) + ' rows') : ''}</div>
     </div>
 
     <div class="mini">
       <div class="k">Bonus Awards Breakdown</div>
-      <div style="height:220px"><canvas id="bonusPieCanvas"></canvas></div>
-      <div class="v">${legendTable(bonusKindTotals, v => esc(String(v)) + ' pts')}</div>
+      <div style="height:220px">${bonusKindTotals.length ? '<canvas id="bonusPieCanvas"></canvas>' : '<div class="muted">No bonus rows</div>'}</div>
+      <div class="v">${bonusKindTotals.length ? legendTable(bonusKindTotals, v => esc(String(v)) + ' pts') : ''}</div>
     </div>
 
     <div class="mini">
@@ -1135,26 +1916,24 @@ function renderSelectedDetail(games, metaMap){
 }
 
 function renderResolvedBottom(metaMap){
-  const rows = buildLatestResultsByDecision().slice(0,100);
-
-  patchTableBody('resultsBody', rows, r => r.decisionId || r.ts, (tr, r) => {
+  const deltaRows = buildResolvedDeltaRows(buildLatestResultsByDecision()).slice(0,100);
+  const throwByDecision = latestByKey(throwsRows, t => t?.decisionId);
+  patchTableBody('resultsBody', deltaRows, entry => entry.row?.decisionId || entry.row?.ts, (tr, entry) => {
+    const r = entry.row;
     const a = r.actual || {};
     const wg = a.wholeGame || {};
-    const tm = a.throwMatch || {};
     const bonuses = Array.isArray(a.bonuses) ? a.bonuses.map(b => `${b.kind}(${b.points})`).join(', ') : '-';
-    const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard || []);
-    const stakeUsd = Number(configuredUser?.stake_usd ?? wg?.stake_usd ?? 0);
-    const returnedUsd = Number(configuredUser?.returned_usd ?? wg?.returned_usd ?? 0);
-    const pnlUsd = Number(configuredUser?.pnl_usd ?? wg?.pnl_usd ?? 0);
-
+    const predictedThrow = throwByDecision.get(r?.decisionId);
+    const predictedHole = predictedThrow ? getPredictedHoleInfo(predictedThrow) : { ok:false, label:errorText('missing throw row'), value:null };
     tr.innerHTML = `
       <td>${esc(r.ts)}</td>
       <td>${esc(shortHex(r.gameId))}</td>
       <td class="${a.matched ? 'ok' : 'warn'}">${a.matched ? 'yes' : 'no'}</td>
-      <td>${tm.hole_type != null ? holeTypeLabel(tm.hole_type) : '-'}</td>
-      <td>${fmtNum(stakeUsd,2)}</td>
-      <td>${fmtNum(returnedUsd,2)}</td>
-      <td class="${Number(pnlUsd) >= 0 ? 'ok' : 'pink'}">${fmtNum(pnlUsd,2)}</td>
+      <td>${predictedHole.label}</td>
+      <td>${entry.actualHole.label}</td>
+      <td>${entry.deltaStakeUsd == null ? errorText('missing per_user_scoreboard stake_usd') : fmtNum(entry.deltaStakeUsd,2)}</td>
+      <td>${entry.deltaReturnedUsd == null ? errorText('missing per_user_scoreboard returned_usd') : fmtNum(entry.deltaReturnedUsd,2)}</td>
+      <td class="${Number(entry.deltaPnlUsd) >= 0 ? 'ok' : 'pink'}">${entry.deltaPnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : fmtNum(entry.deltaPnlUsd,2)}</td>
       <td>${esc(objectEntriesDisplayUnits(wg.inputs_by_asset, metaMap))}</td>
       <td>${esc(objectEntriesDisplayUnits(wg.outputs_by_asset, metaMap))}</td>
       <td>${esc(bonuses)}</td>
@@ -1162,23 +1941,29 @@ function renderResolvedBottom(metaMap){
   });
 }
 
-function renderCharts(games){
+function renderCharts(games, metaMap){
   if (profitChart) profitChart.destroy();
   if (positionChart) positionChart.destroy();
+
+  const honestModel = computeHonestPerformance(games, metaMap);
 
   if (!selectedGameId) {
     const rows = games.slice(0,20).reverse();
     const labels = rows.map(g => shortHex(g.gameId));
-    const pnlSeries = rows.map(g => Number(g.pnlUsd || 0));
-    const totalSeries = rows.map(g => Number(g.resolvedCount > 0 ? g.stakeUsd : (g.pendingUsd || (Number(String(g.latestStakeRaw || 0))/1e8 || 0))));
+    const pnlSeries = rows.map(g => Number.isFinite(Number(g.pnlUsd)) ? Number(g.pnlUsd) : null);
+    const totalSeries = rows.map(g => Number(g.latestStakeRaw != null ? Number(String(g.latestStakeRaw))/1e8 : null));
+    const predSeries = rows.map(g => Number.isFinite(Number(g.predictedPnlUsd)) ? Number(g.predictedPnlUsd) : null);
+    const honestSeries = honestModel.samples.map(s => s.honestScore);
 
     profitChart = new Chart(document.getElementById('profitChart'), {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'Game PnL USD', data: pnlSeries, backgroundColor: 'rgba(101,255,176,.35)', borderColor: '#65ffb0' },
-          { label: 'Game Total USD', data: totalSeries, backgroundColor: 'rgba(82,230,255,.24)', borderColor: '#52e6ff' }
+          { type:'bar', label: 'Game PnL USD', data: pnlSeries, backgroundColor: 'rgba(101,255,176,.28)', borderColor: '#65ffb0' },
+          { type:'bar', label: 'Open Stake USD', data: totalSeries, backgroundColor: 'rgba(82,230,255,.16)', borderColor: '#52e6ff' },
+          { type:'line', label: 'Predicted PnL USD', data: predSeries, borderColor: '#ffe66d', backgroundColor: 'transparent', tension:.22, yAxisID:'y' },
+          { type:'line', label: 'Honest Score %', data: labels.map((_,idx)=> honestSeries[idx] ?? null), borderColor: '#ff4fd8', backgroundColor: 'transparent', tension:.22, yAxisID:'yPct', borderWidth:3 }
         ]
       },
       options: {
@@ -1186,33 +1971,18 @@ function renderCharts(games){
         plugins: { legend: { labels: { color: '#d9ecff' } } },
         scales: {
           x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
-          y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
+          y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+          yPct: { position:'right', min:0, max:100, ticks:{ color:'#88a4c6', callback:(v)=>`${v}%` }, grid:{ drawOnChartArea:false } }
         }
       }
     });
 
-    const allPos = throwsRows.map(t => ({
-      x: Number(t?.payload?.init_pose?.pos?.x ?? 0),
-      y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
-    }));
-
+    const allPos = throwsRows.map(t => ({ x: Number(t?.payload?.init_pose?.pos?.x ?? 0), y: Number(t?.payload?.init_pose?.pos?.y ?? 0) }));
     positionChart = new Chart(document.getElementById('positionChart'), {
       type: 'scatter',
-      data: {
-        datasets: [
-          { label: 'All Throws', data: allPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: '#d9ecff' } } },
-        scales: {
-          x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
-          y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
-        }
-      }
+      data: { datasets: [{ label: 'All Throws', data: allPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
     });
-
     return;
   }
 
@@ -1220,48 +1990,23 @@ function renderCharts(games){
   if (!g) return;
 
   const labels = g.rowsResults.slice().reverse().map((r,i) => `${i+1}`);
-  const pnlSeries = g.rowsResults.slice().reverse().map(r => Number(r?.actual?.wholeGame?.pnl_usd ?? 0));
-  const returnedSeries = g.rowsResults.slice().reverse().map(r => Number(r?.actual?.wholeGame?.returned_usd ?? 0));
+  const pnlSeries = g.rowsResults.slice().reverse().map(r => Number(getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId)?.pnl_usd ?? null));
+  const returnedSeries = g.rowsResults.slice().reverse().map(r => Number(getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId)?.returned_usd ?? null));
 
   profitChart = new Chart(document.getElementById('profitChart'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Selected Game PnL USD', data: pnlSeries, borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension:.2 },
-        { label: 'Selected Game Returned USD', data: returnedSeries, borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension:.2 }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: '#d9ecff' } } },
-      scales: {
-        x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
-        y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
-      }
-    }
+    data: { labels, datasets: [
+      { label: 'Selected Game PnL USD', data: pnlSeries, borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension:.2 },
+      { label: 'Selected Game Returned USD', data: returnedSeries, borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension:.2 }
+    ] },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
   });
 
-  const selectedPos = g.rowsThrows.map(t => ({
-    x: Number(t?.payload?.init_pose?.pos?.x ?? 0),
-    y: Number(t?.payload?.init_pose?.pos?.y ?? 0)
-  }));
-
+  const selectedPos = g.rowsThrows.map(t => ({ x: Number(t?.payload?.init_pose?.pos?.x ?? 0), y: Number(t?.payload?.init_pose?.pos?.y ?? 0) }));
   positionChart = new Chart(document.getElementById('positionChart'), {
     type: 'scatter',
-    data: {
-      datasets: [
-        { label: 'Selected Game Throws', data: selectedPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: '#d9ecff' } } },
-      scales: {
-        x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
-        y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }
-      }
-    }
+    data: { datasets: [{ label: 'Selected Game Throws', data: selectedPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }] },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
   });
 }
 
@@ -1334,6 +2079,7 @@ async function loadSettings(){
 }
 
 function renderAll(){
+  resetDataDiagnostics();
   const metaMap = buildAssetMetaMap();
   const games = buildGamesIndex(metaMap);
 
@@ -1342,6 +2088,7 @@ function renderAll(){
     document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
   }
 
+  renderHonestPerformance(games, metaMap);
   updateTopStats(games);
   renderGames(games, metaMap);
   renderScoreboard(games, metaMap);
@@ -1349,30 +2096,42 @@ function renderAll(){
   renderBank(games, metaMap);
   renderSelectedDetail(games, metaMap);
   renderResolvedBottom(metaMap);
-  renderCharts(games);
+  renderCharts(games, metaMap);
 }
 
 async function refresh(){
+  const scrollState = saveScrollState();
   try{
     [runs, throwsRows, results] = await Promise.all([
       fetchJson("/api/logs/runs"),
       fetchJson("/api/logs/throws"),
       fetchJson("/api/logs/results")
     ]);
-    await maybeRefreshVmBalances();
+    const trackedGameIds = [...new Set([...runs.map(r => cleanHex(r?.gameId)).filter(Boolean), ...throwsRows.map(t => cleanHex(t?.gameId)).filter(Boolean), ...results.map(r => cleanHex(r?.gameId)).filter(Boolean)])];
+    await Promise.all([
+      maybeRefreshVmBalances(),
+      maybeRefreshVmGameStates(trackedGameIds),
+    ]);
     renderAll();
   }catch(err){
     console.error(err);
+  } finally {
+    restoreScrollState(scrollState);
   }
 }
 
-document.querySelectorAll("[data-jump]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const id = btn.getAttribute("data-jump");
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior:"smooth", block:"start" });
-  });
-});
+document.getElementById('navHonestBtn').addEventListener('click', () => setMainView('honest'));
+document.getElementById('navGamesBtn').addEventListener('click', () => setMainView('games'));
+document.getElementById('navResolvedBtn').addEventListener('click', () => setMainView('resolved'));
+const navSettingsBtn = document.getElementById('navSettingsBtn');
+if (navSettingsBtn) navSettingsBtn.addEventListener('click', openSettingsModal);
+document.getElementById('ctlSettings').addEventListener('click', openSettingsModal);
+document.getElementById('settingsModalClose').addEventListener('click', closeSettingsModal);
+document.getElementById('settingsModal').addEventListener('click', (e) => { if (e.target.id === 'settingsModal') closeSettingsModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSettingsModal(); closeKpiInfo(); } });
+document.querySelectorAll('[data-kpi-info]').forEach(btn => btn.addEventListener('click', () => openKpiInfo(btn.getAttribute('data-kpi-info'))));
+document.getElementById('kpiInfoClose').addEventListener('click', closeKpiInfo);
+document.getElementById('kpiInfoModal').addEventListener('click', (e) => { if (e.target.id === 'kpiInfoModal') closeKpiInfo(); });
 
 document.getElementById("gamesPrev").addEventListener("click", () => {
   gamesPage = Math.max(0, gamesPage - 1);
@@ -1391,6 +2150,12 @@ document.getElementById("clearSelection").addEventListener("click", () => {
 document.getElementById("saveSettingsBtn").addEventListener("click", () => {
   saveSettings().catch(console.error);
 });
+document.getElementById("ctlStart").addEventListener("click", () => { controlState.lastMessage = 'Start requested. Agent should resume regular play.'; postControlAction("start").catch?.(console.error); });
+document.getElementById("ctlStop").addEventListener("click", () => { controlState.lastMessage = 'Stop requested by operator.'; postControlAction("stop").catch?.(console.error); });
+document.getElementById("ctlCalibrate").addEventListener("click", () => { setScoreScope('calibrate_50', { startTs:new Date().toISOString(), targetThrows:50, label:'Calibration 50' }); controlState.lastMessage = 'Calibration run requested. The honest score now uses the next 50 throws.'; postControlAction("calibrate", { throwsTarget:50, exclusive:false }).catch?.(console.error); renderAll(); });
+document.getElementById("ctlFullClean").addEventListener("click", () => { setScoreScope('full_clean_2000', { startTs:new Date().toISOString(), targetThrows:2000, exclusive:true, label:'Full Clean 2000' }); controlState.lastMessage = 'Full clean requested. The honest score now uses the next 2000 throws only until the run completes.'; postControlAction("full_clean", { throwsTarget:2000, exclusive:true }).catch?.(console.error); renderAll(); });
+document.getElementById("ctlUseAllData").addEventListener("click", () => { setScoreScope('all_data', { label:'All Data' }); controlState.lastMessage = 'Using all historical data for performance scoring.'; renderAll(); });
+document.getElementById("ctlResetScores").addEventListener("click", () => { setScoreScope('reset_window', { startTs:new Date().toISOString(), label:'Since Reset' }); controlState.lastMessage = 'Scores reset. Honest-performance metrics now rebuild from this point forward.'; renderAll(); });
 
 [
   "s_rpc","s_wasm","s_user","s_asset","s_amount",
@@ -1400,6 +2165,8 @@ document.getElementById("saveSettingsBtn").addEventListener("click", () => {
   document.getElementById(id).addEventListener("input", scheduleSave);
 });
 
+loadScoreScopeState();
+setMainView('honest');
 loadSettings().then(refresh);
 setInterval(refresh, 2000);
 </script>

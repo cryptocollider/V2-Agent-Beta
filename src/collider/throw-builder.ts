@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
     AgentControlThrow,
     Hex32,
@@ -38,6 +39,32 @@ import type {
       out += Number(bytes[i]).toString(16).padStart(2, "0");
     }
     return out;
+  }
+
+  function deterministicSyntheticThrowId(
+    gameId: Hex32,
+    botUserHex: Hex32,
+    control: AgentControlThrow,
+    place: PlaceThrowArgs,
+    scenario: QueueScenario,
+  ): Byte32 {
+    const key = JSON.stringify({
+      gameId,
+      botUserHex,
+      asset: control.asset,
+      amount: String(control.amount),
+      x: Number(place.init_pose.pos.x),
+      y: Number(place.init_pose.pos.y),
+      angle_rad: Number(place.init_pose.angle_rad),
+      vx: Number(place.init_linvel.x),
+      vy: Number(place.init_linvel.y),
+      angVel: Number(place.init_angvel),
+      enterFrame: Number(scenario.enterFrame),
+      acceptedAtHeight: Number(scenario.acceptedAtHeight),
+      label: String(scenario.label ?? "expected"),
+    });
+    const digest = createHash("sha256").update(key).digest();
+    return Array.from(digest.subarray(0, 32));
   }
   
   function getInputBounds(simInput: SimRunInput): [number, number, number, number] {
@@ -112,10 +139,6 @@ import type {
     ];
   }
   
-  /**
-   * Minimal fallback template only used if a game has zero throws.
-   * Keep exact wire shape that sim_input expects.
-   */
   function fallbackTemplateThrow(): ThrowRecord {
     return {
       accepted_at_height: 361,
@@ -165,17 +188,6 @@ import type {
     return simInput.assets.find((a) => bytesToHex32(a.asset as unknown as number[]) === clean) ?? null;
   }
   
-  /**
-   * Current V0 price source:
-   * - use the current game's own throw snapshot pricing if present
-   * - for now, anchor to the template's observed price_epoch
-   *
-   * price_per_unit_e8 = template.value_usd_e8 / template.amount
-   * new_value_usd_e8 = new_amount * price_per_unit_e8
-   *
-   * This is exactly the level you asked for: use the game's current pricing context
-   * rather than a fake placeholder, until oracle hookup is wired.
-   */
   function estimateValueUsdE8FromTemplate(
     amountBaseStr: string,
     templateThrow: ThrowRecord,
@@ -191,16 +203,6 @@ import type {
     return ((amountBase * tplValue) / tplAmount).toString();
   }
   
-  /**
-   * Physics uses mass_usd. From your own comments/front-end:
-   * mass_usd = value_usd * asset_mass_scale * game_mass_scale * (game_asset_mass_scale?)
-   *
-   * For V0 we use:
-   * mass_usd = valueUsd * asset.mass_scale * game.mass_scale
-   *
-   * That matches the existing model closely enough until asset/game-specific extra
-   * mass multipliers are surfaced explicitly in sim input.
-   */
   function estimateMassUsd(
     valueUsdE8Str: string,
     assetMassScale: number,
@@ -236,6 +238,7 @@ import type {
   
     previewThrow.asset = assetBytes as unknown as ThrowRecord["asset"];
     previewThrow.user = userBytes as unknown as ThrowRecord["user"];
+    previewThrow.id = deterministicSyntheticThrowId(gameId, botUserHex, control, place, scenario) as unknown as ThrowRecord["id"];
   
     previewThrow.amount = String(control.amount);
     previewThrow.value_usd_e8 = valueUsdE8;
@@ -247,9 +250,6 @@ import type {
   
     previewThrow.enter_frame = scenario.enterFrame;
     previewThrow.accepted_at_height = scenario.acceptedAtHeight;
-  
-    // Keep template id/price_epoch/rec fields for now, exactly as front-end style does.
-    // price_epoch stays on the current game snapshot price context for V0.
   
     return previewThrow;
   }

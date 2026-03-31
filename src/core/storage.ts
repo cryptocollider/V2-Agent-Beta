@@ -45,6 +45,17 @@ export type RunLogRow = {
     spinPct: number;
   }>;
   chosenPayload?: unknown;
+  prediction?: {
+    pnlUsd?: number | null;
+    bestPnlUsd?: number | null;
+    worstPnlUsd?: number | null;
+    scenarioCount?: number;
+    winnerValuePct?: number | null;
+    holeType?: number | null;
+    valueUsd?: number | null;
+    valueUsdE8?: string | null;
+    massUsd?: number | null;
+  };
 };
 
 export type ThrowLogRow = {
@@ -62,6 +73,19 @@ export type ThrowLogRow = {
     worstCaseTotal?: number;
     bestCaseTotal?: number;
     fragilityPenalty?: number;
+  };
+  prediction?: {
+    pnlUsd?: number | null;
+    bestPnlUsd?: number | null;
+    worstPnlUsd?: number | null;
+    scenarioCount?: number;
+    winnerScenarioCount?: number;
+    winnerValuePct?: number | null;
+    holeType?: number | null;
+    holeTypeCounts?: Record<string, number>;
+    valueUsd?: number | null;
+    valueUsdE8?: string | null;
+    massUsd?: number | null;
   };
 };
 

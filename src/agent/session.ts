@@ -4,7 +4,7 @@ import type { Hex32 } from "../collider/types.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { StoragePaths } from "../core/storage.js";
 import { appendResultLog } from "../core/storage.js";
-import { getRuntimeSettings } from "../core/runtime-state.js";
+import { getRuntimeSettings, getControlState, updateControlState } from "../core/runtime-state.js";
 import { matchReportToSubmittedThrow, type ExpectedThrowSummary } from "./report-match.js";
 import { runAgentOnce, type ColliderClientLike, type LoopConfig } from "./loop.js";
 
@@ -33,6 +33,22 @@ type RecentShot = {
   spinPct: number;
 };
 
+function extractGameStatus(raw: unknown): number | null {
+  const r = raw as Record<string, any> | null;
+  if (!r || typeof r !== "object") return null;
+  if (Number.isFinite(Number(r.status))) return Number(r.status);
+  if (r.game && Number.isFinite(Number(r.game.status))) return Number(r.game.status);
+  return null;
+}
+
+function extractSettledHeight(raw: unknown): number | null {
+  const r = raw as Record<string, any> | null;
+  if (!r || typeof r !== "object") return null;
+  if (Number.isFinite(Number(r.settled_height))) return Number(r.settled_height);
+  if (r.game && Number.isFinite(Number(r.game.settled_height))) return Number(r.game.settled_height);
+  return null;
+}
+
 function payloadToRecentShot(payload: unknown): RecentShot | null {
   const p = payload as Record<string, any> | null;
   if (!p) return null;
@@ -44,9 +60,7 @@ function payloadToRecentShot(payload: unknown): RecentShot | null {
   const vy = Number(p?.init_linvel?.y ?? NaN);
   const angVel = Number(p?.init_angvel ?? NaN);
 
-  if (![x, y, angleRad, vx, vy, angVel].every(Number.isFinite)) {
-    return null;
-  }
+  if (![x, y, angleRad, vx, vy, angVel].every(Number.isFinite)) return null;
 
   return {
     x,
@@ -96,13 +110,19 @@ export async function runAgentSession(
 
     try {
       const rt = getRuntimeSettings();
+      const ctl = getControlState();
+
+      if (ctl.state === "paused") {
+        await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+        continue;
+      }
 
       const effectivePolicy: AgentPolicy = {
         ...basePolicy,
         maxThrowsPerGame: Number(rt.maxThrowsPerGame ?? basePolicy.maxThrowsPerGame ?? 3),
         maxThrowsPerSession: Number(rt.maxThrowsPerSession ?? basePolicy.maxThrowsPerSession ?? 50),
         minMillisBetweenLiveThrows: Number(
-          rt.minMillisBetweenLiveThrows ?? basePolicy.minMillisBetweenLiveThrows ?? 20_000
+          rt.minMillisBetweenLiveThrows ?? basePolicy.minMillisBetweenLiveThrows ?? 20_000,
         ),
       };
 
@@ -123,10 +143,21 @@ export async function runAgentSession(
 
       for (let i = pendingSubmitted.length - 1; i >= 0; i--) {
         const p = pendingSubmitted[i];
-
         try {
+          const gameRaw = await client.getGame(p.gameId);
+          const status = extractGameStatus(gameRaw);
+          const settledHeight = extractSettledHeight(gameRaw);
+          const isSettled = (status != null && status >= 4) || (settledHeight != null && settledHeight > 0);
+          if (!isSettled) continue;
+
           const report = await client.getGameReport(p.gameId);
           const matched = matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected);
+          const holeType = matched?.throwMatch?.hole_type;
+          const scoreboard = matched?.wholeGame?.per_user_scoreboard;
+          if (holeType == null || !Array.isArray(scoreboard) || scoreboard.length === 0) {
+            console.warn(`[session] settled report still incomplete for ${p.gameId} decision=${p.decisionId}; waiting for full fields`);
+            continue;
+          }
 
           if (effectiveLoopCfg.storage) {
             await appendResultLog(effectiveLoopCfg.storage as StoragePaths, {
@@ -141,15 +172,22 @@ export async function runAgentSession(
           }
 
           pendingSubmitted.splice(i, 1);
-        } catch {
-          // report not ready yet
+        } catch (err) {
+          console.warn(`[session] report not ready for ${p.gameId} decision=${p.decisionId}:`, err);
         }
       }
 
       if (!effectiveLoopCfg.dryRun) {
         if (totalLiveThrows >= (effectivePolicy.maxThrowsPerSession ?? Infinity)) {
-          console.log("[session] maxThrowsPerSession reached, stopping");
-          return;
+          updateControlState({
+            state: "paused",
+            mode: ctl.mode || "regular",
+            lastMessage: `Paused after reaching maxThrowsPerSession=${effectivePolicy.maxThrowsPerSession}.`,
+            lastAction: { action: "auto_pause_max_throws", ts: new Date().toISOString(), throwsTarget: effectivePolicy.maxThrowsPerSession ?? null, exclusive: false },
+          });
+          console.log("[session] maxThrowsPerSession reached, pausing");
+          await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+          continue;
         }
 
         if (now - lastLiveThrowAt < (effectivePolicy.minMillisBetweenLiveThrows ?? 0)) {
@@ -161,44 +199,28 @@ export async function runAgentSession(
       const filteredClient: ColliderClientLike = {
         listGames: async (statusMask?: number) => {
           const games = await client.listGames(statusMask);
-
           return games.filter((g) => {
             const lastTouch = recentGameTouches.get(g.game_id) ?? 0;
             const perGameCount = sessionThrowCounts.get(g.game_id) ?? 0;
-
             if (now - lastTouch < cooldownMsPerGame) return false;
             if (perGameCount >= (effectivePolicy.maxThrowsPerGame ?? Infinity)) return false;
-
             return true;
           });
         },
-
         getGame: (gameId: Hex32) => client.getGame(gameId),
         getSimInput: (gameId: Hex32) => client.getSimInput(gameId),
         getBalances: (user: Hex32) => client.getBalances(user),
         placeThrow: (args: unknown) => client.placeThrow(args),
       };
 
-      const result = await runAgentOnce(
-        filteredClient,
-        wasm,
-        effectivePolicy,
-        effectiveLoopCfg,
-      );
+      const result = await runAgentOnce(filteredClient, wasm, effectivePolicy, effectiveLoopCfg);
 
-      if (result.gameId) {
-        recentGameTouches.set(result.gameId, now);
-      }
+      if (result.gameId) recentGameTouches.set(result.gameId, now);
 
       if (result.winnerSubmitted && result.decisionId && result.gameId) {
         totalLiveThrows += 1;
         lastLiveThrowAt = now;
-
-        sessionThrowCounts.set(
-          result.gameId,
-          (sessionThrowCounts.get(result.gameId) ?? 0) + 1,
-        );
-
+        sessionThrowCounts.set(result.gameId, (sessionThrowCounts.get(result.gameId) ?? 0) + 1);
         pendingSubmitted.push({
           decisionId: result.decisionId,
           gameId: result.gameId,
@@ -211,6 +233,14 @@ export async function runAgentSession(
           recentShots.push(shot);
           while (recentShots.length > 20) recentShots.shift();
         }
+
+        updateControlState({ lastMessage: `Submitted throw into ${result.gameId.slice(0, 10)}...` });
+      } else {
+        const diag = result.diagnostics;
+        const reason = result.stoppedBy === "empty_no_eligible_candidates"
+          ? `No throw placed: no eligible candidates after filters (${diag?.eligibleCandidates ?? 0}/${diag?.generatedCandidates ?? 0}).`
+          : `No throw placed: ${result.stoppedBy ?? "unknown"}`;
+        updateControlState({ lastMessage: reason });
       }
 
       console.log(
@@ -218,6 +248,7 @@ export async function runAgentSession(
       );
     } catch (err) {
       console.error("[session] cycle error, continuing:", err);
+      updateControlState({ lastMessage: `[session] error: ${String(err)}` });
     }
 
     try {

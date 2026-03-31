@@ -2,7 +2,7 @@ import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadSettings, saveSettings } from "../core/settings.js";
-import { getRuntimeSettings, updateRuntimeSettings } from "../core/runtime-state.js";
+import { getRuntimeSettings, updateRuntimeSettings, getControlState, applyControlAction } from "../core/runtime-state.js";
 
 type ServerConfig = {
   port?: number;
@@ -94,6 +94,32 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<void> 
         res.statusCode = 500;
         res.end(JSON.stringify({ ok: false, error: String(err) }));
       }
+      return;
+    }
+
+    if (url.pathname === "/api/control/status" && req.method === "GET") {
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.end(JSON.stringify(getControlState()));
+      return;
+    }
+
+    if (url.pathname === "/api/control/action" && req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const json = JSON.parse(body || "{}");
+          const action = String(json.action || "").trim();
+          if (!action) throw new Error("missing action");
+          const state = applyControlAction(action, json);
+          res.setHeader("content-type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({ ok: true, ...state }));
+        } catch (err) {
+          res.statusCode = 400;
+          res.setHeader("content-type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({ ok: false, error: String(err) }));
+        }
+      });
       return;
     }
 
