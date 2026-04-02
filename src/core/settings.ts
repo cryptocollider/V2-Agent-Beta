@@ -14,6 +14,20 @@ export type AgentSettings = {
   maxThrowsPerSession: number;
   minMillisBetweenLiveThrows: number;
   monitorPort: number;
+  minGameStakeUsd?: number | null;
+  maxSingleThrowUsd?: number | null;
+  maxGameExposureUsd?: number | null;
+  minThrowUsd?: number | null;
+  maxThrowUsd?: number | null;
+  riskMode?: "defensive" | "balanced" | "aggressive";
+  copySlammerWhenSameHoleType?: boolean;
+  allowedAssets?: string[];
+  blockedAssets?: string[];
+  reserveBalanceBase?: string;
+  targetBalanceUsd?: number | null;
+  targetProfitUsd?: number | null;
+  keepAssets?: string[];
+  disposeAssets?: string[];
 };
 
 export const DEFAULT_SETTINGS: AgentSettings = {
@@ -29,6 +43,20 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   maxThrowsPerSession: 50,
   minMillisBetweenLiveThrows: 20000,
   monitorPort: 8787,
+  minGameStakeUsd: null,
+  maxSingleThrowUsd: null,
+  maxGameExposureUsd: null,
+  minThrowUsd: null,
+  maxThrowUsd: null,
+  riskMode: "balanced",
+  copySlammerWhenSameHoleType: false,
+  allowedAssets: [],
+  blockedAssets: [],
+  reserveBalanceBase: "0",
+  targetBalanceUsd: null,
+  targetProfitUsd: null,
+  keepAssets: [],
+  disposeAssets: [],
 };
 
 export async function loadSettings(dataDir = "./data"): Promise<AgentSettings> {

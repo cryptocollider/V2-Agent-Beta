@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
-      --bg:#070b14;
+      --bg:#030612;
       --panel:rgba(10,18,33,.88);
       --line:rgba(79,187,255,.22);
       --cyan:#52e6ff;
@@ -28,9 +28,9 @@
       font-family:Inter,Segoe UI,Arial,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(circle at top left, rgba(94,156,255,.18), transparent 30%),
-        radial-gradient(circle at top right, rgba(255,79,216,.12), transparent 26%),
-        linear-gradient(180deg,#050912 0%,#09111f 100%);
+        radial-gradient(circle at top left, rgba(0,180,255,.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(255,0,170,.12), transparent 24%),
+        linear-gradient(180deg,#02050d 0%,#040a16 55%,#071122 100%);
       min-height:100vh;
     }
 
@@ -55,6 +55,7 @@
       letter-spacing:.08em;
       text-transform:uppercase;
     }
+    .nav button.active-nav{box-shadow:0 0 0 1px rgba(82,230,255,.28),0 0 18px rgba(82,230,255,.14)}
 
     .muted{color:var(--muted)}
     .ok{color:var(--green)}
@@ -66,7 +67,7 @@
       background:var(--panel);
       border:1px solid var(--line);
       border-radius:18px;
-      box-shadow:var(--shadow);
+      box-shadow:0 0 0 1px rgba(82,230,255,.11), 0 0 26px rgba(0,180,255,.12), inset 0 0 18px rgba(0,0,0,.18);
       backdrop-filter:blur(10px);
     }
 
@@ -159,7 +160,7 @@
     }
 
     button{
-      background:linear-gradient(90deg,#0c1e38,#10284c);
+      background:linear-gradient(90deg,#0b1a33,#10305a);
       color:var(--cyan);
       border:1px solid rgba(82,230,255,.25);
       border-radius:12px;
@@ -264,9 +265,9 @@
     
 
     .hps-wrap{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:stretch}
-    .hps-main{grid-column:span 8;display:grid;grid-template-columns:repeat(10,1fr);gap:12px}
-    .hps-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px}
-    .hps-card{padding:14px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72)}
+    .hps-main{grid-column:span 8;display:grid;grid-template-columns:repeat(10,1fr);gap:12px;grid-auto-rows:minmax(150px,auto)}
+    .hps-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;min-height:100%}
+    .hps-card{padding:14px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72);display:flex;flex-direction:column;height:100%}
     .hps-card.hero{grid-column:span 4;display:flex;flex-direction:column;justify-content:center;min-height:150px}
     .hps-card.metric{grid-column:span 3}
     .hps-card.metric.wide{grid-column:span 6}
@@ -292,10 +293,27 @@
     .message-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
     .message-body{font-size:15px;line-height:1.45;color:var(--text)}
     .message-meta{font-size:12px;color:var(--muted)}
-    .message-log{max-height:150px;overflow:auto;border-radius:12px;border:1px solid rgba(82,230,255,.12);background:rgba(9,16,28,.55);padding:10px}
+    .message-log{flex:1 1 auto;min-height:260px;max-height:none;overflow:auto;border-radius:12px;border:1px solid rgba(82,230,255,.12);background:rgba(9,16,28,.55);padding:10px}
     .message-item{font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid rgba(82,230,255,.08)}
     .message-item:last-child{border-bottom:0}
     .section-anchor{scroll-margin-top:18px}
+    
+    select{background:#050f1d;color:var(--text);border:1px solid rgba(82,230,255,.24);border-radius:10px;padding:10px 12px;outline:none}
+    select:focus{border-color:rgba(82,230,255,.52);box-shadow:0 0 0 3px rgba(82,230,255,.12)}
+    select[multiple]{min-height:124px;padding:8px 10px}
+    input,select,button,.pill,.panel{transition:box-shadow .18s ease,border-color .18s ease,background .18s ease}
+    button:hover{box-shadow:0 0 0 1px rgba(82,230,255,.18),0 0 16px rgba(82,230,255,.18)}
+    .active-nav{box-shadow:0 0 0 1px rgba(82,230,255,.32),0 0 18px rgba(82,230,255,.22);background:linear-gradient(90deg,#123763,#1a4f88)}
+    *{scrollbar-width:thin;scrollbar-color:rgba(82,230,255,.45) rgba(7,17,31,.35)}
+    *::-webkit-scrollbar{width:8px;height:8px}
+    *::-webkit-scrollbar-track{background:rgba(7,17,31,.35);border-radius:999px}
+    *::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(82,230,255,.55),rgba(94,156,255,.45));border-radius:999px;border:1px solid rgba(82,230,255,.18)}
+    .hps-wrap{align-items:stretch}
+    .hps-main{grid-auto-rows:minmax(158px,auto)}
+    .hps-side{height:100%;min-height:100%}
+    .message-log{min-height:340px}
+    .field.wide{min-width:260px;flex:1 1 260px}
+
     @media (max-width:1300px){.hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.chart{grid-column:span 12}.hps-wrap,.hps-main{grid-template-columns:repeat(12,1fr)}}
 
     .modal-backdrop{position:fixed;inset:0;background:rgba(3,7,14,.74);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1200;padding:24px}
@@ -310,6 +328,11 @@
     .control-grid.wide{grid-template-columns:repeat(3,minmax(0,1fr))}
     .pill.active-scope{border-color:rgba(255,230,109,.4);color:var(--yellow)}
     .view-hidden{display:none!important}
+    *{scrollbar-width:thin;scrollbar-color:rgba(82,230,255,.4) rgba(7,17,31,.35)}
+    *::-webkit-scrollbar{width:8px;height:8px}
+    *::-webkit-scrollbar-track{background:rgba(7,17,31,.35);border-radius:999px}
+    *::-webkit-scrollbar-thumb{background:rgba(82,230,255,.35);border-radius:999px}
+    *::-webkit-scrollbar-thumb:hover{background:rgba(82,230,255,.5)}
 
     @media (max-width:1300px){
       .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
@@ -332,6 +355,7 @@
   <div class="nav">
     <button id="navHonestBtn" type="button">Honest Score</button>
     <button id="navGamesBtn" type="button">Games Review</button>
+    <button id="navBankBtn" type="button">Bank</button>
     <button id="navSettingsBtn" type="button">Settings</button>
     <button id="navResolvedBtn" type="button">Throws Resolved</button>
   </div>
@@ -478,15 +502,34 @@
       <div id="healthPanel" class="kv"></div>
     </div>
 
-    <div class="panel four games-review view-hidden" id="gamesReviewBankPanel">
+    <div class="panel wide bank-view view-hidden" id="bankSection">
       <div class="title2">Bank</div>
-      <div class="table-wrap" style="max-height:250px">
+      <div class="row" style="margin-bottom:12px">
+        <button id="bankDepositBtn" type="button">Deposit</button>
+        <button id="bankWithdrawBtn" type="button">Withdraw</button>
+        <button id="bankOpenSettingsBtn" type="button">Strategy Settings</button>
+        <span class="muted">Use bridge / VM deposit and withdrawal flow until dedicated endpoints exist.</span>
+      </div>
+      <div class="table-wrap" style="max-height:320px">
         <table style="min-width:100%">
           <thead>
             <tr><th>Asset</th><th>Current</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
           </thead>
           <tbody id="bankBody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="panel eight bank-view view-hidden" id="bankChartPanel">
+      <div class="title2">Balance & Asset Flow</div>
+      <canvas id="bankBalanceChart" height="220"></canvas>
+    </div>
+
+    <div class="panel four bank-view view-hidden" id="bankStrategyPanel">
+      <div class="title2">Bank Strategy</div>
+      <div id="bankStrategySummary" class="kv"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="bankQuickSettingsBtn" type="button">Open Settings</button>
       </div>
     </div>
 
@@ -550,11 +593,11 @@
       <button class="modal-close" id="settingsModalClose" type="button">✕</button>
     </div>
     <div class="row">
-      <div class="field"><label>RPC URL</label><input id="s_rpc" /></div>
+      <div class="field wide"><label>RPC URL</label><input id="s_rpc" /></div>
       <div class="field"><label>WASM Path</label><input id="s_wasm" /></div>
       <div class="field"><label>User</label><input id="s_user" /></div>
-      <div class="field"><label>Asset</label><input id="s_asset" /></div>
-      <div class="field"><label>Amount</label><input id="s_amount" /></div>
+      <div class="field"><label>Primary Asset</label><select id="s_asset"></select></div>
+      <div class="field"><label>Base Amount</label><input id="s_amount" /></div>
       <div class="field"><label>Max Candidates</label><input id="s_maxCandidates" /></div>
       <div class="field"><label>Max ms</label><input id="s_maxMs" /></div>
       <div class="field"><label>Poll ms</label><input id="s_pollMs" /></div>
@@ -562,6 +605,24 @@
       <div class="field"><label>Max Throws / Session</label><input id="s_maxThrowsPerSession" /></div>
       <div class="field"><label>Min ms Between Live</label><input id="s_minMillisBetweenLiveThrows" /></div>
     </div>
+    <div class="title2" style="margin-top:16px">Strategy & Eligibility</div>
+    <div class="row">
+      <div class="field"><label>Min Game Value USD</label><input id="s_minGameStakeUsd" /></div>
+      <div class="field"><label>Max Single Throw USD</label><input id="s_maxSingleThrowUsd" /></div>
+      <div class="field"><label>Max Game Exposure USD</label><input id="s_maxGameExposureUsd" /></div>
+      <div class="field"><label>Min Throw USD</label><input id="s_minThrowUsd" /></div>
+      <div class="field"><label>Max Throw USD</label><input id="s_maxThrowUsd" /></div>
+      <div class="field"><label>Risk Mode</label><select id="s_riskMode"><option value="balanced">Balanced</option><option value="defensive">Defensive</option><option value="aggressive">Aggressive</option></select></div>
+      <div class="field"><label>Copy Slammers</label><select id="s_copySlammerWhenSameHoleType"><option value="false">Off</option><option value="true">On</option></select></div>
+      <div class="field"><label>Reserve Balance Base</label><input id="s_reserveBalanceBase" /></div>
+      <div class="field"><label>Target Balance USD</label><input id="s_targetBalanceUsd" /></div>
+      <div class="field"><label>Target Profit USD</label><input id="s_targetProfitUsd" /></div>
+      <div class="field wide"><label>Allowed Assets</label><select id="s_allowedAssets" multiple></select></div>
+      <div class="field wide"><label>Blocked Assets</label><select id="s_blockedAssets" multiple></select></div>
+      <div class="field wide"><label>Keep Assets</label><select id="s_keepAssets" multiple></select></div>
+      <div class="field wide"><label>Dispose Assets</label><select id="s_disposeAssets" multiple></select></div>
+    </div>
+
     <div class="row" style="margin-top:12px">
       <button id="saveSettingsBtn" type="button">Save Settings</button>
       <span class="muted">Settings auto-save and apply to the running agent on the next cycle.</span>
@@ -593,6 +654,8 @@ let positionChart = null;
 let holePieChart = null;
 let payoutPieChart = null;
 let bonusPieChart = null;
+let bankBalanceChart = null;
+let mainView = "honest";
 let vmBalances = {};
 let lastVmBalancesFetch = 0;
 let liveGameStates = new Map();
@@ -983,38 +1046,49 @@ function buildResolvedDeltaRows(rows){
   for (const [gid, gameRows] of byGame.entries()) {
     gameRows.sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
     let prevStake = 0, prevReturned = 0, prevPnl = 0;
+    let prevInputs = {}, prevOutputs = {};
     for (const row of gameRows) {
-      const scoreboard = getConfiguredUserScoreExact(row?.actual?.wholeGame?.per_user_scoreboard, row?.decisionId || gid);
-      if (!scoreboard) {
-        out.push({ row, deltaStakeUsd:null, deltaReturnedUsd:null, deltaPnlUsd:null, actualHole:getActualHoleInfo(row) });
-        continue;
-      }
-      const curStake = Number(scoreboard?.stake_usd ?? 0);
-      const curReturned = Number(scoreboard?.returned_usd ?? 0);
-      const curPnl = Number(scoreboard?.pnl_usd ?? 0);
+      const scoreboard = getConfiguredUserScore(row?.actual?.wholeGame?.per_user_scoreboard);
+      const curStake = scoreboard ? Number(scoreboard?.stake_usd ?? 0) : 0;
+      const curReturned = scoreboard ? Number(scoreboard?.returned_usd ?? 0) : 0;
+      const curPnl = scoreboard ? Number(scoreboard?.pnl_usd ?? 0) : 0;
+      const curInputs = row?.actual?.wholeGame?.inputs_by_asset || {};
+      const curOutputs = row?.actual?.wholeGame?.outputs_by_asset || {};
       out.push({
         row,
-        deltaStakeUsd: curStake - prevStake,
-        deltaReturnedUsd: curReturned - prevReturned,
-        deltaPnlUsd: curPnl - prevPnl,
+        deltaStakeUsd: scoreboard ? (curStake - prevStake) : null,
+        deltaReturnedUsd: scoreboard ? (curReturned - prevReturned) : null,
+        deltaPnlUsd: scoreboard ? (curPnl - prevPnl) : null,
+        deltaInputsByAsset: assetMapDelta(curInputs, prevInputs),
+        deltaOutputsByAsset: assetMapDelta(curOutputs, prevOutputs),
         actualHole: getActualHoleInfo(row)
       });
       prevStake = curStake;
       prevReturned = curReturned;
       prevPnl = curPnl;
+      prevInputs = curInputs;
+      prevOutputs = curOutputs;
     }
   }
   out.sort((a,b) => new Date(b.row?.ts || 0) - new Date(a.row?.ts || 0));
   return out;
 }
 function setMainView(mode){
+  mainView = mode;
   const honest = document.getElementById('honestySection');
   const resolved = document.getElementById('resolvedSection');
-  const reviewIds = ['statsTrackedPanel','statsResolvedPanel','statsPendingPanel','statsPnlPanel','statsPendingUsdPanel','statsSystemPanel','gamesSection','gamesReviewScoreboardPanel','gamesReviewHealthPanel','gamesReviewBankPanel','gamesReviewProfitPanel','gamesReviewPositionPanel','selectedSection','gamesReviewAnalyticsPanel'];
+  const reviewIds = ['statsTrackedPanel','statsResolvedPanel','statsPendingPanel','statsPnlPanel','statsPendingUsdPanel','statsSystemPanel','gamesSection','gamesReviewScoreboardPanel','gamesReviewHealthPanel','gamesReviewProfitPanel','gamesReviewPositionPanel','selectedSection','gamesReviewAnalyticsPanel'];
+  const bankIds = ['bankSection','bankChartPanel','bankStrategyPanel'];
   const showReview = mode === 'games';
+  const showBank = mode === 'bank';
   if (honest) honest.classList.toggle('view-hidden', mode !== 'honest');
   if (resolved) resolved.classList.toggle('view-hidden', mode !== 'resolved');
   reviewIds.forEach(id => { const el=document.getElementById(id); if (el) el.classList.toggle('view-hidden', !showReview); });
+  bankIds.forEach(id => { const el=document.getElementById(id); if (el) el.classList.toggle('view-hidden', !showBank); });
+  document.querySelectorAll('.nav button').forEach(btn => btn.classList.toggle('active-nav', false));
+  const active = mode === 'honest' ? 'navHonestBtn' : mode === 'games' ? 'navGamesBtn' : mode === 'bank' ? 'navBankBtn' : mode === 'resolved' ? 'navResolvedBtn' : null;
+  const activeEl = active ? document.getElementById(active) : null;
+  if (activeEl) activeEl.classList.add('active-nav');
 }
 
 function buildAgentMessages(metaMap){
@@ -1467,6 +1541,61 @@ function getConfiguredUserScore(perUserScoreboard){
   return perUserScoreboard.find(r => cleanHex(r?.user || '') === target) || null;
 }
 
+function getSettingNumber(key){ const n = Number(settings?.[key]); return Number.isFinite(n) ? n : null; }
+function getSettingString(key){ const v = settings?.[key]; if (Array.isArray(v)) return v.join(', '); return v == null ? '' : String(v); }
+function parseCsvSetting(key){ const v = settings?.[key]; return Array.isArray(v) ? v.map(x=>String(x).trim()).filter(Boolean) : getSettingString(key).split(',').map(s=>s.trim()).filter(Boolean); }
+function settingsBoolish(key){ const v = settings?.[key]; if (typeof v === 'boolean') return v; const s = String(v ?? '').toLowerCase(); return s === 'true' || s === '1' || s === 'yes'; }
+function parseNumberInput(id){ const raw = document.getElementById(id)?.value?.trim?.() ?? ''; if (raw === '') return null; const n = Number(raw); return Number.isFinite(n) ? n : null; }
+function normalizeArraySetting(v){ return Array.isArray(v) ? v.map(x=>String(x)) : (String(v ?? '').split(',').map(s=>s.trim()).filter(Boolean)); }
+function getSelectValues(id){ const el = document.getElementById(id); if (!el) return []; return [...el.options].filter(o=>o.selected).map(o=>o.value); }
+function setSelectValues(id, values){ const wanted = new Set(normalizeArraySetting(values).map(cleanHex)); const el = document.getElementById(id); if (!el) return; [...el.options].forEach(o => { o.selected = wanted.has(cleanHex(o.value)); }); }
+function setSingleValue(id, value){ const el = document.getElementById(id); if (!el) return; el.value = value ?? ''; }
+function buildAssetOptionList(metaMap){
+  const keys = new Set([...Object.keys(defaultAssetMeta), ...Object.keys(metaMap || {}), ...normalizeArraySetting(settings?.allowedAssets), ...normalizeArraySetting(settings?.blockedAssets), ...normalizeArraySetting(settings?.keepAssets), ...normalizeArraySetting(settings?.disposeAssets), cleanHex(settings?.asset || '')].filter(Boolean));
+  return [...keys].map(k => ({ value: k, label: symbolForAsset(k, metaMap) })).sort((a,b)=>a.label.localeCompare(b.label));
+}
+function populateAssetSelectors(metaMap){
+  const opts = buildAssetOptionList(metaMap);
+  const selectIds = ['s_asset','s_allowedAssets','s_blockedAssets','s_keepAssets','s_disposeAssets'];
+  for (const id of selectIds){
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const current = id === 's_asset' ? [el.value] : getSelectValues(id);
+    const multiple = el.multiple;
+    const placeholder = !multiple ? '<option value="">Select asset</option>' : '';
+    el.innerHTML = placeholder + opts.map(o => `<option value="${esc(o.value)}">${esc(o.label)} • ${esc(shortHex(o.value))}</option>`).join('');
+    if (id === 's_asset') setSingleValue(id, (current[0] || settings?.asset || ''));
+    else setSelectValues(id, current.length ? current : settings?.[id.replace('s_','')]);
+  }
+}
+function assetMapDelta(curr, prev){
+  const out = {};
+  const keys = new Set([...(Object.keys(curr || {})), ...(Object.keys(prev || {}))]);
+  for (const k of keys){
+    const a = BigInt(String((curr || {})[k] || '0'));
+    const b = BigInt(String((prev || {})[k] || '0'));
+    const d = a - b;
+    if (d !== 0n) out[cleanHex(k)] = d.toString();
+  }
+  return out;
+}
+function addAssetMaps(a, b){
+  const out = { ...(a || {}) };
+  for (const [k,v] of Object.entries(b || {})){
+    out[cleanHex(k)] = (BigInt(String(out[cleanHex(k)] || '0')) + BigInt(String(v || '0'))).toString();
+  }
+  return out;
+}
+function subtractAssetMaps(a, b){
+  const out = {};
+  const keys = new Set([...(Object.keys(a || {})), ...(Object.keys(b || {}))]);
+  for (const k of keys){
+    const d = BigInt(String((a || {})[k] || '0')) - BigInt(String((b || {})[k] || '0'));
+    if (d !== 0n) out[cleanHex(k)] = d.toString();
+  }
+  return out;
+}
+
 function buildGamesIndex(metaMap){
   const map = new Map();
   const latestRunsByGame = latestByKey(runs, r => cleanHex(r?.gameId || ''));
@@ -1511,6 +1640,7 @@ function buildGamesIndex(metaMap){
         bonusTimeline: [],
         submittedDecisionIds: new Set(),
         canonicalResult: null,
+        userPlayed: false,
       });
     }
     return map.get(gameId);
@@ -1575,11 +1705,16 @@ function buildGamesIndex(metaMap){
 
     if (canonical) {
       const wg = canonical?.actual?.wholeGame || {};
-      const configuredUser = getConfiguredUserScoreExact(wg?.per_user_scoreboard, canonical?.decisionId || gid);
+      const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard);
+      g.userPlayed = !!configuredUser;
       if (configuredUser) {
         g.stakeUsd = Number(configuredUser?.stake_usd ?? 0);
         g.returnedUsd = Number(configuredUser?.returned_usd ?? 0);
         g.pnlUsd = Number(configuredUser?.pnl_usd ?? 0);
+      } else {
+        g.stakeUsd = null;
+        g.returnedUsd = null;
+        g.pnlUsd = null;
       }
       g.points = bonusPoints(canonical?.actual?.bonuses);
       g.latestHoleType = canonical?.actual?.throwMatch?.hole_type ?? null;
@@ -1641,9 +1776,9 @@ function renderGames(games, metaMap){
     };
 
     const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake');
-    const gameTotalDisplay = Number(g.latestStatus ?? -1) >= 2 ? (g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : errorText('missing per_user_scoreboard stake_usd')) : openStakeDisplay;
-    const pnlDisplay = g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`;
-    const predDisplay = g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`;
+    const gameTotalDisplay = Number(g.latestStatus ?? -1) >= 2 ? (g.userPlayed && g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : openStakeDisplay) : openStakeDisplay;
+    const pnlDisplay = g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`) : '-';
+    const predDisplay = g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`);
 
     tr.innerHTML = `
       <td>${esc(shortHex(g.gameId))}</td>
@@ -1664,6 +1799,65 @@ function renderGames(games, metaMap){
 
   const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
   document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages}`;
+}
+
+function renderBankStrategySummary(metaMap){
+  const summary = document.getElementById('bankStrategySummary');
+  if (!summary) return;
+  const allowed = parseCsvSetting('allowedAssets').join(', ') || '-';
+  const blocked = parseCsvSetting('blockedAssets').join(', ') || '-';
+  const keep = parseCsvSetting('keepAssets').join(', ') || '-';
+  const dispose = parseCsvSetting('disposeAssets').join(', ') || '-';
+  summary.innerHTML = `
+    <div class="muted">Min Game Value USD</div><div>${getSettingString('minGameStakeUsd') || '-'}</div>
+    <div class="muted">Throw Range USD</div><div>${getSettingString('minThrowUsd') || '-'} → ${getSettingString('maxThrowUsd') || '-'}</div>
+    <div class="muted">Max Single Throw USD</div><div>${getSettingString('maxSingleThrowUsd') || '-'}</div>
+    <div class="muted">Max Game Exposure USD</div><div>${getSettingString('maxGameExposureUsd') || '-'}</div>
+    <div class="muted">Reserve Balance Base</div><div>${getSettingString('reserveBalanceBase') || '-'}</div>
+    <div class="muted">Target Balance USD</div><div>${getSettingString('targetBalanceUsd') || '-'}</div>
+    <div class="muted">Target Profit USD</div><div>${getSettingString('targetProfitUsd') || '-'}</div>
+    <div class="muted">Risk Mode</div><div>${getSettingString('riskMode') || '-'}</div>
+    <div class="muted">Copy Slammers</div><div>${settingsBoolish('copySlammerWhenSameHoleType') ? 'yes' : 'no'}</div>
+    <div class="muted">Allowed Assets</div><div>${esc(allowed)}</div>
+    <div class="muted">Blocked Assets</div><div>${esc(blocked)}</div>
+    <div class="muted">Keep Assets</div><div>${esc(keep)}</div>
+    <div class="muted">Dispose Assets</div><div>${esc(dispose)}</div>`;
+}
+
+function renderBankChart(metaMap){
+  const canvas = document.getElementById('bankBalanceChart');
+  if (!canvas) return;
+  if (bankBalanceChart) { try { bankBalanceChart.destroy(); } catch {} bankBalanceChart = null; }
+  const deltaRows = buildResolvedDeltaRows(buildLatestResultsByDecision()).slice().sort((a,b)=>new Date(a.row?.ts||0)-new Date(b.row?.ts||0));
+  const totalNet = {};
+  for (const dr of deltaRows){
+    const net = subtractAssetMaps(dr.deltaOutputsByAsset, dr.deltaInputsByAsset);
+    for (const [k,v] of Object.entries(net)){ totalNet[cleanHex(k)] = (BigInt(String(totalNet[cleanHex(k)] || '0')) + BigInt(String(v || '0'))).toString(); }
+  }
+  const assets = [...new Set([...Object.keys(vmBalances || {}).map(cleanHex), ...Object.keys(totalNet)])];
+  const startBalances = {};
+  for (const asset of assets){
+    const current = BigInt(String((vmBalances || {})[asset] || '0'));
+    const net = BigInt(String(totalNet[asset] || '0'));
+    startBalances[asset] = (current - net).toString();
+  }
+  const series = {};
+  for (const asset of assets){ series[asset] = [parseBaseUnitsToDisplayNumber(startBalances[asset], asset, metaMap)]; }
+  const labels = ['Start'];
+  let knownUsdSeries = [assets.reduce((s,a)=>{ const sym=symbolForAsset(a, metaMap); const price=knownUsdPrice(sym); return s + (price ? parseBaseUnitsToDisplayNumber(startBalances[a], a, metaMap)*price : 0); },0)];
+  const running = { ...startBalances };
+  for (const dr of deltaRows){
+    const net = subtractAssetMaps(dr.deltaOutputsByAsset, dr.deltaInputsByAsset);
+    for (const asset of assets){ running[asset] = (BigInt(String(running[asset] || '0')) + BigInt(String(net[asset] || '0'))).toString(); series[asset].push(parseBaseUnitsToDisplayNumber(running[asset], asset, metaMap)); }
+    labels.push(shortHex(cleanHex(dr.row?.gameId || '')));
+    knownUsdSeries.push(assets.reduce((s,a)=>{ const sym=symbolForAsset(a, metaMap); const price=knownUsdPrice(sym); return s + (price ? parseBaseUnitsToDisplayNumber(running[a], a, metaMap)*price : 0); },0));
+  }
+  const colors = chartColors(assets.length);
+  bankBalanceChart = new Chart(canvas, {
+    type:'bar',
+    data:{ labels, datasets:[...assets.map((asset, idx)=>({ label:symbolForAsset(asset, metaMap), data:series[asset], backgroundColor: colors[idx] + '88', borderColor: colors[idx], stack:'assets' })), { type:'line', label:'Known USD Total', data:knownUsdSeries, borderColor:'#ffffff', backgroundColor:'transparent', yAxisID:'yUsd', tension:.2, borderWidth:2 }] },
+    options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#d9ecff' } } }, scales:{ x:{ ticks:{ color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }, y:{ ticks:{ color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }, yUsd:{ position:'right', ticks:{ color:'#88a4c6', callback:(v)=>`$${formatDisplayNumber(v)}` }, grid:{ drawOnChartArea:false } } } }
+  });
 }
 
 function renderBank(games, metaMap){
@@ -1737,9 +1931,9 @@ function renderScoreboard(games, metaMap){
     <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
     <div class="muted">Agent Throws</div><div>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</div>
     <div class="muted">Pending Throws</div><div>${g.agentPendingThrows}</div>
-    <div class="muted">Game Total</div><div>${Number(g.latestStatus ?? -1) >= 2 ? (g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : errorText('missing per_user_scoreboard stake_usd')) : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake'))}</div>
-    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`}</div>
-    <div class="muted">Predicted PnL</div><div>${g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`}</div>
+    <div class="muted">Game Total</div><div>${Number(g.latestStatus ?? -1) >= 2 ? (g.userPlayed && g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-')) : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake'))}</div>
+    <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`) : '-'}</div>
+    <div class="muted">Predicted PnL</div><div>${g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`)}</div>
     <div class="muted">Points</div><div>${g.points}</div>
     <div class="muted">Latest Hole Type</div><div>${g.latestHoleType == null ? errorText('missing actual.throwMatch.hole_type') : holeTypeLabel(g.latestHoleType)}</div>
   `;
@@ -2039,7 +2233,21 @@ async function saveSettings(){
     maxThrowsPerGame: Number(document.getElementById("s_maxThrowsPerGame").value.trim() || "3"),
     maxThrowsPerSession: Number(document.getElementById("s_maxThrowsPerSession").value.trim() || "50"),
     minMillisBetweenLiveThrows: Number(document.getElementById("s_minMillisBetweenLiveThrows").value.trim() || "20000"),
-    monitorPort: settings.monitorPort || 8787
+    monitorPort: settings.monitorPort || 8787,
+    minGameStakeUsd: parseNumberInput("s_minGameStakeUsd"),
+    maxSingleThrowUsd: parseNumberInput("s_maxSingleThrowUsd"),
+    maxGameExposureUsd: parseNumberInput("s_maxGameExposureUsd"),
+    minThrowUsd: parseNumberInput("s_minThrowUsd"),
+    maxThrowUsd: parseNumberInput("s_maxThrowUsd"),
+    riskMode: document.getElementById("s_riskMode").value || "balanced",
+    copySlammerWhenSameHoleType: document.getElementById("s_copySlammerWhenSameHoleType").value === "true",
+    allowedAssets: getSelectValues("s_allowedAssets"),
+    blockedAssets: getSelectValues("s_blockedAssets"),
+    reserveBalanceBase: document.getElementById("s_reserveBalanceBase").value.trim(),
+    targetBalanceUsd: parseNumberInput("s_targetBalanceUsd"),
+    targetProfitUsd: parseNumberInput("s_targetProfitUsd"),
+    keepAssets: getSelectValues("s_keepAssets"),
+    disposeAssets: getSelectValues("s_disposeAssets")
   };
 
   await fetch("/api/settings", {
@@ -2063,11 +2271,13 @@ function scheduleSave(){
 
 async function loadSettings(){
   settings = await fetchJson("/api/settings");
-  const set = (id,v) => { document.getElementById(id).value = v ?? ""; };
+  const set = (id,v) => { const el = document.getElementById(id); if (el) el.value = v ?? ""; };
+  const metaMap = buildAssetMetaMap();
+  populateAssetSelectors(metaMap);
   set("s_rpc", settings.rpc);
   set("s_wasm", settings.wasm);
   set("s_user", settings.user);
-  set("s_asset", settings.asset);
+  set("s_asset", cleanHex(settings.asset || ''));
   set("s_amount", settings.amount);
   set("s_maxCandidates", settings.maxCandidates ?? 50);
   set("s_maxMs", settings.maxMs ?? 20000);
@@ -2075,6 +2285,20 @@ async function loadSettings(){
   set("s_maxThrowsPerGame", settings.maxThrowsPerGame ?? 3);
   set("s_maxThrowsPerSession", settings.maxThrowsPerSession ?? 50);
   set("s_minMillisBetweenLiveThrows", settings.minMillisBetweenLiveThrows ?? 20000);
+  set("s_minGameStakeUsd", settings.minGameStakeUsd ?? "");
+  set("s_maxSingleThrowUsd", settings.maxSingleThrowUsd ?? "");
+  set("s_maxGameExposureUsd", settings.maxGameExposureUsd ?? "");
+  set("s_minThrowUsd", settings.minThrowUsd ?? "");
+  set("s_maxThrowUsd", settings.maxThrowUsd ?? "");
+  set("s_riskMode", settings.riskMode ?? "balanced");
+  set("s_copySlammerWhenSameHoleType", String(!!settings.copySlammerWhenSameHoleType));
+  setSelectValues("s_allowedAssets", settings.allowedAssets ?? []);
+  setSelectValues("s_blockedAssets", settings.blockedAssets ?? []);
+  set("s_reserveBalanceBase", settings.reserveBalanceBase ?? "");
+  set("s_targetBalanceUsd", settings.targetBalanceUsd ?? "");
+  set("s_targetProfitUsd", settings.targetProfitUsd ?? "");
+  setSelectValues("s_keepAssets", settings.keepAssets ?? []);
+  setSelectValues("s_disposeAssets", settings.disposeAssets ?? []);
   updateCommandPreview();
 }
 
@@ -2088,16 +2312,27 @@ function renderAll(){
     document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
   }
 
-  renderHonestPerformance(games, metaMap);
-  updateTopStats(games);
-  renderGames(games, metaMap);
-  renderScoreboard(games, metaMap);
-  renderHealth(games, metaMap);
-  renderBank(games, metaMap);
-  renderSelectedDetail(games, metaMap);
-  renderResolvedBottom(metaMap);
-  renderCharts(games, metaMap);
+  if (mainView === 'honest') {
+    renderHonestPerformance(games, metaMap);
+  }
+  if (mainView === 'games') {
+    updateTopStats(games);
+    renderGames(games, metaMap);
+    renderScoreboard(games, metaMap);
+    renderHealth(games, metaMap);
+    renderSelectedDetail(games, metaMap);
+    renderCharts(games, metaMap);
+  }
+  if (mainView === 'bank') {
+    renderBank(games, metaMap);
+    renderBankStrategySummary(metaMap);
+    renderBankChart(metaMap);
+  }
+  if (mainView === 'resolved') {
+    renderResolvedBottom(metaMap);
+  }
 }
+
 
 async function refresh(){
   const scrollState = saveScrollState();
@@ -2122,6 +2357,8 @@ async function refresh(){
 
 document.getElementById('navHonestBtn').addEventListener('click', () => setMainView('honest'));
 document.getElementById('navGamesBtn').addEventListener('click', () => setMainView('games'));
+document.getElementById('navBankBtn').addEventListener('click', () => setMainView('bank'));
+document.getElementById('bankQuickSettingsBtn').addEventListener('click', openSettingsModal);
 document.getElementById('navResolvedBtn').addEventListener('click', () => setMainView('resolved'));
 const navSettingsBtn = document.getElementById('navSettingsBtn');
 if (navSettingsBtn) navSettingsBtn.addEventListener('click', openSettingsModal);
@@ -2160,9 +2397,12 @@ document.getElementById("ctlResetScores").addEventListener("click", () => { setS
 [
   "s_rpc","s_wasm","s_user","s_asset","s_amount",
   "s_maxCandidates","s_maxMs","s_pollMs",
-  "s_maxThrowsPerGame","s_maxThrowsPerSession","s_minMillisBetweenLiveThrows"
+  "s_maxThrowsPerGame","s_maxThrowsPerSession","s_minMillisBetweenLiveThrows","s_minGameStakeUsd","s_maxSingleThrowUsd","s_maxGameExposureUsd","s_minThrowUsd","s_maxThrowUsd","s_riskMode","s_copySlammerWhenSameHoleType","s_allowedAssets","s_blockedAssets","s_reserveBalanceBase","s_targetBalanceUsd","s_targetProfitUsd","s_keepAssets","s_disposeAssets"
 ].forEach(id => {
-  document.getElementById(id).addEventListener("input", scheduleSave);
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("input", scheduleSave);
+  el.addEventListener("change", scheduleSave);
 });
 
 loadScoreScopeState();
