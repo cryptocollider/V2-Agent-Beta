@@ -1,4 +1,4 @@
-export type CandidateSource = "grid" | "copy-seed" | "history";
+export type CandidateSource = "grid" | "copy-seed" | "history" | "manager";
 
 export type Candidate = {
   x: number;

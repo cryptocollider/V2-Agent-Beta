@@ -1,8 +1,7 @@
 import type { Candidate } from "./candidate-gen.js";
 import type { ScoreConfig, RobustCandidateScore } from "./score.js";
-import { scoreScenarioOutcome, combineScenarioScores } from "./score.js";
+import { combineScenarioScores, diversificationPenaltyForShot, scoreScenarioOutcome } from "./score.js";
 import type { CandidatePlanRun } from "../sim/planner.js";
-import { diversificationPenaltyForShot } from "./score.js";
 
 export type RankedCandidate = {
   candidate: Candidate;
@@ -22,7 +21,7 @@ export type ChooseResult = {
   ranked: RankedCandidate[];
   examinedCount: number;
   elapsedMs: number;
-  stoppedBy: "empty" | "budget_candidates" | "budget_time" | "winner";
+  stoppedBy: "empty" | "budget_candidates" | "budget_time" | "winner" | "complete";
 };
 
 export function rankPlannedCandidates(
@@ -48,15 +47,17 @@ export function rankPlannedCandidates(
       },
       scoreCfg,
     );
-    
+
     combined.fragilityPenalty += diversificationPenalty;
     combined.final -= diversificationPenalty;
 
+    const enriched = plan.control as Candidate;
+
     ranked.push({
       candidate: {
-        ...plan.control,
-        source: "grid",
-        tags: [],
+        ...enriched,
+        source: enriched.source ?? "grid",
+        tags: Array.isArray(enriched.tags) ? enriched.tags : [],
       },
       score: combined,
       meta: {
@@ -113,7 +114,7 @@ export function chooseBestRanked(
   }
 
   if (examined.length > 0 && stoppedBy === "empty") {
-    stoppedBy = examined.length >= rankedCandidates.length ? "budget_candidates" : "empty";
+    stoppedBy = examined.length >= rankedCandidates.length ? "complete" : "empty";
   }
 
   return {

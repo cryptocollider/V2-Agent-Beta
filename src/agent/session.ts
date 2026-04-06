@@ -1,10 +1,12 @@
-import { setTimeout as sleep } from "node:timers/promises";
+﻿import { setTimeout as sleep } from "node:timers/promises";
 import type { AgentPolicy } from "../policy/schema.js";
-import type { Hex32 } from "../collider/types.js";
+import type { GameListItem, Hex32 } from "../collider/types.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { StoragePaths } from "../core/storage.js";
-import { appendResultLog } from "../core/storage.js";
+import { appendResultLog, appendRunLog } from "../core/storage.js";
 import { getRuntimeSettings, getControlState, updateControlState } from "../core/runtime-state.js";
+import { getManagerCandidateSet, getManagerOverlay, setLatestCandidateContext, setLatestEligibilitySnapshot } from "../core/manager-state.js";
+import { buildEligibilityCompactCode, evaluateGamesForEligibility, type LatestEligibilitySnapshot, type SessionEligibilityContext } from "./eligibility.js";
 import { matchReportToSubmittedThrow, type ExpectedThrowSummary } from "./report-match.js";
 import { runAgentOnce, type ColliderClientLike, type LoopConfig } from "./loop.js";
 
@@ -25,6 +27,7 @@ type SubmittedDecision = {
   expected?: ExpectedThrowSummary;
 };
 
+
 type RecentShot = {
   x: number;
   y: number;
@@ -32,6 +35,23 @@ type RecentShot = {
   speedPct: number;
   spinPct: number;
 };
+
+function hasPreciseSettledOutcome(matched: {
+  matched?: boolean;
+  throwMatch?: {
+    hole_type?: number;
+    endFrame?: number;
+  };
+  wholeGame?: {
+    hole_type_counts?: Record<string, number>;
+  };
+} | null | undefined): boolean {
+  if (!matched?.matched) return false;
+  if (!Number.isFinite(matched.throwMatch?.hole_type)) return false;
+  if (!Number.isFinite(matched.throwMatch?.endFrame)) return false;
+  const holeTypeCounts = matched.wholeGame?.hole_type_counts;
+  return !!holeTypeCounts && Object.keys(holeTypeCounts).length > 0;
+}
 
 function parseOptionalNumber(v: unknown): number | undefined {
   if (v == null || v === "") return undefined;
@@ -100,6 +120,104 @@ function payloadToExpectedSummary(payload: unknown): ExpectedThrowSummary {
   };
 }
 
+function buildSessionEligibilityContext(
+  now: number,
+  cooldownMsPerGame: number,
+  recentGameTouches: Map<string, number>,
+  sessionThrowCounts: Map<string, number>,
+  maxThrowsPerGame: number | undefined,
+): SessionEligibilityContext {
+  return {
+    now,
+    cooldownMsPerGame,
+    recentGameTouches: Object.fromEntries(recentGameTouches.entries()),
+    sessionThrowCounts: Object.fromEntries(sessionThrowCounts.entries()),
+    maxThrowsPerGame,
+  };
+}
+
+async function publishSessionGate(params: {
+  ts: string;
+  reason: "cooldown" | "session_cap" | "target_profit";
+  stoppedBy: string;
+  policy: AgentPolicy;
+  loopCfg: LoopConfig;
+  prefetchedGames: GameListItem[];
+  sessionEligibility: SessionEligibilityContext;
+  notes?: string[];
+}): Promise<string> {
+  const { ts, reason, stoppedBy, policy, loopCfg, prefetchedGames, sessionEligibility, notes = [] } = params;
+  const { entries: perGame, selectedGame } = evaluateGamesForEligibility(prefetchedGames, policy, sessionEligibility);
+
+  const snapshot: LatestEligibilitySnapshot = {
+    ts,
+    globalReasons: [reason],
+    selectedGameId: selectedGame?.game_id ?? null,
+    perGame,
+    assetPlanning: [],
+    candidateFilterSummary: {
+      reasonCounts: {},
+      totalRawCandidates: 0,
+      totalEligibleCandidates: 0,
+      limitedCandidates: 0,
+      plannedCandidates: 0,
+    },
+    notes,
+  };
+
+  const eligibilityCode = buildEligibilityCompactCode(snapshot);
+  setLatestEligibilitySnapshot(snapshot);
+  setLatestCandidateContext({
+    ts,
+    gameId: selectedGame?.game_id ?? null,
+    stoppedBy,
+    winnerCandidateHash: null,
+    overlay: getManagerOverlay(),
+    managerCandidateSet: getManagerCandidateSet(),
+    candidates: [],
+  });
+
+  if (loopCfg.storage) {
+    await appendRunLog(loopCfg.storage as StoragePaths, {
+      ts,
+      sessionId: loopCfg.sessionId,
+      mode: loopCfg.dryRun ? "dry-run" : "live",
+      gameId: selectedGame?.game_id ?? null,
+      botUser: loopCfg.botUser,
+      submitted: false,
+      stoppedBy,
+      eligibilityCode,
+      game: selectedGame
+        ? {
+            throws: selectedGame.throws,
+            stake: selectedGame.stake,
+            minThrowValue: selectedGame.throw_min_value,
+            status: selectedGame.status,
+          }
+        : undefined,
+      eligibility: {
+        globalReasons: snapshot.globalReasons,
+        perGame,
+        assetPlanning: [],
+      },
+      search: {
+        generatedCandidates: 0,
+        eligibleCandidates: 0,
+        limitedCandidates: 0,
+        plannedCandidates: 0,
+        examinedCount: 0,
+        maxCandidates: loopCfg.candidateBudget?.maxCandidates,
+        maxMillis: loopCfg.candidateBudget?.maxMillis,
+        includeSlip1: loopCfg.includeSlip1,
+        candidateFilterSummary: snapshot.candidateFilterSummary,
+      },
+      top: [],
+    });
+  }
+
+  return eligibilityCode;
+}
+
 export async function runAgentSession(
   client: ColliderClientSessionLike,
   wasm: WasmVizRuntime,
@@ -136,14 +254,14 @@ export async function runAgentSession(
         maxThrowsPerGame: Number(rt.maxThrowsPerGame ?? basePolicy.maxThrowsPerGame ?? 3),
         maxThrowsPerSession: Number(rt.maxThrowsPerSession ?? basePolicy.maxThrowsPerSession ?? 50),
         minMillisBetweenLiveThrows: Number(
-          rt.minMillisBetweenLiveThrows ?? basePolicy.minMillisBetweenLiveThrows ?? 20_000
+          rt.minMillisBetweenLiveThrows ?? basePolicy.minMillisBetweenLiveThrows ?? 20_000,
         ),
         minGameStakeUsd: parseOptionalNumber(rt.minGameStakeUsd),
         maxSingleThrowUsd: parseOptionalNumber(rt.maxSingleThrowUsd),
         maxGameExposureUsd: parseOptionalNumber(rt.maxGameExposureUsd),
         minThrowUsd: parseOptionalNumber(rt.minThrowUsd),
         maxThrowUsd: parseOptionalNumber(rt.maxThrowUsd),
-        riskMode: (String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"]),
+        riskMode: String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
         copySlammerWhenSameHoleType: parseBool(rt.copySlammerWhenSameHoleType),
         allowedAssets: parseStringArray(rt.allowedAssets),
         blockedAssets: parseStringArray(rt.blockedAssets),
@@ -176,6 +294,10 @@ export async function runAgentSession(
           const report = await client.getGameReport(p.gameId);
           const matched = matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected);
 
+          if (!hasPreciseSettledOutcome(matched)) {
+            continue;
+          }
+
           if (effectiveLoopCfg.storage) {
             await appendResultLog(effectiveLoopCfg.storage as StoragePaths, {
               ts: new Date().toISOString(),
@@ -199,6 +321,16 @@ export async function runAgentSession(
         }
       }
 
+      const prefetchedGames = await client.listGames(effectiveLoopCfg.gameStatusMask);
+      const sessionEligibility = buildSessionEligibilityContext(
+        now,
+        cooldownMsPerGame,
+        recentGameTouches,
+        sessionThrowCounts,
+        effectivePolicy.maxThrowsPerGame,
+      );
+      const gateTs = new Date().toISOString();
+
       if (!effectiveLoopCfg.dryRun) {
         if (
           effectivePolicy.targetProfitUsd != null &&
@@ -208,7 +340,17 @@ export async function runAgentSession(
             state: "paused",
             mode: ctl.mode || "regular",
             lastMessage: `Paused after reaching targetProfitUsd=${effectivePolicy.targetProfitUsd}.`,
-            lastAction: { action: "auto_pause_target_profit", ts: new Date().toISOString(), throwsTarget: null, exclusive: false },
+            lastAction: { action: "auto_pause_target_profit", ts: gateTs, throwsTarget: null, exclusive: false },
+          });
+          await publishSessionGate({
+            ts: gateTs,
+            reason: "target_profit",
+            stoppedBy: "target_profit",
+            policy: effectivePolicy,
+            loopCfg: effectiveLoopCfg,
+            prefetchedGames,
+            sessionEligibility,
+            notes: [`cumulativeRealizedProfit=${cumulativeRealizedProfit.toFixed(6)}`],
           });
           console.log("[session] targetProfitUsd reached, pausing");
           await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
@@ -220,7 +362,17 @@ export async function runAgentSession(
             state: "paused",
             mode: ctl.mode || "regular",
             lastMessage: `Paused after reaching maxThrowsPerSession=${effectivePolicy.maxThrowsPerSession}.`,
-            lastAction: { action: "auto_pause_max_throws", ts: new Date().toISOString(), throwsTarget: effectivePolicy.maxThrowsPerSession ?? null, exclusive: false },
+            lastAction: { action: "auto_pause_max_throws", ts: gateTs, throwsTarget: effectivePolicy.maxThrowsPerSession ?? null, exclusive: false },
+          });
+          await publishSessionGate({
+            ts: gateTs,
+            reason: "session_cap",
+            stoppedBy: "max_throws_per_session",
+            policy: effectivePolicy,
+            loopCfg: effectiveLoopCfg,
+            prefetchedGames,
+            sessionEligibility,
+            notes: [`totalLiveThrows=${totalLiveThrows}`],
           });
           console.log("[session] maxThrowsPerSession reached, pausing");
           await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
@@ -228,37 +380,31 @@ export async function runAgentSession(
         }
 
         if (now - lastLiveThrowAt < (effectivePolicy.minMillisBetweenLiveThrows ?? 0)) {
+          const remainingMs = (effectivePolicy.minMillisBetweenLiveThrows ?? 0) - (now - lastLiveThrowAt);
+          await publishSessionGate({
+            ts: gateTs,
+            reason: "cooldown",
+            stoppedBy: "cooldown",
+            policy: effectivePolicy,
+            loopCfg: effectiveLoopCfg,
+            prefetchedGames,
+            sessionEligibility,
+            notes: [`remainingCooldownMs=${Math.max(0, remainingMs)}`],
+          });
           await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
           continue;
         }
       }
 
-      const filteredClient: ColliderClientLike = {
-        listGames: async (statusMask?: number) => {
-          const games = await client.listGames(statusMask);
-
-          return games.filter((g) => {
-            const lastTouch = recentGameTouches.get(g.game_id) ?? 0;
-            const perGameCount = sessionThrowCounts.get(g.game_id) ?? 0;
-
-            if (now - lastTouch < cooldownMsPerGame) return false;
-            if (perGameCount >= (effectivePolicy.maxThrowsPerGame ?? Infinity)) return false;
-
-            return true;
-          });
-        },
-
-        getGame: (gameId: Hex32) => client.getGame(gameId),
-        getSimInput: (gameId: Hex32) => client.getSimInput(gameId),
-        getBalances: (user: Hex32) => client.getBalances(user),
-        placeThrow: (args: unknown) => client.placeThrow(args),
-      };
-
       const result = await runAgentOnce(
-        filteredClient,
+        client,
         wasm,
         effectivePolicy,
-        effectiveLoopCfg,
+        {
+          ...effectiveLoopCfg,
+          prefetchedGames,
+          sessionEligibility,
+        },
       );
 
       if (result.gameId) {
@@ -292,7 +438,7 @@ export async function runAgentSession(
         });
       } else {
         updateControlState({
-          lastMessage: `No throw placed: ${result.stoppedBy ?? "unknown"}`,
+          lastMessage: `No throw placed: ${result.eligibilityCode ?? result.stoppedBy ?? "unknown"}`,
         });
       }
 
@@ -312,3 +458,4 @@ export async function runAgentSession(
     }
   }
 }
+

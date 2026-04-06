@@ -1,4 +1,4 @@
-export type ExpectedThrowSummary = {
+﻿export type ExpectedThrowSummary = {
   payload?: {
     asset?: string;
     amount?: string;
@@ -59,6 +59,8 @@ export type MatchedResultSummary = {
       kind: string;
       asset: string;
       amount: string;
+      throw_id?: string | null;
+      endFrame?: number;
     }>;
   };
 
@@ -74,6 +76,7 @@ export type MatchedResultSummary = {
     kind: string;
     points: number;
     throw_id?: string | null;
+    endFrame?: number;
   }>;
 
   expectationVsActual?: {
@@ -271,6 +274,12 @@ export function matchReportToSubmittedThrow(
     }
   }
 
+  const outcomeByThrowId = new Map<string, Record<string, any>>();
+  for (const outcome of outcomesRaw) {
+    const throwIdHex = assetHexFromUnknown(outcome.throw_id);
+    if (throwIdHex) outcomeByThrowId.set(throwIdHex, outcome);
+  }
+
   const userPayouts = payoutsRaw.filter((p) => sameHexish(p.user, userHex));
 
   const payoutsByKind: Record<string, string> = {};
@@ -285,13 +294,19 @@ export function matchReportToSubmittedThrow(
     payoutsByAsset[assetHex] = (BigInt(payoutsByAsset[assetHex] ?? "0") + amount).toString();
   }
 
-  const payoutTimeline = payoutsRaw.map((p, idx) => ({
-    idx,
-    user: assetHexFromUnknown(p.user),
-    kind: kindToString(p.kind),
-    asset: assetHexFromUnknown(p.asset),
-    amount: String(p.amount ?? "0"),
-  }));
+  const payoutTimeline = payoutsRaw.map((p, idx) => {
+    const throwId = p.throw_id ? bytesToHex(p.throw_id) : null;
+    const outcome = throwId ? outcomeByThrowId.get(throwId) : null;
+    return {
+      idx,
+      user: assetHexFromUnknown(p.user),
+      kind: kindToString(p.kind),
+      asset: assetHexFromUnknown(p.asset),
+      amount: String(p.amount ?? "0"),
+      throw_id: throwId,
+      endFrame: outcome ? num(outcome.endFrame) : undefined,
+    };
+  });
 
   const userBonuses = bonusAwards
     .filter((b) => sameHexish(b.user, userHex))
@@ -301,13 +316,18 @@ export function matchReportToSubmittedThrow(
       throw_id: b.throw_id ? bytesToHex(b.throw_id) : null,
     }));
 
-  const bonusTimeline = bonusAwards.map((b, idx) => ({
-    idx,
-    user: assetHexFromUnknown(b.user),
-    kind: bonusKindToString(b.kind),
-    points: Number(b.points ?? 0),
-    throw_id: b.throw_id ? bytesToHex(b.throw_id) : null,
-  }));
+  const bonusTimeline = bonusAwards.map((b, idx) => {
+    const throwId = b.throw_id ? bytesToHex(b.throw_id) : null;
+    const outcome = throwId ? outcomeByThrowId.get(throwId) : null;
+    return {
+      idx,
+      user: assetHexFromUnknown(b.user),
+      kind: bonusKindToString(b.kind),
+      points: Number(b.points ?? 0),
+      throw_id: throwId,
+      endFrame: outcome ? num(outcome.endFrame) : undefined,
+    };
+  });
 
   return {
     matched: !!matchedThrow,
@@ -366,3 +386,5 @@ export function matchReportToSubmittedThrow(
     },
   };
 }
+
+

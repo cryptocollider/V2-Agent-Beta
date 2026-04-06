@@ -1,17 +1,39 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import process from "node:process";
+import { Worker } from "node:worker_threads";
 
-import { DEFAULT_POLICY } from "../policy/schema.js";
-import { MASK_LIVE } from "../collider/masks.js";
-import { loadVizWasm } from "../sim/wasm.js";
 import { runAgentOnce } from "../agent/loop.js";
 import { runAgentSession } from "../agent/session.js";
 import { ColliderClient } from "../collider/client.js";
-import { initStorage, makeSessionId } from "../core/storage.js";
+import { MASK_LIVE } from "../collider/masks.js";
+import {
+  getLatestCandidateContext,
+  getLatestEligibilitySnapshot,
+  getManagerCandidateSet,
+  getManagerOverlay,
+  initManagerState,
+  saveManagerCandidateSet,
+  saveManagerOverlay,
+} from "../core/manager-state.js";
 import { loadSettings } from "../core/settings.js";
-import { initRuntimeSettings } from "../core/runtime-state.js";
-import { startMonitorServer } from "../monitor/server.js";
+import { initStorage, makeSessionId } from "../core/storage.js";
+import {
+  applyControlAction,
+  getControlState,
+  getRuntimeSettings,
+  initRuntimeSettings,
+  updateRuntimeSettings,
+} from "../core/runtime-state.js";
+import { DEFAULT_POLICY } from "../policy/schema.js";
+import { loadVizWasm } from "../sim/wasm.js";
+
+type MonitorBridgeRequest = {
+  type: "bridge-request";
+  id: string;
+  method: string;
+  payload?: unknown;
+};
 
 function arg(name: string, fallback?: string): string | undefined {
   const idx = process.argv.indexOf(name);
@@ -21,6 +43,99 @@ function arg(name: string, fallback?: string): string | undefined {
 
 function hasFlag(name: string): boolean {
   return process.argv.includes(name);
+}
+
+async function handleMonitorBridgeRequest(message: MonitorBridgeRequest): Promise<unknown> {
+  switch (message.method) {
+    case "getRuntimeSettings":
+      return getRuntimeSettings();
+    case "updateRuntimeSettings":
+      return updateRuntimeSettings((message.payload ?? {}) as Record<string, unknown>);
+    case "getControlState":
+      return getControlState();
+    case "applyControlAction": {
+      const request = (message.payload ?? {}) as { action?: string; payload?: Record<string, unknown> };
+      return applyControlAction(String(request.action || ""), request.payload ?? {});
+    }
+    case "getLatestEligibilitySnapshot":
+      return getLatestEligibilitySnapshot();
+    case "getLatestCandidateContext":
+      return getLatestCandidateContext();
+    case "getManagerOverlay":
+      return getManagerOverlay();
+    case "saveManagerOverlay":
+      return await saveManagerOverlay((message.payload ?? null) as any);
+    case "getManagerCandidateSet":
+      return getManagerCandidateSet();
+    case "saveManagerCandidateSet":
+      return await saveManagerCandidateSet((message.payload ?? null) as any);
+    default:
+      throw new Error(`unknown monitor bridge method: ${message.method}`);
+  }
+}
+
+async function startMonitorWorker(cfg: { port: number; dataDir: string; staticDir: string }): Promise<Worker> {
+  const workerExt = import.meta.url.endsWith(".ts") ? "ts" : "js";
+  const worker = new Worker(new URL(`../monitor/worker.${workerExt}`, import.meta.url), {
+    workerData: cfg,
+  });
+
+  return await new Promise<Worker>((resolve, reject) => {
+    let settled = false;
+
+    const finishResolve = () => {
+      if (settled) return;
+      settled = true;
+      resolve(worker);
+    };
+
+    const finishReject = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    worker.on("message", async (message: any) => {
+      if (!message || typeof message !== "object") return;
+
+      if (message.type === "bridge-request") {
+        try {
+          const result = await handleMonitorBridgeRequest(message as MonitorBridgeRequest);
+          worker.postMessage({ type: "bridge-response", id: message.id, ok: true, result });
+        } catch (err) {
+          worker.postMessage({ type: "bridge-response", id: message.id, ok: false, error: String(err) });
+        }
+        return;
+      }
+
+      if (message.type === "listening") {
+        finishResolve();
+        return;
+      }
+
+      if (message.type === "startup_error") {
+        finishReject(message.error || "monitor worker failed during startup");
+      }
+    });
+
+    worker.once("error", (err) => {
+      if (settled) {
+        console.error("[monitor-worker]", err);
+        return;
+      }
+      finishReject(err);
+    });
+
+    worker.once("exit", (code) => {
+      if (code === 0) return;
+      const error = new Error(`[monitor-worker] exited with code ${code}`);
+      if (settled) {
+        console.error(error.message);
+        return;
+      }
+      finishReject(error);
+    });
+  });
 }
 
 async function main(): Promise<void> {
@@ -40,12 +155,13 @@ async function main(): Promise<void> {
     maxThrowsPerGame: Number(arg("--max-throws-per-game", String(fileSettings.maxThrowsPerGame))),
     maxThrowsPerSession: Number(arg("--max-throws-per-session", String(fileSettings.maxThrowsPerSession))),
     minMillisBetweenLiveThrows: Number(
-      arg("--min-ms-between-live-throws", String(fileSettings.minMillisBetweenLiveThrows))
+      arg("--min-ms-between-live-throws", String(fileSettings.minMillisBetweenLiveThrows)),
     ),
     monitorPort: Number(arg("--monitor-port", String(fileSettings.monitorPort))),
   };
 
   initRuntimeSettings(effectiveSettings);
+  await initManagerState(dataDir);
 
   const rpcUrl = effectiveSettings.rpc;
   const wasmPath = effectiveSettings.wasm;
@@ -72,11 +188,11 @@ async function main(): Promise<void> {
   const storage = await initStorage(dataDir);
 
   console.log(
-    `session=${sessionId} dataDir=${storage.rootDir} mode=${dryRun ? "dry-run" : "live"} loop=${loop ? "yes" : "no"}`
+    `session=${sessionId} dataDir=${storage.rootDir} mode=${dryRun ? "dry-run" : "live"} loop=${loop ? "yes" : "no"}`,
   );
 
   if (serveMonitor) {
-    await startMonitorServer({
+    await startMonitorWorker({
       port: monitorPort,
       dataDir,
       staticDir: process.cwd(),
@@ -150,3 +266,4 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+

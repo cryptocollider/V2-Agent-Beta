@@ -1,12 +1,52 @@
-import { mkdir, appendFile } from "node:fs/promises";
+﻿import { mkdir, appendFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import type { AssetPlanningEntry, CandidateFilterSummary, GameEligibilityEntry } from "../agent/eligibility.js";
+import type { OverlayAdjustment, ScoreView } from "../strategy/tactical-overlay.js";
 
 export type StoragePaths = {
   rootDir: string;
   runsFile: string;
   throwsFile: string;
   resultsFile: string;
+};
+
+export type PredictionLogView = {
+  pnlUsd?: number | null;
+  bestPnlUsd?: number | null;
+  worstPnlUsd?: number | null;
+  scenarioCount?: number;
+  winnerScenarioCount?: number;
+  winnerValuePct?: number | null;
+  holeType?: number | null;
+  holeTypeCounts?: Record<string, number>;
+  valueUsd?: number | null;
+  valueUsdE8?: string | null;
+  massUsd?: number | null;
+};
+
+export type OverlayLogView = {
+  active: boolean;
+  scoreDelta: number;
+  adjustments: OverlayAdjustment[];
+};
+
+export type CandidateContextLogView = {
+  rank: number;
+  candidateHash: string;
+  source: string;
+  asset: string;
+  amount: string;
+  x: number;
+  y: number;
+  angleDeg: number;
+  speedPct: number;
+  spinPct: number;
+  baseScore: ScoreView;
+  adjustedScore: ScoreView;
+  basePrediction?: PredictionLogView | null;
+  managerAdjustedPrediction?: PredictionLogView | null;
+  overlay: OverlayLogView;
 };
 
 export type RunLogRow = {
@@ -17,19 +57,28 @@ export type RunLogRow = {
   botUser: string;
   submitted: boolean;
   stoppedBy?: string;
+  eligibilityCode?: string;
   game?: {
     throws?: number;
     stake?: string;
     minThrowValue?: string;
     status?: number;
   };
+  eligibility?: {
+    globalReasons?: string[];
+    perGame?: GameEligibilityEntry[];
+    assetPlanning?: AssetPlanningEntry[];
+  };
   search?: {
     generatedCandidates?: number;
     eligibleCandidates?: number;
+    limitedCandidates?: number;
+    plannedCandidates?: number;
     examinedCount?: number;
     maxCandidates?: number;
     maxMillis?: number;
     includeSlip1?: boolean;
+    candidateFilterSummary?: CandidateFilterSummary;
   };
   top: Array<{
     rank: number;
@@ -44,18 +93,14 @@ export type RunLogRow = {
     speedPct: number;
     spinPct: number;
   }>;
+  topDetailed?: CandidateContextLogView[];
   chosenPayload?: unknown;
-  prediction?: {
-    pnlUsd?: number | null;
-    bestPnlUsd?: number | null;
-    worstPnlUsd?: number | null;
-    scenarioCount?: number;
-    winnerValuePct?: number | null;
-    holeType?: number | null;
-    valueUsd?: number | null;
-    valueUsdE8?: string | null;
-    massUsd?: number | null;
-  };
+  prediction?: PredictionLogView;
+  basePrediction?: PredictionLogView;
+  managerAdjustedPrediction?: PredictionLogView;
+  baseScore?: ScoreView;
+  adjustedScore?: ScoreView;
+  overlay?: OverlayLogView;
 };
 
 export type ThrowLogRow = {
@@ -66,27 +111,16 @@ export type ThrowLogRow = {
   botUser: string;
   submitted: boolean;
   dryRun: boolean;
+  eligibilityCode?: string;
+  candidateHash?: string;
   payload: unknown;
-  score?: {
-    final?: number;
-    weightedTotal?: number;
-    worstCaseTotal?: number;
-    bestCaseTotal?: number;
-    fragilityPenalty?: number;
-  };
-  prediction?: {
-    pnlUsd?: number | null;
-    bestPnlUsd?: number | null;
-    worstPnlUsd?: number | null;
-    scenarioCount?: number;
-    winnerScenarioCount?: number;
-    winnerValuePct?: number | null;
-    holeType?: number | null;
-    holeTypeCounts?: Record<string, number>;
-    valueUsd?: number | null;
-    valueUsdE8?: string | null;
-    massUsd?: number | null;
-  };
+  score?: ScoreView;
+  baseScore?: ScoreView;
+  adjustedScore?: ScoreView;
+  prediction?: PredictionLogView;
+  basePrediction?: PredictionLogView;
+  managerAdjustedPrediction?: PredictionLogView;
+  overlay?: OverlayLogView;
 };
 
 export type ResultLogRow = {
