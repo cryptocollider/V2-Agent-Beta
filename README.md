@@ -1,6 +1,11 @@
-<img width="1772" height="988" alt="image" src="https://github.com/user-attachments/assets/28f9f099-9f15-4af2-818a-5aec75ddd621" />
+<img width="1738" height="939" alt="image" src="https://github.com/user-attachments/assets/406d61b9-e9c5-4ab3-9092-0d2eafd33643" />
+<img width="1688" height="981" alt="image" src="https://github.com/user-attachments/assets/158d429c-68aa-4e73-8ed9-734e9cc7ed10" />
+<img width="1674" height="985" alt="image" src="https://github.com/user-attachments/assets/6a9ca7e8-29e7-4e54-85d9-30e82fcdba24" />
+
+
 
 # Collider Agent 1 - Beta
+## Introduces Honest Performance Score
 
 Local Node-based agent player and monitor for Collider V2.
 
@@ -13,10 +18,11 @@ Connects to the Collider V2 Beta blockchain, scans games, simulates possible thr
 - appends hypothetical throws locally
 - runs the same `sim_core.wasm` planning path as the frontend
 - ranks candidate throws under queue scenarios
-- submits live throws
+- submits live throws (with prediction hash)
 - matches submitted throws back to resolved outcomes
 - logs runs / throws / results to JSONL
 - serves a local neon monitor UI with live settings
+- COMPUTES HONEST PERFORMANCE SCORE
 
 ## Project layout
 
