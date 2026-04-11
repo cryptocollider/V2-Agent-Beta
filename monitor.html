@@ -202,6 +202,48 @@
       font-weight:700;
       line-height:1.45;
     }
+    .analytics-card{display:flex;flex-direction:column;gap:10px;min-height:340px;max-height:340px;overflow:hidden}
+    .analytics-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .analytics-sub{font-size:12px;color:var(--muted);font-weight:500}
+    .analytics-chart-wrap{position:relative;height:210px;flex:0 0 210px;min-width:0}
+    .analytics-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding-right:4px}
+    .analytics-scoreboard-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(82,230,255,.08)}
+    .analytics-scoreboard-row:last-child{border-bottom:0}
+    .analytics-profit{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;white-space:nowrap}
+    .analytics-points{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+    .analytics-key-list{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:600;line-height:1.35}
+    .analytics-key-list.compact{gap:6px;font-size:11px}
+    .analytics-key-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid rgba(82,230,255,.08)}
+    .analytics-key-row:last-child{border-bottom:0}
+    .analytics-key-meta{font-size:11px;color:var(--muted);font-weight:500;line-height:1.4}
+    .mini-toggle{display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid rgba(82,230,255,.18);border-radius:999px;background:rgba(8,19,33,.92)}
+    .mini-toggle button{min-width:64px;padding:5px 10px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+    .mini-toggle button.active{background:rgba(82,230,255,.16);color:var(--cyan)}
+    .analytics-toggle-cluster{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .analytics-card-body{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(220px,1fr);gap:12px;align-items:stretch;min-height:0;flex:1 1 auto}
+    .analytics-card-body.wide-chart{grid-template-columns:minmax(0,1.5fr) minmax(240px,1fr)}
+    .analytics-side-list{min-height:0;overflow:auto;padding-right:4px}
+    .analytics-chart-wrap.compact{height:174px;min-height:174px;flex:0 0 174px}
+    .analytics-chart-wrap.tight{height:188px;min-height:188px;flex:0 0 188px}
+    .analytics-chart-wrap.tall{height:200px;min-height:200px;flex:0 0 200px}
+    .analytics-chart-wrap.micro{height:156px;min-height:156px;flex:0 0 156px}
+    .analytics-scroll.tight{font-size:11px}
+    .analytics-chart-note{font-size:12px;color:var(--muted);line-height:1.45;padding:8px 0}
+    .analytics-card-body.keyed{grid-template-columns:minmax(146px,.8fr) minmax(0,1.2fr)}
+    .analytics-side-list.table{padding-right:0}
+    .analytics-cross-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3}
+    .analytics-cross-table th,.analytics-cross-table td{padding:6px 8px;border-bottom:1px solid rgba(82,230,255,.08);white-space:nowrap;text-align:right}
+    .analytics-cross-table th:first-child,.analytics-cross-table td:first-child{text-align:left}
+    .analytics-cross-table th:nth-child(2),.analytics-cross-table td:nth-child(2){text-align:left}
+    .analytics-cross-table thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+    .analytics-cross-table tfoot td{font-weight:700;color:var(--cyan)}
+    #profitChart{width:100%;height:288px;min-height:288px;max-height:288px;display:block}
+    #positionChart{width:100%!important;height:180px!important;max-height:180px!important;display:block}
+    .monitor-loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,8,19,.48);backdrop-filter:blur(10px);z-index:50;transition:opacity .18s ease, visibility .18s ease}
+    .monitor-loading.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+    .monitor-loading-card{min-width:320px;max-width:420px;padding:18px 22px;border:1px solid rgba(82,230,255,.18);border-radius:18px;background:rgba(7,17,31,.94);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+    .monitor-loading-title{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+    .monitor-loading-text{font-size:13px;color:var(--muted);line-height:1.5}
 
     .pill{
       display:inline-flex;
@@ -236,12 +278,14 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
+      flex-wrap:wrap;
     }
 
     .asset-inline{
       display:inline-flex;
       align-items:center;
       gap:6px;
+      flex-wrap:wrap;
     }
 
     .asset-inline img,
@@ -252,25 +296,50 @@
       filter:drop-shadow(0 0 4px rgba(82,230,255,.12));
       vertical-align: middle;
     }
+    .asset-icon-wrap{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px}
+    .asset-fallback{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:999px;border:1px solid rgba(82,230,255,.24);background:rgba(8,25,42,.88);color:var(--cyan);font-size:10px;font-weight:800;letter-spacing:.05em}
 
-    pre{
+    .asset-short{font-size:11px;letter-spacing:.08em;color:#9ec8ff;opacity:.92}
+    .copy-ref{display:inline-flex;align-items:center;gap:6px;max-width:100%;flex-wrap:nowrap;white-space:nowrap}
+    .copy-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;white-space:nowrap}
+    .copy-btn{width:20px;height:20px;min-width:20px;padding:0;border-radius:999px;font-size:12px;line-height:1;display:inline-flex;align-items:center;justify-content:center;background:rgba(8,19,33,.92);border:1px solid rgba(82,230,255,.24);color:#d9ecff;box-shadow:none}
+    .copy-btn:hover{border-color:rgba(101,255,176,.45);color:var(--green);box-shadow:0 0 0 1px rgba(101,255,176,.18),0 0 12px rgba(101,255,176,.16)}
+    .copy-btn.copied{color:var(--green);border-color:rgba(101,255,176,.45);background:rgba(15,41,31,.94)}
+    .asset-flow-list{display:flex;flex-wrap:nowrap;gap:8px 10px;align-items:center;white-space:nowrap}
+    .asset-flow-item{display:inline-flex;align-items:center;gap:6px}
+    .asset-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(82,230,255,.16);background:rgba(8,20,35,.88);color:var(--text)}
+    .elig-chip,.hole-chip,.status-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid rgba(82,230,255,.18);background:#081321;font-size:12px;font-weight:700;letter-spacing:.04em}
+    .elig-chip.clickable{cursor:pointer}
+    .tone-ok{color:var(--green);border-color:rgba(101,255,176,.35);background:rgba(16,40,33,.88)}
+    .tone-warn{color:var(--yellow);border-color:rgba(255,230,109,.34);background:rgba(47,38,12,.9)}
+    .tone-pink{color:#ffd8f5;border-color:rgba(255,79,216,.34);background:rgba(49,16,42,.9)}
+    .tone-info{color:var(--cyan);border-color:rgba(82,230,255,.28);background:rgba(8,25,42,.9)}
+    .tone-neutral{color:#b8cce4;border-color:rgba(136,164,198,.24);background:rgba(14,22,35,.92)}
+    .hole-chip.win{color:var(--green);border-color:rgba(101,255,176,.35);background:rgba(15,41,31,.9)}
+    .hole-chip.resolved{color:var(--cyan);border-color:rgba(82,230,255,.28);background:rgba(8,25,42,.9)}
+    .hole-chip.undecided{color:var(--yellow);border-color:rgba(255,230,109,.34);background:rgba(47,38,12,.9)}
+    .hole-chip.settling{color:#ffd98a;border-color:rgba(255,196,89,.34);background:rgba(56,37,10,.92)}
+    .hole-chip.no-hole{color:#ffb4c4;border-color:rgba(255,107,136,.28);background:rgba(45,16,24,.9)}
+    .hole-chip.missing{color:#ffd5de;border-color:rgba(255,107,136,.32);background:rgba(47,14,22,.9)}
+
+        pre{
       white-space:pre-wrap;
       background:#07111f;
       border:1px solid rgba(82,230,255,.12);
       padding:12px;
       border-radius:12px;
-      color:#cde8ff
+      color:#cde8ff;
     }
 
-    
-
-    .hps-wrap{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;align-items:stretch}
-    .hps-main{grid-column:span 8;display:grid;grid-template-columns:repeat(10,1fr);gap:12px;grid-auto-rows:minmax(150px,auto)}
+    .hps-wrap{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;align-items:start}
+    .hps-main{grid-column:span 8;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:12px;grid-auto-rows:minmax(158px,auto)}
     .hps-side{grid-column:span 4;display:flex;flex-direction:column;gap:12px;min-height:100%}
-    .hps-card{padding:14px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72);display:flex;flex-direction:column;height:100%}
-    .hps-card.hero{grid-column:span 4;display:flex;flex-direction:column;justify-content:center;min-height:150px}
-    .hps-card.metric{grid-column:span 3}
-    .hps-card.metric.wide{grid-column:span 6}
+    .hps-card{padding:14px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72);display:flex;flex-direction:column;height:100%;position:relative}
+    .hps-card.hero{grid-column:span 4;justify-content:center;min-height:160px}
+    .hps-card.metric{grid-column:span 2}
+    .hps-card.metric.wide{grid-column:span 4}
+    .hps-card.quad{grid-column:span 4}
+    .hps-card.chart{grid-column:span 8;min-height:255px}
     .hps-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
     .hps-big{font-size:34px;font-weight:900;color:var(--green);line-height:1.05}
     .hps-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.4}
@@ -280,24 +349,58 @@
     .hps-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
     .info-btn{width:22px;height:22px;min-width:22px;padding:0;border-radius:999px;font-size:12px;line-height:1;border-color:rgba(82,230,255,.18);background:rgba(8,19,33,.9)}
     .mini-chart{width:100%;height:56px;max-height:56px;margin-top:10px}
-    .hps-card.metric,.hps-card.hero{position:relative}
     .kpi-help-body{font-size:14px;line-height:1.55;color:var(--text)}
     .kpi-help-body code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--cyan)}
-    .control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .control-btn{min-height:52px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .control-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .control-grid.wide{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .control-btn{min-height:44px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;font-size:12px;border-radius:10px}
     .control-btn.stop{border-color:rgba(255,107,136,.45);color:#ffd5de}
     .control-btn.cal{border-color:rgba(255,230,109,.35)}
     .control-btn.clean{border-color:rgba(255,79,216,.35)}
     .status-box{padding:12px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72)}
-    .message-bar{min-height:96px;display:flex;flex-direction:column;gap:8px}
+    .message-bar{min-height:82px;display:flex;flex-direction:column;gap:8px}
     .message-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
     .message-body{font-size:15px;line-height:1.45;color:var(--text)}
     .message-meta{font-size:12px;color:var(--muted)}
-    .message-log{flex:1 1 auto;min-height:260px;max-height:none;overflow:auto;border-radius:12px;border:1px solid rgba(82,230,255,.12);background:rgba(9,16,28,.55);padding:10px}
+    .message-log{flex:0 0 auto;min-height:360px;max-height:520px;overflow:auto;border-radius:12px;border:1px solid rgba(82,230,255,.12);background:rgba(9,16,28,.55);padding:10px}
     .message-item{font-size:12px;line-height:1.5;padding:6px 0;border-bottom:1px solid rgba(82,230,255,.08)}
     .message-item:last-child{border-bottom:0}
+    .cards.analytics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .strategy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .strategy-card{padding:12px;border:1px solid rgba(82,230,255,.14);border-radius:14px;background:rgba(7,17,31,.74);display:flex;flex-direction:column;gap:10px}
+    .strategy-card.wide{grid-column:span 2}
+    .strategy-heading{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+    .strategy-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .strategy-field{display:flex;flex-direction:column;gap:6px}
+    .strategy-field.full{grid-column:span 2}
+    .strategy-field input,.strategy-field select{width:100%}
+    .strategy-slider{width:100%;accent-color:#52e6ff;height:18px}
+    .strategy-simple{display:flex;flex-direction:column;gap:10px}
+    .strategy-simple-row{display:grid;grid-template-columns:168px minmax(0,1fr);gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(82,230,255,.08)}
+    .strategy-simple-row:last-child{border-bottom:0}
+    .strategy-simple-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    .strategy-simple-control{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .strategy-simple-inline{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0}
+    .strategy-simple-inline input,.strategy-simple-inline select{max-width:180px}
+    .strategy-simple-meta{font-size:12px;color:var(--muted)}
+    .strategy-simple-list{display:flex;align-items:center;gap:8px;min-height:32px;min-width:0;overflow:hidden}
+    #gamesReviewScoreboardPanel,#gamesReviewHealthPanel,#gamesReviewPositionPanel{grid-column:span 4}
+    #gamesReviewScoreboardPanel{order:1}
+    #gamesReviewHealthPanel{order:2}
+    #gamesReviewPositionPanel{order:3}
+    #gamesReviewProfitPanel{grid-column:span 12;order:4}
+    #selectedSection{order:5}
+    #gamesReviewAnalyticsPanel{order:6}
+    .detail-grid{display:grid;grid-template-columns:150px 1fr;gap:8px 10px;align-items:start}
+    .detail-key{color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-size:11px}
+    .detail-value{font-size:13px;line-height:1.5}
+    .hps-chart-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+    .hps-badges{display:flex;gap:8px;flex-wrap:wrap}
+    .pill.active-scope{border-color:rgba(255,230,109,.4);color:var(--yellow)}
+    .view-hidden{display:none!important}
+    .field.wide{min-width:260px;flex:1 1 260px}
     .section-anchor{scroll-margin-top:18px}
-    
+
     select{background:#050f1d;color:var(--text);border:1px solid rgba(82,230,255,.24);border-radius:10px;padding:10px 12px;outline:none}
     select:focus{border-color:rgba(82,230,255,.52);box-shadow:0 0 0 3px rgba(82,230,255,.12)}
     select[multiple]{min-height:124px;padding:8px 10px}
@@ -308,13 +411,18 @@
     *::-webkit-scrollbar{width:8px;height:8px}
     *::-webkit-scrollbar-track{background:rgba(7,17,31,.35);border-radius:999px}
     *::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(82,230,255,.55),rgba(94,156,255,.45));border-radius:999px;border:1px solid rgba(82,230,255,.18)}
-    .hps-wrap{align-items:stretch}
-    .hps-main{grid-auto-rows:minmax(158px,auto)}
-    .hps-side{height:100%;min-height:100%}
-    .message-log{min-height:340px}
-    .field.wide{min-width:260px;flex:1 1 260px}
+    *::-webkit-scrollbar-thumb:hover{background:rgba(82,230,255,.5)}
 
-    @media (max-width:1300px){.hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.chart{grid-column:span 12}.hps-wrap,.hps-main{grid-template-columns:repeat(12,1fr)}}
+    @media (max-width:1500px){.cards.analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+    @media (max-width:1300px){
+      .hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.quad,.hps-card.chart{grid-column:span 12}
+      .hps-wrap,.hps-main{grid-template-columns:repeat(12,minmax(0,1fr))}
+      .control-grid,.control-grid.wide{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .strategy-grid,.strategy-range,.cards.analytics-grid{grid-template-columns:1fr}
+      .strategy-card.wide,.strategy-field.full{grid-column:span 1}
+      .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
+    }
 
     .modal-backdrop{position:fixed;inset:0;background:rgba(3,7,14,.74);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1200;padding:24px}
     .modal-backdrop.hidden{display:none}
@@ -322,29 +430,20 @@
     .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
     .modal-head h3{margin:0;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;font-size:15px}
     .modal-close{min-width:42px;padding:8px 12px}
-    .hps-card.chart{grid-column:span 10;min-height:250px}
-    .hps-chart-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-    .hps-badges{display:flex;gap:8px;flex-wrap:wrap}
-    .control-grid.wide{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .pill.active-scope{border-color:rgba(255,230,109,.4);color:var(--yellow)}
-    .view-hidden{display:none!important}
-    *{scrollbar-width:thin;scrollbar-color:rgba(82,230,255,.4) rgba(7,17,31,.35)}
-    *::-webkit-scrollbar{width:8px;height:8px}
-    *::-webkit-scrollbar-track{background:rgba(7,17,31,.35);border-radius:999px}
-    *::-webkit-scrollbar-thumb{background:rgba(82,230,255,.35);border-radius:999px}
-    *::-webkit-scrollbar-thumb:hover{background:rgba(82,230,255,.5)}
-
-    @media (max-width:1300px){
-      .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
-    }
   </style>
 </head>
 <body>
+<div class="monitor-loading" id="monitorLoading">
+  <div class="monitor-loading-card">
+    <div class="monitor-loading-title">Loading Monitor Data</div>
+    <div class="monitor-loading-text" id="monitorLoadingText">Waiting for recent agent logs and live game state.</div>
+  </div>
+</div>
 <div class="wrap">
   <div class="hero">
     <div>
       <div class="title">Collider V2: Agent Monitor</div>
-      <div class="sub">Agent dashboard & maintainance</div>
+      <div class="sub">Agent dashboard & maintenance</div>
     </div>
     <div class="row">
       <span class="pill ok" id="saveBadge">AGENT LIVE</span>
@@ -368,7 +467,7 @@
           <div class="hps-card hero">
             <div class="hps-head"><div class="hps-label">Honest Performance Score</div><button class="info-btn" data-kpi-info="honest_score" type="button">?</button></div>
             <div class="hps-big" id="honestScoreValue">Waiting</div>
-            <div class="hps-sub" id="honestScoreSummary">This score measures whether the agent’s own expectations are converging toward reality while real performance improves. Profit is tracked per game. Win quality is tracked per throw, but the headline win % is based on USD value into Winner holes, not raw throw count.</div>
+            <div class="hps-sub" id="honestScoreSummary">This score measures whether the agentÃ¢â‚¬â„¢s own expectations are converging toward reality while real performance improves. Profit is tracked per game. Win quality is tracked per throw, but the headline win % is based on USD value into Winner holes, not raw throw count.</div>
             <div class="row" style="margin-top:10px">
               <span class="pill active-scope" id="scoreScopeBadge">Scope: All Data</span>
               <span class="pill" id="scoreProgressBadge">Progress: 0</span>
@@ -378,7 +477,7 @@
           <div class="hps-card metric">
             <div class="hps-head"><div class="hps-label">Predicted Profit</div><button class="info-btn" data-kpi-info="predicted_profit" type="button">?</button></div>
             <div class="hps-value" id="hpsPredictedProfit">Waiting</div>
-            <div class="hps-small" id="hpsPredictedProfitMeta">Per-game prediction • waiting for logged expected outcome</div>
+            <div class="hps-small" id="hpsPredictedProfitMeta">Per-game prediction  |  waiting for logged expected outcome</div>
             <canvas class="mini-chart" id="miniPredictedProfitChart" height="56"></canvas>
           </div>
           <div class="hps-card metric">
@@ -387,24 +486,24 @@
             <div class="hps-small" id="hpsActualProfitMeta">0 games / $0 per game</div>
             <canvas class="mini-chart" id="miniActualProfitChart" height="56"></canvas>
           </div>
-          <div class="hps-card metric">
+          <div class="hps-card metric quad">
             <div class="hps-head"><div class="hps-label">Predicted Win-Hole %</div><button class="info-btn" data-kpi-info="predicted_win_pct" type="button">?</button></div>
             <div class="hps-value" id="hpsPredictedWinPct">Waiting</div>
-            <div class="hps-small" id="hpsPredictedWinPctMeta">Throw-level expectation • waiting for logged predicted hole outcomes</div>
+            <div class="hps-small" id="hpsPredictedWinPctMeta">Throw-level expectation  |  waiting for logged predicted hole outcomes</div>
             <canvas class="mini-chart" id="miniPredictedWinChart" height="56"></canvas>
           </div>
-          <div class="hps-card metric">
+          <div class="hps-card metric quad">
             <div class="hps-head"><div class="hps-label">Actual Win-Hole %</div><button class="info-btn" data-kpi-info="actual_win_pct" type="button">?</button></div>
             <div class="hps-value" id="hpsActualWinPct">0%</div>
-            <div class="hps-small" id="hpsActualWinPctMeta">0 throws / 0 wins • % is USD into Winner</div>
+            <div class="hps-small" id="hpsActualWinPctMeta">0 throws / 0 wins  |  % is USD into Winner</div>
             <canvas class="mini-chart" id="miniActualWinChart" height="56"></canvas>
           </div>
-          <div class="hps-card metric wide">
+          <div class="hps-card metric quad">
             <div class="hps-head"><div class="hps-label">Calibration Gap</div><button class="info-btn" data-kpi-info="calibration_gap" type="button">?</button></div>
-            <div class="hps-row"><div class="hps-value" id="hpsCalibrationGap">Waiting</div><div class="hps-small" id="hpsCalibrationGapMeta">((real / expected) - 1) × 100 • profit + win components</div></div>
+            <div class="hps-row"><div class="hps-value" id="hpsCalibrationGap">Waiting</div><div class="hps-small" id="hpsCalibrationGapMeta">((real / expected) - 1) Ãƒâ€” 100  |  profit + win components</div></div>
             <canvas class="mini-chart" id="miniGapChart" height="56"></canvas>
           </div>
-          <div class="hps-card metric wide">
+          <div class="hps-card metric quad">
             <div class="hps-head"><div class="hps-label">Consistency Over Time</div><button class="info-btn" data-kpi-info="consistency" type="button">?</button></div>
             <div class="hps-row"><div class="hps-value" id="hpsConsistency">Waiting</div><div class="hps-small" id="hpsConsistencyMeta">Gap should shrink while real performance rises</div></div>
             <canvas class="mini-chart" id="miniConsistencyChart" height="56"></canvas>
@@ -431,10 +530,11 @@
               <button class="control-btn" id="ctlStart">Start</button>
               <button class="control-btn stop" id="ctlStop">Stop</button>
               <button class="control-btn" id="ctlSettings">Settings</button>
-              <button class="control-btn cal" id="ctlCalibrate">Calibrate 50</button>
-              <button class="control-btn clean" id="ctlFullClean">Full Clean 2000</button>
+              <button class="control-btn cal" id="ctlSnapshot">Snapshot (20)</button>
+              <button class="control-btn cal" id="ctlCalibrate">Calibrate (100)</button>
+              <button class="control-btn clean" id="ctlFullClean">Cleanse (1000)</button>
               <button class="control-btn" id="ctlUseAllData">Use All Data</button>
-              <button class="control-btn" id="ctlResetScores">Reset Scores</button>
+              <button class="control-btn" id="ctlResetScores">Reset Window</button>
             </div>
             <div class="row" style="margin-top:10px">
               <span class="pill" id="controlStateBadge">State: Live</span>
@@ -443,7 +543,7 @@
           </div>
           <div class="status-box message-bar">
             <div class="message-title">Real-time Agent Feedback</div>
-            <div class="message-body" id="agentMessageBody">Waiting for agent activity…</div>
+            <div class="message-body" id="agentMessageBody">Waiting for agent activity...</div>
             <div class="message-meta" id="agentMessageMeta">No recent cycle yet.</div>
           </div>
           <div class="message-log" id="agentMessageLog"></div>
@@ -469,7 +569,7 @@
               <th>Scans</th>
               <th>Candidates</th>
               <th>Throws A/T</th>
-              <th>Pending A</th>
+              <th>Eligibility</th>
               <th>Game Total</th>
               <th>PnL USD</th>
               <th>Predicted PnL</th>
@@ -527,23 +627,24 @@
 
     <div class="panel four bank-view view-hidden" id="bankStrategyPanel">
       <div class="title2">Bank Strategy</div>
-      <div id="bankStrategySummary" class="kv"></div>
-      <div class="row" style="margin-top:12px">
+      <div id="bankStrategySummary"></div>
+      <div class="strategy-actions">
         <button id="bankQuickSettingsBtn" type="button">Open Settings</button>
+        <span class="muted" id="bankStrategyHint">Inline edits autosave here. Use Open Settings for full asset-list controls.</span>
       </div>
     </div>
 
     <div class="panel half games-review view-hidden" id="gamesReviewProfitPanel">
       <div class="title2">Profit / Game Total</div>
-      <canvas id="profitChart" height="180"></canvas>
+      <canvas id="profitChart" height="88"></canvas>
     </div>
 
-    <div class="panel half games-review view-hidden" id="gamesReviewPositionPanel">
+    <div class="panel four games-review view-hidden" id="gamesReviewPositionPanel">
       <div class="title2">Throw Positions</div>
       <canvas id="positionChart" height="180"></canvas>
     </div>
 
-    <div class="panel eight games-review view-hidden" id="selectedSection">
+    <div class="panel wide games-review view-hidden" id="selectedSection">
       <div class="title2">Selected Game Throw Detail</div>
       <div class="row">
         <span class="pill" id="selGameId">Game: All Games</span>
@@ -552,7 +653,7 @@
         <span class="pill" id="selGamePending">Pending: -</span>
         <span class="pill" id="selGamePoints">Points: -</span>
       </div>
-      <div class="table-wrap" style="max-height:330px;margin-top:12px">
+      <div class="table-wrap" style="max-height:360px;margin-top:12px">
         <table>
           <thead>
             <tr>
@@ -564,9 +665,9 @@
       </div>
     </div>
 
-    <div class="panel four games-review view-hidden" id="gamesReviewAnalyticsPanel">
+    <div class="panel wide games-review view-hidden" id="gamesReviewAnalyticsPanel">
       <div class="title2">Selected Game Analytics</div>
-      <div class="cards" id="analyticsCards"></div>
+      <div class="cards analytics-grid" id="analyticsCards"></div>
     </div>
 
 
@@ -576,7 +677,7 @@
         <table>
           <thead>
             <tr>
-              <th>Time</th><th>Game</th><th>Matched</th><th>Predicted Hole</th><th>Hole</th><th>Stake USD Δ</th><th>Returned USD Δ</th><th>PnL USD Δ</th><th>Input Assets</th><th>Output Assets</th><th>Bonuses</th>
+              <th>Time</th><th>Game</th><th>Matched</th><th>Predicted Hole</th><th>Hole</th><th>Stake USD Delta </th><th>Returned USD Delta </th><th>PnL USD Delta </th><th>Input Assets</th><th>Output Assets</th><th>Bonuses</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -590,7 +691,7 @@
   <div class="modal-card">
     <div class="modal-head">
       <h3>Settings</h3>
-      <button class="modal-close" id="settingsModalClose" type="button">✕</button>
+      <button class="modal-close" id="settingsModalClose" type="button">X</button>
     </div>
     <div class="row">
       <div class="field wide"><label>RPC URL</label><input id="s_rpc" /></div>
@@ -627,8 +728,10 @@
       <button id="saveSettingsBtn" type="button">Save Settings</button>
       <span class="muted">Settings auto-save and apply to the running agent on the next cycle.</span>
     </div>
-    <div class="title2" style="margin-top:16px">Launch Summary</div>
-    <pre id="cmdPreview"></pre>
+    <div class="row" style="margin-top:16px">
+      <button id="copyLaunchBtn" type="button" data-copy-text="">Copy Launch Command</button>
+      <span class="muted">Copies the current launch command without showing the full command block in the modal.</span>
+    </div>
   </div>
 </div>
 
@@ -636,7 +739,7 @@
   <div class="modal-card" style="width:min(760px,94vw)">
     <div class="modal-head">
       <h3 id="kpiInfoTitle">KPI</h3>
-      <button class="modal-close" id="kpiInfoClose" type="button">✕</button>
+      <button class="modal-close" id="kpiInfoClose" type="button">X</button>
     </div>
     <div class="kpi-help-body" id="kpiInfoBody"></div>
   </div>
@@ -644,7 +747,7 @@
 
 <script>
 
-let runs = [], throwsRows = [], results = [], settings = {};
+let runs = [], throwsRows = [], results = [], settings = {}, managerState = null;
 let gamesPage = 0;
 const GAMES_PAGE_SIZE = 12;
 let selectedGameId = null;
@@ -653,29 +756,44 @@ let profitChart = null;
 let positionChart = null;
 let holePieChart = null;
 let payoutPieChart = null;
+let payoutKeyPieChart = null;
 let bonusPieChart = null;
+let bonusPointsChart = null;
+let analyticsHoleMode = 'count';
+let analyticsPerspectiveMode = 'all';
 let bankBalanceChart = null;
 let mainView = "honest";
 let vmBalances = {};
 let lastVmBalancesFetch = 0;
 let liveGameStates = new Map();
 let lastVmGameStatesFetch = 0;
+let liveGameStateRefreshDone = false;
 let controlState = { mode: "regular", state: "live", lastAction: null, lastMessage: null };
 let lastControlFetch = 0;
 let hpsTrendChart = null;
 let miniCharts = {};
 let controlApiAvailable = false;
+let lastRefreshFingerprint = '';
+let lastVmRefreshFingerprint = '';
+let managerStateRequestInFlight = false;
+let monitorInitialDataReady = false;
 const SCORE_SCOPE_KEY = "cc_agent_monitor_score_scope_v1";
 let scoreScopeState = { mode:"all_data", startTs:null, targetThrows:null, exclusive:false, label:"All Data" };
 
 const defaultAssetMeta = {
   "0101010101010101010101010101010101010101010101010101010101010101": { symbol: "USDC", decimals: 8 },
   "0303030303030303030303030303030303030303030303030303030303030303": { symbol: "CLC", decimals: 12 },
-  "0505050505050505050505050505050505050505050505050505050505050505": { symbol: "AVAX", decimals: 18 }
+  "0505050505050505050505050505050505050505050505050505050505050505": { symbol: "AVAX", decimals: 16 }
 };
 
 function cleanHex(v){ return String(v ?? "").toLowerCase().replace(/^0x/,""); }
-function shortHex(v){ if(!v||typeof v!=="string") return "-"; return v.length>14 ? `${v.slice(0,10)}…` : v; }
+function shortHex(v, limit = 10){ if(!v||typeof v!=="string") return "-"; return v.length > limit ? v.slice(0, limit) : v; }
+function escAttr(s){ return String(s ?? "").replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function copyButtonHtml(value, label = 'Copy value'){ const raw = String(value ?? '').trim(); if (!raw) return ''; return `<button class="copy-btn" type="button" data-copy-text="${escAttr(raw)}" title="${escAttr(label)}" aria-label="${escAttr(label)}">&#10697;</button>`; }
+function shortRefHtml(value, opts = {}){ const raw = String(value ?? '').trim(); if (!raw) return '-'; const display = opts.short === false ? raw : shortHex(raw, opts.limit || 10); return `<span class="${opts.className || 'copy-ref'}" title="${escAttr(opts.title || raw)}"><span class="copy-text">${esc(display)}</span>${opts.extra ? `<span class="asset-short">${esc(opts.extra)}</span>` : ''}${opts.copy === false ? '' : copyButtonHtml(raw, opts.copyLabel || 'Copy value')}</span>`; }
+function gameRefHtml(gameId){ return shortRefHtml(gameId, { className:'copy-ref', copyLabel:'Copy game ID' }); }
+function decisionRefHtml(decisionId){ return shortRefHtml(decisionId, { className:'copy-ref', copyLabel:'Copy decision ID' }); }
+function hashRefHtml(hash){ return shortRefHtml(hash, { className:'copy-ref', copyLabel:'Copy hash' }); }
 
 function with0x(v){ const h = cleanHex(v); return h ? (String(v).startsWith('0x') ? String(v) : `0x${h}`) : ''; }
 function safeJsonParse(text, fallback){ try { return JSON.parse(text); } catch { return fallback; } }
@@ -690,12 +808,13 @@ function persistScoreScopeState(){
 }
 function setScoreScope(mode, opts = {}){
   const startTs = opts.startTs || new Date().toISOString();
+  const labels = { all_data:'All Data', reset_window:'Reset Window', snapshot_20:'Snapshot (20)', calibrate_100:'Calibrate (100)', cleanse_1000:'Cleanse (1000)' };
   scoreScopeState = {
     mode,
     startTs: mode === 'all_data' ? null : startTs,
     targetThrows: opts.targetThrows ?? null,
     exclusive: !!opts.exclusive,
-    label: opts.label || (mode === 'all_data' ? 'All Data' : mode === 'reset_window' ? 'Since Reset' : mode === 'calibrate_50' ? 'Calibration 50' : mode === 'full_clean_2000' ? 'Full Clean 2000' : mode)
+    label: opts.label || labels[mode] || mode
   };
   persistScoreScopeState();
 }
@@ -754,7 +873,8 @@ function buildAssetMetaMap() {
 
 function assetIcon(symbol){
   const s = String(symbol || "").replace(/[^a-zA-Z0-9_-]/g, "");
-  return `<img class="asset-icon" src="img/${s}.png" alt="${esc(s)}" onerror="this.style.display='none'">`;
+  if (!s) return '<span class="asset-fallback">?</span>';
+  return `<span class="asset-icon-wrap"><img class="asset-icon" src="img/${s}.png" alt="${esc(s)}" data-alt-src="/img/${s}.png" onerror="if(!this.dataset.retryDone){this.dataset.retryDone='1';this.src=this.dataset.altSrc;return;}this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span class="asset-fallback" style="display:none">${esc(s.slice(0,3))}</span></span>`;
 }
 
 function symbolForAsset(asset, metaMap){
@@ -804,9 +924,21 @@ function formatBaseUnits(amount, asset, metaMap){
   }
 }
 
-function assetInline(amount, asset, metaMap){
+function assetLabelHtml(asset, metaMap, opts = {}){
+  const raw = cleanHex(asset);
+  if (!raw) return '-';
+  const symbol = symbolForAsset(raw, metaMap);
+  const shortId = opts.showShortHex ? shortHex(raw, opts.limit || 10) : '';
+  return `<span class="${opts.className || 'asset-chip'}" title="${escAttr(raw)}">${assetIcon(symbol)}<span>${esc(symbol)}</span>${shortId ? `<span class="asset-short">${esc(shortId)}</span>` : ''}${opts.copy === false ? '' : copyButtonHtml(raw, `Copy asset ${symbol}`)}</span>`;
+}
+
+function assetAmountHtml(amount, asset, metaMap, opts = {}){
   const symbol = symbolForAsset(asset, metaMap);
-  return `<span class="asset-inline">${assetIcon(symbol)}<span>${esc(formatBaseUnits(amount, asset, metaMap))}</span></span>`;
+  return `<span class="asset-inline">${assetIcon(symbol)}<span>${esc(formatBaseUnits(amount, asset, metaMap))}</span>${opts.copy === false ? '' : copyButtonHtml(cleanHex(asset), `Copy asset ${symbol}`)}</span>`;
+}
+
+function assetInline(amount, asset, metaMap, opts = {}){
+  return assetAmountHtml(amount, asset, metaMap, opts);
 }
 
 function objectEntriesDisplayUnits(obj, metaMap){
@@ -815,6 +947,19 @@ function objectEntriesDisplayUnits(obj, metaMap){
     .filter(([_,v]) => String(v ?? "0") !== "0")
     .map(([k,v]) => formatBaseUnits(v, k, metaMap))
     .join(" | ") || "0";
+}
+
+function objectEntriesDisplayUnitsHtml(obj, metaMap, opts = {}){
+  if(!obj || typeof obj !== "object") return "-";
+  const entries = Object.entries(obj).filter(([_,v]) => String(v ?? '0') !== '0');
+  if (!entries.length) return '0';
+  return `<div class="asset-flow-list">${entries.map(([k,v]) => `<span class="asset-flow-item">${assetAmountHtml(v, k, metaMap, opts)}</span>`).join('')}</div>`;
+}
+
+function formatAssetListHtml(values, metaMap){
+  const assets = normalizeArraySetting(values).map(cleanHex).filter(Boolean);
+  if (!assets.length) return '-';
+  return `<div class="asset-flow-list">${assets.map(asset => assetLabelHtml(asset, metaMap, { className:'asset-pill', showShortHex:true, copy:false })).join('')}</div>`;
 }
 
 function bonusPoints(bonuses){
@@ -841,11 +986,11 @@ function winnerHoleTypes(){
 function holeTypeLabel(id){
   const n = Number(id);
   return ({
-    1: 'Return',
+    1: 'Draw',
     2: 'Lose 100%',
     3: 'Winner',
     4: 'Lose 50%',
-    5: 'Tournament / Special'
+    5: 'Special'
   }[n] || `Type ${id}`);
 }
 
@@ -876,10 +1021,11 @@ async function maybeRefreshVmGameStates(gameIds){
   if (now - lastVmGameStatesFetch < 4000) return;
   lastVmGameStatesFetch = now;
   try {
-    const next = new Map(liveGameStates);
-    const jobs = gameIds.slice(0, 100).map(async (gid) => {
-      const prev = next.get(cleanHex(gid));
-      if (Number(prev?.status ?? -1) >= 4) return;
+    const requested = uniqueStrings(gameIds.map(cleanHex).filter(Boolean)).slice(0, 100);
+    const requestedSet = new Set(requested);
+    const previous = new Map(liveGameStates);
+    const next = new Map();
+    const jobs = requested.map(async (gid) => {
       try {
         const raw = await rpcCall(settings.rpc, 'colliderV2.getGame', [with0x(gid)]);
         const parsed = extractRpcGameState(raw);
@@ -889,29 +1035,48 @@ async function maybeRefreshVmGameStates(gameIds){
       }
     });
     await Promise.all(jobs);
+    for (const [gid, prev] of previous.entries()) {
+      if (next.has(gid)) continue;
+      if (requestedSet.has(gid) && Number(prev?.status ?? -1) < 2) {
+        next.set(gid, prev);
+        continue;
+      }
+      if (liveStateIsFresh(prev)) next.set(gid, prev);
+    }
     liveGameStates = next;
+    liveGameStateRefreshDone = true;
   } catch (err) {
     console.warn('maybeRefreshVmGameStates failed', err);
+    if (!liveGameStateRefreshDone && liveGameStates.size === 0) liveGameStateRefreshDone = true;
   }
 }
-
 async function maybeRefreshControlState(){
   return;
 }
 
 async function postControlAction(action, payload = {}){
-  const friendly = {
-    start: 'Start requested.',
-    stop: 'Stop requested.',
-    calibrate: 'Calibration run requested (50 throws).',
-    full_clean: 'Full clean requested (2000 throws, exclusive).'
-  }[action] || `Action ${action} requested.`;
+  const throwsTarget = Number(payload?.throwsTarget ?? 0);
+  const friendly = action === 'start'
+    ? 'Start requested.'
+    : action === 'stop'
+      ? 'Stop requested.'
+      : action === 'calibrate'
+        ? (throwsTarget === 20 ? 'Snapshot requested (20 throws).' : `Calibrate requested (${throwsTarget || 100} throws).`)
+        : action === 'full_clean'
+          ? `Cleanse requested (${throwsTarget || 1000} throws, focused).`
+          : `Action ${action} requested.`;
+
+  const mode = action === 'calibrate'
+    ? (throwsTarget === 20 ? 'snapshot-20' : `calibrate-${throwsTarget || 100}`)
+    : action === 'full_clean'
+      ? `cleanse-${throwsTarget || 1000}`
+      : (action === 'stop' ? 'stopping' : 'regular');
 
   controlState = {
     ...controlState,
     lastAction: { action, ts: new Date().toISOString(), ...payload },
     lastMessage: friendly,
-    mode: action === 'calibrate' ? 'calibrate-50' : action === 'full_clean' ? 'full-clean-2000' : (action === 'stop' ? 'stopping' : 'regular'),
+    mode,
     state: action === 'stop' ? 'stopping' : 'live'
   };
 
@@ -935,12 +1100,12 @@ async function postControlAction(action, payload = {}){
 function describeScoreScopeProgress(){
   const scopedThrows = scopeFilter(throwsRows).filter(t => t?.submitted);
   const count = scopedThrows.length;
-  if (scoreScopeState.mode === 'all_data') return `All data • ${count} submitted throws in scope.`;
+  if (scoreScopeState.mode === 'all_data') return `All data  |  ${count} submitted throws in scope.`;
   if (scoreScopeState.targetThrows) {
     const pct = Math.min(100, (count / Math.max(scoreScopeState.targetThrows, 1)) * 100);
-    return `${scoreScopeState.label} • ${count}/${scoreScopeState.targetThrows} throws (${formatDisplayNumber(pct)}%)`;
+    return `${scoreScopeState.label}  |  ${count}/${scoreScopeState.targetThrows} throws (${formatDisplayNumber(pct)}%)`;
   }
-  return `${scoreScopeState.label} • ${count} submitted throws in scope.`;
+  return `${scoreScopeState.label}  |  ${count} submitted throws in scope.`;
 }
 function openSettingsModal(){
   const el = document.getElementById('settingsModal');
@@ -1015,13 +1180,42 @@ function getThrowPredictionExact(throwRow){
   if (!throwRow?.prediction) return null;
   return throwRow.prediction;
 }
+function isCompleteResultSnapshot(resultRow){
+  if (!resultRow?.actual) return false;
+  const holeType = Number(resultRow?.actual?.throwMatch?.hole_type);
+  const endFrame = Number(resultRow?.actual?.throwMatch?.endFrame);
+  if (Number.isFinite(holeType) && Number.isFinite(endFrame)) return true;
+  const holeTypeCounts = resultRow?.actual?.wholeGame?.hole_type_counts;
+  if (holeTypeCounts && Object.keys(holeTypeCounts).length) return true;
+  if (Array.isArray(resultRow?.actual?.payouts?.timeline) && resultRow.actual.payouts.timeline.length) return true;
+  if (Array.isArray(resultRow?.actual?.bonus_timeline) && resultRow.actual.bonus_timeline.length) return true;
+  return false;
+}
 function getActualHoleInfo(resultRow){
-  const ht = resultRow?.actual?.throwMatch?.hole_type;
-  if (ht == null) {
-    addDataDiagnostic(`missing actual.throwMatch.hole_type (${resultRow?.decisionId || 'unknown'})`, resultRow);
-    return { ok:false, value:null, label:errorText('missing actual.throwMatch.hole_type') };
+  const throwMatch = resultRow?.actual?.throwMatch || null;
+  const exactHoleType = throwMatch?.hole_type;
+  const fallbackHoleType = resultRow?.actual?.expectationVsActual?.actual_hole_type;
+  const resolvedValueUsd = Number(throwMatch?.value_usd_e8 || 0) / 1e8;
+  if (exactHoleType != null) {
+    return { ok:true, kind:'hole', value:Number(exactHoleType), label:holeTypeLabel(Number(exactHoleType)), detail:'Recorded on actual.throwMatch.hole_type', resolvedValueUsd };
   }
-  return { ok:true, value:Number(ht), label:holeTypeLabel(Number(ht)) };
+  if (fallbackHoleType != null) {
+    return { ok:true, kind:'hole', value:Number(fallbackHoleType), label:holeTypeLabel(Number(fallbackHoleType)), detail:'Recovered from expectationVsActual.actual_hole_type', resolvedValueUsd };
+  }
+  const status = Number(resultRow?.actual?.wholeGame?.status ?? -1);
+  const openLike = status === 0 || status === 1 || resultRow?.actual?.matched === false;
+  if (openLike) {
+    const detail = throwMatch ? 'Result row exists, but the final hole has not been recorded yet.' : 'Result row exists, but the throw result has not been recorded yet.';
+    return { ok:false, kind:'undecided', value:null, label:'UNDECIDED', detail, resolvedValueUsd:Number.isFinite(resolvedValueUsd) ? resolvedValueUsd : null };
+  }
+  if (throwMatch && !isCompleteResultSnapshot(resultRow)) {
+    return { ok:false, kind:'settling', value:null, label:'SETTLING', detail:'This throw has been matched, but the settled hole and payout timeline have not been recorded yet.', resolvedValueUsd:Number.isFinite(resolvedValueUsd) ? resolvedValueUsd : null };
+  }
+  if (throwMatch) {
+    return { ok:false, kind:'settling', value:null, label:'INCOMPLETE', detail:'This result row still does not contain an exact final hole for this throw, so the monitor is treating it as an incomplete historical snapshot.', resolvedValueUsd:Number.isFinite(resolvedValueUsd) ? resolvedValueUsd : null };
+  }
+  addDataDiagnostic(`missing actual.throwMatch (${resultRow?.decisionId || 'unknown'})`, resultRow);
+  return { ok:false, kind:'missing', value:null, label:errorText('missing actual.throwMatch'), detail:'Result row is missing actual.throwMatch and no open/pending markers were present.', resolvedValueUsd:null };
 }
 function getPredictedHoleInfo(throwRow){
   const ht = throwRow?.prediction?.holeType;
@@ -1089,58 +1283,111 @@ function setMainView(mode){
   const active = mode === 'honest' ? 'navHonestBtn' : mode === 'games' ? 'navGamesBtn' : mode === 'bank' ? 'navBankBtn' : mode === 'resolved' ? 'navResolvedBtn' : null;
   const activeEl = active ? document.getElementById(active) : null;
   if (activeEl) activeEl.classList.add('active-nav');
+  renderAll();
 }
 
 function buildAgentMessages(metaMap){
   const { latestRun, latestThrow, latestResult } = latestAgentSignal();
   const items = [];
+  const latestManager = managerState?.latestCandidates || null;
+  const latestEligibility = managerState?.latestEligibility || null;
+  const managerOverlay = managerState?.overlay || null;
+  const managerCandidateSet = managerState?.managerCandidateSet || null;
+
+  const describeSearch = (row) => {
+    const search = row?.search || {};
+    const parts = [];
+    if (search.generatedCandidates != null) parts.push(`raw=${search.generatedCandidates}`);
+    if (search.eligibleCandidates != null) parts.push(`eligible=${search.eligibleCandidates}`);
+    if (search.plannedCandidates != null) parts.push(`planned=${search.plannedCandidates}`);
+    if (search.examinedCount != null) parts.push(`examined=${search.examinedCount}`);
+    return parts.length ? parts.join(', ') : '';
+  };
 
   if (latestThrow) {
     const p = latestThrow.payload || {};
     items.push({
       ts: latestThrow.ts,
-      text: latestThrow.submitted
-        ? `Submitted ${formatBaseUnits(p.amount || '0', p.asset || settings.asset || '', metaMap)} into ${shortHex(latestThrow.gameId)}.`
-        : `Prepared a throw candidate for ${shortHex(latestThrow.gameId)} but did not submit.`,
-      meta: latestThrow.decisionId ? `Decision ${latestThrow.decisionId}` : 'Throw log'
+      html: latestThrow.submitted
+        ? `Submitted ${assetAmountHtml(p.amount || '0', p.asset || settings.asset || '', metaMap)} into ${gameRefHtml(latestThrow.gameId)}${latestThrow.candidateHash ? ` using candidate ${hashRefHtml(latestThrow.candidateHash)}` : ''}.`
+        : `Prepared throw candidate${latestThrow.candidateHash ? ` ${hashRefHtml(latestThrow.candidateHash)}` : ''} for ${gameRefHtml(latestThrow.gameId)} but did not submit.`,
+      metaHtml: latestThrow.decisionId ? `Decision ${decisionRefHtml(latestThrow.decisionId)}` : 'Throw log'
     });
   }
 
   if (latestRun) {
-    let text = 'Scanned games.';
-    if (latestRun.submitted) text = `Cycle chose a live throw in ${shortHex(latestRun.gameId)}.`;
-    else if (latestRun.stoppedBy) text = `No throw placed: ${String(latestRun.stoppedBy) === 'empty' ? 'no eligible game after current filters / policy checks' : String(latestRun.stoppedBy).replace(/_/g,' ')}.`;
-    items.push({ ts: latestRun.ts, text, meta: `Run row • ${latestRun.gameId ? shortHex(latestRun.gameId) : 'no game'}` });
+    const searchText = describeSearch(latestRun);
+    const stopReason = latestRun.eligibilityCode
+      ? `${String(latestRun.eligibilityCode)}${latestRun.stoppedBy ? ` (${String(latestRun.stoppedBy).replace(/_/g,' ')})` : ''}`
+      : (latestRun.stoppedBy ? String(latestRun.stoppedBy).replace(/_/g,' ') : 'no diagnostic reason logged');
+    const body = latestRun.submitted
+      ? `Cycle selected a live throw in ${gameRefHtml(latestRun.gameId)}${searchText ? ` | ${esc(searchText)}` : ''}.`
+      : `No throw placed${latestRun.gameId ? ` for ${gameRefHtml(latestRun.gameId)}` : ''}: <code>${esc(stopReason)}</code>${searchText ? ` | ${esc(searchText)}` : ''}.`;
+    items.push({ ts: latestRun.ts, html: body, metaHtml: `Run row | ${latestRun.gameId ? gameRefHtml(latestRun.gameId) : 'no game'}` });
   }
 
   if (latestResult) {
     const pnl = Number(latestResult?.actual?.wholeGame?.pnl_usd ?? 0);
-    const hole = latestResult?.actual?.throwMatch?.hole_type;
+    const actualHole = getActualHoleInfo(latestResult);
     items.push({
       ts: latestResult.ts,
-      text: `Resolved result from ${shortHex(latestResult.gameId)}: ${hole != null ? holeTypeLabel(hole) : 'no hole'} • PnL ${pnl >= 0 ? '+' : ''}$${formatDisplayNumber(pnl)}.`,
-      meta: latestResult.decisionId ? `Result ${latestResult.decisionId}` : 'Result row'
+      html: actualHole.kind === 'hole'
+        ? `Resolved result from ${gameRefHtml(latestResult.gameId)}: ${holeChipHtml(actualHole)} | PnL ${pnl >= 0 ? '+' : ''}${formatDisplayNumber(pnl)}.`
+        : `Latest result row from ${gameRefHtml(latestResult.gameId)} is still incomplete: ${holeChipHtml(actualHole)} | PnL ${pnl >= 0 ? '+' : ''}${formatDisplayNumber(pnl)}.`,
+      metaHtml: latestResult.decisionId ? `Result ${decisionRefHtml(latestResult.decisionId)}` : 'Result row'
+    });
+  }
+
+  if (latestEligibility?.ts && managerState?.eligibilityCode) {
+    items.push({
+      ts: latestEligibility.ts,
+      html: `Latest eligibility snapshot: <code>${esc(managerState.eligibilityCode)}</code>${latestEligibility.selectedGameId ? ` for ${gameRefHtml(latestEligibility.selectedGameId)}` : ''}.`,
+      metaHtml: 'Manager eligibility'
+    });
+  }
+
+  if (managerOverlay) {
+    items.push({
+      ts: managerOverlay.updatedAt || new Date().toISOString(),
+      html: `Manager overlay ${hashRefHtml(managerOverlay.id || 'overlay')}${managerOverlay.expiresAt ? ` | expires ${esc(managerOverlay.expiresAt)}` : ''}${Array.isArray(managerOverlay.notes) && managerOverlay.notes.length ? ` | notes: ${esc(managerOverlay.notes.join(' | '))}` : ''}.`,
+      metaHtml: 'Manager overlay'
+    });
+  }
+
+  if (managerCandidateSet) {
+    const candidateCount = Array.isArray(managerCandidateSet.candidates) ? managerCandidateSet.candidates.length : 0;
+    const futureScenarioCount = Array.isArray(managerCandidateSet.candidates)
+      ? managerCandidateSet.candidates.reduce((sum, candidate) => sum + ((candidate.futureScenarios || []).length), 0)
+      : 0;
+    items.push({
+      ts: managerCandidateSet.updatedAt || new Date().toISOString(),
+      html: `Manager candidate set ${hashRefHtml(managerCandidateSet.id || 'candidate-set')}: ${candidateCount} candidate programs | ${futureScenarioCount} future scenarios${managerCandidateSet.expiresAt ? ` | expires ${esc(managerCandidateSet.expiresAt)}` : ''}.`,
+      metaHtml: 'Manager candidate set'
+    });
+  }
+
+  if (latestManager?.candidates?.length) {
+    const topCandidate = latestManager.candidates[0];
+    items.push({
+      ts: latestManager.ts,
+      html: `Latest ranked candidate ${hashRefHtml(topCandidate.candidateHash)}${latestManager.gameId ? ` for ${gameRefHtml(latestManager.gameId)}` : ''} came from ${esc(topCandidate.candidate.source)} | adjusted score ${formatDisplayNumber(Number(topCandidate.adjustedScore?.final ?? 0))}${topCandidate.overlay?.active ? ` | overlay delta ${formatDisplayNumber(Number(topCandidate.overlay.scoreDelta ?? 0))}` : ''}.`,
+      metaHtml: 'Manager ranking'
     });
   }
 
   if (controlState?.state === 'paused') {
-    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: 'Agent is paused. No new throws should be attempted until Start is requested.', meta: 'Control state' });
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), html: 'Agent is paused. No new throws should be attempted until Start is requested.', metaHtml: 'Control state' });
   }
   if (controlState?.state === 'stopping') {
-    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: 'Stop requested. Waiting for the current cycle to wind down cleanly.', meta: 'Control state' });
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), html: 'Stop requested. Waiting for the current cycle to wind down cleanly.', metaHtml: 'Control state' });
   }
-  items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: describeScoreScopeProgress(), meta: 'Scoring window' });
+  items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), html: esc(describeScoreScopeProgress()), metaHtml: 'Scoring window' });
   if (controlState?.lastMessage) {
-    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), text: controlState.lastMessage, meta: 'Control state' });
+    items.push({ ts: controlState?.lastAction?.ts || new Date().toISOString(), html: esc(controlState.lastMessage), metaHtml: 'Control state' });
   }
 
-  return items
-    .filter(Boolean)
-    .sort((a,b) => new Date(b.ts || 0) - new Date(a.ts || 0))
-    .slice(0, 8);
+  return items.filter(Boolean).sort((a,b) => new Date(b.ts || 0) - new Date(a.ts || 0)).slice(0, 10);
 }
-
-
 
 const KPI_INFO = {
   honest_score: {
@@ -1165,7 +1412,7 @@ const KPI_INFO = {
   },
   calibration_gap: {
     title: 'Calibration Gap',
-    body: `This shows the distance between expectation and reality. The formula is <code>((real / expected) - 1) × 100</code>. The monitor combines profit-gap and win-quality-gap when prediction data exists.`
+    body: `This shows the distance between expectation and reality. The formula is <code>((real / expected) - 1) Ãƒâ€” 100</code>. The monitor combines profit-gap and win-quality-gap when prediction data exists.`
   },
   consistency: {
     title: 'Consistency Over Time',
@@ -1176,11 +1423,7 @@ const KPI_INFO = {
 function openKpiInfo(key){
   const cfg = KPI_INFO[key];
   if (!cfg) return;
-  document.getElementById('kpiInfoTitle').textContent = cfg.title;
-  document.getElementById('kpiInfoBody').innerHTML = cfg.body;
-  const el = document.getElementById('kpiInfoModal');
-  el.classList.remove('hidden');
-  el.setAttribute('aria-hidden', 'false');
+  openInfoModal(cfg.title, cfg.body);
 }
 function closeKpiInfo(){
   const el = document.getElementById('kpiInfoModal');
@@ -1209,12 +1452,16 @@ function computeHonestPerformance(games, metaMap){
   const scopedThrows = scopeFilter(throwsRows || []).filter(t => t?.submitted);
   const scopedResults = scopeFilter(buildLatestResultsByDecision());
 
-  const actualGames = [...latestByKey(scopedResults.filter(r => r?.actual?.wholeGame?.per_user_scoreboard), r => cleanHex(r?.gameId || '')).values()]
+  const actualGames = [...latestByKey(scopedResults.filter(r => r?.actual?.wholeGame?.per_user_scoreboard && isCompleteResultSnapshot(r)), r => cleanHex(r?.gameId || '')).values()]
     .sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
 
-  const resultRowsWithActualHole = scopedResults
-    .map(r => ({ row:r, hole:getActualHoleInfo(r) }))
-    .filter(x => x.hole.ok)
+  const resolvedResultRows = scopedResults
+    .map(r => ({
+      row:r,
+      hole:getActualHoleInfo(r),
+      valueUsd:Number(r?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8
+    }))
+    .filter(x => x.row?.actual?.throwMatch && x.hole.kind === 'hole')
     .sort((a,b) => new Date(a.row?.ts || 0) - new Date(b.row?.ts || 0));
 
   const predictedGames = [...latestByKey(scopedRuns.filter(r => r?.prediction?.pnlUsd != null && r?.gameId), r => cleanHex(r?.gameId || '')).values()]
@@ -1229,11 +1476,12 @@ function computeHonestPerformance(games, metaMap){
   const actualProfitGames = actualGames.length;
   const predictedProfitGames = predictedGames.length;
 
-  const totalActualResolvedValue = resultRowsWithActualHole.reduce((sum, x) => sum + (Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8), 0);
-  const totalActualWinValue = resultRowsWithActualHole.reduce((sum, x) => sum + (winnerHoleTypes().has(Number(x.hole.value)) ? (Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8) : 0), 0);
+  const totalActualResolvedValue = resolvedResultRows.reduce((sum, x) => sum + Number(x.valueUsd || 0), 0);
+  const totalActualWinValue = resolvedResultRows.reduce((sum, x) => sum + ((x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))) ? Number(x.valueUsd || 0) : 0), 0);
   const actualWinPct = totalActualResolvedValue > 0 ? (totalActualWinValue / totalActualResolvedValue) * 100 : null;
-  const actualWinCount = resultRowsWithActualHole.filter(x => winnerHoleTypes().has(Number(x.hole.value))).length;
-  const actualThrowCount = resultRowsWithActualHole.length;
+  const actualWinCount = resolvedResultRows.filter(x => x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))).length;
+  const actualNoHoleCount = 0;
+  const actualThrowCount = resolvedResultRows.length;
 
   const predictedThrowStatsByGame = buildPredictedThrowStatsByGame(scopedThrows.filter(t => t?.prediction?.winnerValuePct != null || t?.prediction?.holeType != null));
   let predictedThrowCount = 0, predictedWinCount = 0, totalPredictedValue = 0, totalPredictedWinValue = 0;
@@ -1263,11 +1511,11 @@ function computeHonestPerformance(games, metaMap){
     if (gameMapActual.has(gid)) cumActual += Number(gameMapActual.get(gid) || 0);
     if (gameMapPred.has(gid)) cumPred += Number(gameMapPred.get(gid) || 0);
 
-    const gameResults = resultRowsWithActualHole.filter(x => cleanHex(x.row?.gameId) === gid);
+    const gameResults = resolvedResultRows.filter(x => cleanHex(x.row?.gameId) === gid);
     for (const x of gameResults){
-      const val = Number(x.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8;
+      const val = Number(x.valueUsd || 0);
       runningResolvedValue += val;
-      if (winnerHoleTypes().has(Number(x.hole.value))) runningWinValue += val;
+      if (x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))) runningWinValue += val;
     }
     const predStats = predictedThrowStatsByGame.get(gid);
     if (predStats) {
@@ -1298,7 +1546,7 @@ function computeHonestPerformance(games, metaMap){
   const combinedGap = availableGaps.length ? (availableGaps.reduce((a,b)=>a+b,0) / availableGaps.length) : null;
   const honestScore = combinedGap == null ? null : Math.max(0, Math.min(100, 100 - Math.abs(combinedGap)));
 
-  return { totalActualProfit, totalPredictedProfit: predictedProfitGames ? totalPredictedProfit : null, actualProfitGames, predictedProfitGames, actualWinPct, actualThrowCount, actualWinCount, predictedWinPct, predictedThrowCount: predictedThrowCount || null, predictedWinCount: predictedThrowCount ? predictedWinCount : null, profitGap, winGap, combinedGap, consistency, honestScore, samples };
+  return { totalActualProfit, totalPredictedProfit: predictedProfitGames ? totalPredictedProfit : null, actualProfitGames, predictedProfitGames, actualWinPct, actualThrowCount, actualWinCount, actualNoHoleCount, predictedWinPct, predictedThrowCount: predictedThrowCount || null, predictedWinCount: predictedThrowCount ? predictedWinCount : null, profitGap, winGap, combinedGap, consistency, honestScore, samples };
 }
 
 function renderHonestPerformance(games, metaMap){
@@ -1333,12 +1581,14 @@ function renderHonestPerformance(games, metaMap){
     : `${model.predictedThrowCount} throws / ${model.predictedWinCount} predicted wins`;
 
   document.getElementById('hpsActualWinPct').textContent = model.actualWinPct == null ? 'Pending' : `${formatDisplayNumber(model.actualWinPct)}%`; 
-  document.getElementById('hpsActualWinPctMeta').textContent = model.actualWinPct == null ? errorText('missing actual.throwMatch.hole_type rows in results log') : `${model.actualThrowCount} throws / ${model.actualWinCount} wins • % is USD into Winner`; 
+  document.getElementById('hpsActualWinPctMeta').textContent = model.actualWinPct == null
+    ? 'Need resolved throw value rows in results log'
+    : `${model.actualThrowCount} resolved throws / ${model.actualWinCount} winner holes${model.actualNoHoleCount ? ` / ${model.actualNoHoleCount} no-hole` : ''} | % is USD into Winner`;
 
   document.getElementById('hpsCalibrationGap').textContent = model.combinedGap == null ? 'Waiting' : `${formatDisplayNumber(model.combinedGap)}%`;
   document.getElementById('hpsCalibrationGapMeta').textContent = model.combinedGap == null
     ? errorText('missing prediction fields needed for calibration gap')
-    : `Profit gap ${model.profitGap == null ? '—' : `${formatDisplayNumber(model.profitGap)}%`} • Win gap ${model.winGap == null ? '—' : `${formatDisplayNumber(model.winGap)}%`}`;
+    : `Profit gap ${model.profitGap == null ? '-' : `${formatDisplayNumber(model.profitGap)}%`}  |  Win gap ${model.winGap == null ? '-' : `${formatDisplayNumber(model.winGap)}%`}`;
 
   document.getElementById('hpsConsistency').textContent = model.consistency == null ? 'Waiting' : `${formatDisplayNumber(model.consistency)}%`;
   document.getElementById('hpsConsistencyMeta').textContent = model.consistency == null
@@ -1388,10 +1638,10 @@ function renderHonestPerformance(games, metaMap){
 
   const messages = buildAgentMessages(metaMap);
   const first = messages[0];
-  document.getElementById('agentMessageBody').textContent = first?.text || 'Waiting for agent activity…';
-  document.getElementById('agentMessageMeta').textContent = first ? `${first.meta} • ${first.ts}` : 'No recent cycle yet.';
+  document.getElementById('agentMessageBody').innerHTML = first?.html || 'Waiting for agent activity...';
+  document.getElementById('agentMessageMeta').innerHTML = first ? `${first.metaHtml} | ${esc(first.ts)}` : 'No recent cycle yet.';
   document.getElementById('agentMessageLog').innerHTML = messages.length
-    ? messages.map(m => `<div class="message-item"><div>${esc(m.text)}</div><div class="message-meta">${esc(m.meta)} • ${esc(m.ts)}</div></div>`).join('')
+    ? messages.map(m => `<div class="message-item"><div>${m.html}</div><div class="message-meta">${m.metaHtml} | ${esc(m.ts)}</div></div>`).join('')
     : `<div class="message-item">No recent agent messages.</div>`;
 
   const stateLabel = controlState?.state || 'live';
@@ -1414,7 +1664,7 @@ function latestByKey(rows, keyFn){
 }
 
 function saveScrollState(){
-  const state = { windowY: window.scrollY, tables: {} };
+  const state = { tables: {} };
   document.querySelectorAll('.table-wrap[id], .table-wrap').forEach((el, idx) => {
     const key = el.id || `tablewrap_${idx}`;
     state.tables[key] = { top: el.scrollTop, left: el.scrollLeft };
@@ -1426,7 +1676,6 @@ function saveScrollState(){
 function restoreScrollState(state){
   if (!state) return;
   requestAnimationFrame(() => {
-    window.scrollTo(0, state.windowY || 0);
     document.querySelectorAll('.table-wrap').forEach((el, idx) => {
       const key = el.dataset.scrollKey || el.id || `tablewrap_${idx}`;
       const saved = state.tables?.[key];
@@ -1466,16 +1715,6 @@ function patchTableBody(bodyId, rows, keyFn, renderFn){
   });
 }
 
-function holeTypeLabel(id){
-  const n = Number(id);
-  return ({
-    1: 'Draw',
-    2: 'Lose 100%',
-    3: 'Winner',
-    4: 'Lose 50%',
-    5: 'Special'
-  }[n] || `Type ${id}`);
-}
 
 function buildResolvedDecisionSet(){
   const resolved = new Set();
@@ -1488,12 +1727,171 @@ function buildResolvedDecisionSet(){
   return resolved;
 }
 
+function resultRowCompletenessScore(row){
+  let score = 0;
+  if (row?.actual?.throwMatch) score += 4;
+  if (row?.actual?.throwMatch?.hole_type != null) score += 8;
+  if (row?.actual?.throwMatch?.value_usd_e8 != null) score += 4;
+  if (row?.actual?.matched) score += 2;
+  if (Array.isArray(row?.actual?.wholeGame?.per_user_scoreboard)) score += 1;
+  if (row?.actual?.expectationVsActual?.actual_hole_type != null) score += 2;
+  return score;
+}
 function buildLatestResultsByDecision(){
-  return [...latestByKey(results, r => r?.decisionId).values()].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
+  const map = new Map();
+  for (const row of results) {
+    const key = row?.decisionId;
+    if (!key) continue;
+    const prev = map.get(key);
+    if (!prev) { map.set(key, row); continue; }
+    const prevScore = resultRowCompletenessScore(prev);
+    const nextScore = resultRowCompletenessScore(row);
+    const prevTs = new Date(prev?.ts || 0).getTime();
+    const nextTs = new Date(row?.ts || 0).getTime();
+    if (nextScore > prevScore || (nextScore === prevScore && nextTs >= prevTs)) map.set(key, row);
+  }
+  return [...map.values()].sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
 }
 
 function knownUsdPrice(symbol){
   if (symbol === "USDC") return 1;
+  return null;
+}
+
+function priceSnapshotFromThrow(amount, valueUsdE8, asset, metaMap){
+  const cleanAsset = cleanHex(asset || '');
+  if (!cleanAsset) return null;
+  const displayAmount = parseBaseUnitsToDisplayNumber(amount || '0', cleanAsset, metaMap);
+  const usdValue = Number(valueUsdE8 || 0) / 1e8;
+  if (!Number.isFinite(displayAmount) || displayAmount <= 0 || !Number.isFinite(usdValue) || usdValue <= 0) return null;
+  return usdValue / displayAmount;
+}
+
+function totalReturnedUsdFromScoreboard(game, scope = 'all'){
+  const rows = Array.isArray(game?.perUserScoreboard) ? game.perUserScoreboard : [];
+  if (scope === 'user') {
+    const target = cleanHex(settings?.user || '');
+    const match = rows.find(row => cleanHex(row?.user || '') === target);
+    const value = Number(match?.returned_usd ?? game?.returnedUsd ?? NaN);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+  const total = rows.reduce((sum, row) => sum + Number(row?.returned_usd || 0), 0);
+  return Number.isFinite(total) && total > 0 ? total : null;
+}
+
+function aggregatePayoutAmountsByAsset(rows){
+  const totals = {};
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const asset = cleanHex(row?.asset || '');
+    if (!asset) continue;
+    totals[asset] = (BigInt(String(totals[asset] || '0')) + BigInt(String(row?.amount || '0'))).toString();
+  }
+  return totals;
+}
+
+function buildGameAssetPriceSnapshot(game, metaMap, scope = 'all'){
+  const priceMap = {};
+  const rowsResults = Array.isArray(game?.rowsResults) ? game.rowsResults : [];
+  for (const row of rowsResults) {
+    const match = row?.actual?.throwMatch || {};
+    const asset = cleanHex(match?.asset || '');
+    const derived = priceSnapshotFromThrow(match?.amount, match?.value_usd_e8, asset, metaMap);
+    if (asset && Number.isFinite(derived) && derived > 0) priceMap[asset] = derived;
+  }
+
+  const payoutRowsAll = Array.isArray(game?.payoutTimeline) ? game.payoutTimeline : [];
+  const payoutRows = scope === 'user'
+    ? payoutRowsAll.filter(row => cleanHex(row?.user || '') === cleanHex(settings?.user || ''))
+    : payoutRowsAll;
+  const payoutTotalsByAsset = aggregatePayoutAmountsByAsset(payoutRows);
+  const targetReturnedUsd = totalReturnedUsdFromScoreboard(game, scope);
+
+  if (Number.isFinite(targetReturnedUsd) && targetReturnedUsd > 0) {
+    let knownUsdTotal = 0;
+    const unresolved = [];
+    for (const [asset, amount] of Object.entries(payoutTotalsByAsset)) {
+      const existing = priceMap[asset];
+      if (Number.isFinite(existing) && existing > 0) {
+        knownUsdTotal += parseBaseUnitsToDisplayNumber(amount, asset, metaMap) * existing;
+        continue;
+      }
+      const symbol = symbolForAsset(asset, metaMap);
+      const known = knownUsdPrice(symbol);
+      if (Number.isFinite(known) && known > 0) {
+        priceMap[asset] = known;
+        knownUsdTotal += parseBaseUnitsToDisplayNumber(amount, asset, metaMap) * known;
+        continue;
+      }
+      const displayAmount = parseBaseUnitsToDisplayNumber(amount, asset, metaMap);
+      if (Number.isFinite(displayAmount) && displayAmount > 0) unresolved.push({ asset, displayAmount });
+    }
+    if (unresolved.length === 1) {
+      const remainder = Number(targetReturnedUsd) - knownUsdTotal;
+      if (Number.isFinite(remainder) && remainder > 0) priceMap[unresolved[0].asset] = remainder / unresolved[0].displayAmount;
+    }
+  }
+
+  return priceMap;
+}
+
+function lookupAssetUsdPrice(asset, metaMap, opts = {}){
+  const cleanAsset = cleanHex(asset || '');
+  if (!cleanAsset) return null;
+  const symbol = symbolForAsset(cleanAsset, metaMap);
+  const known = knownUsdPrice(symbol);
+  if (Number.isFinite(known) && known > 0) return known;
+
+  const scope = opts.scope === 'user' ? 'user' : 'all';
+  if (opts.game) {
+    const snapshot = opts.priceSnapshot || buildGameAssetPriceSnapshot(opts.game, metaMap, scope);
+    const exact = snapshot[cleanAsset];
+    if (Number.isFinite(exact) && exact > 0) return exact;
+  }
+
+  const recentGames = Array.isArray(opts.games) ? opts.games.slice() : [];
+  recentGames.sort((a,b) => new Date(b?.lastSeenTs || 0) - new Date(a?.lastSeenTs || 0));
+  for (const game of recentGames) {
+    const snapshot = buildGameAssetPriceSnapshot(game, metaMap, 'all');
+    const value = snapshot[cleanAsset];
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+
+  return null;
+}
+
+function knownUsdValueForAssetAmount(amount, asset, metaMap, opts = {}){
+  const price = lookupAssetUsdPrice(asset, metaMap, opts);
+  if (price == null) return null;
+  return parseBaseUnitsToDisplayNumber(amount || '0', asset, metaMap) * price;
+}
+
+function impliedGameAssetPrices(game, metaMap, scope = 'all'){
+  return buildGameAssetPriceSnapshot(game, metaMap, scope);
+}
+
+function payoutRowUsdValue(row, game, metaMap, opts = {}){
+  const candidates = [
+    row?.valueUsd,
+    row?.value_usd,
+    row?.usd,
+    row?.usd_value,
+    row?.value_usd_e8 != null ? Number(row.value_usd_e8) / 1e8 : null,
+    knownUsdValueForAssetAmount(row?.amount, row?.asset, metaMap, {
+      game,
+      games: opts.games,
+      scope: opts.scope,
+      priceSnapshot: opts.priceSnapshot,
+    })
+  ];
+  for (const v of candidates) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const implied = opts.priceSnapshot || impliedGameAssetPrices(game, metaMap, opts.scope);
+  const impliedPrice = implied[cleanHex(row?.asset || '')];
+  if (Number.isFinite(impliedPrice) && impliedPrice > 0) {
+    return parseBaseUnitsToDisplayNumber(row?.amount || '0', row?.asset, metaMap) * impliedPrice;
+  }
   return null;
 }
 
@@ -1541,6 +1939,41 @@ function getConfiguredUserScore(perUserScoreboard){
   return perUserScoreboard.find(r => cleanHex(r?.user || '') === target) || null;
 }
 
+function displayUnitsToBaseUnitsString(value, asset, metaMap){
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const normalized = raw.replace(/,/g, '');
+  if (!/^[-+]?\d*(?:\.\d*)?$/.test(normalized)) return '';
+  const negative = normalized.startsWith('-');
+  const unsigned = normalized.replace(/^[-+]/, '');
+  const [wholeRaw, fracRaw = ''] = unsigned.split('.');
+  const whole = (wholeRaw || '0').replace(/\D/g, '') || '0';
+  const decimals = Math.max(0, Number(decimalsForAsset(asset, metaMap) || 0));
+  const frac = fracRaw.replace(/\D/g, '').slice(0, decimals).padEnd(decimals, '0');
+  const digits = (whole + frac).replace(/^0+(?=\d)/, '') || '0';
+  return negative && digits !== '0' ? '-' + digits : digits;
+}
+
+function reserveAssetId(metaMap){
+  const configured = cleanHex(settings?.asset || '');
+  if (configured) return configured;
+  const firstKnown = Object.keys(vmBalances || {}).map(cleanHex).find(Boolean);
+  if (firstKnown) return firstKnown;
+  const firstMeta = Object.keys(metaMap || {}).map(cleanHex).find(Boolean);
+  return firstMeta || '';
+}
+
+function reserveAssetBalanceDisplay(metaMap){
+  const asset = reserveAssetId(metaMap);
+  if (!asset) return { asset:'', symbol:'-', balanceDisplay:0, reserveDisplay:0, pct:0 };
+  const symbol = symbolForAsset(asset, metaMap);
+  const balanceDisplay = parseBaseUnitsToDisplayNumber((vmBalances || {})[asset] || '0', asset, metaMap);
+  const reserveRaw = String(settings?.reserveBalanceBase ?? '').trim();
+  const reserveDisplay = reserveRaw ? parseBaseUnitsToDisplayNumber(reserveRaw, asset, metaMap) : 0;
+  const pct = balanceDisplay > 0 ? Math.max(0, Math.min(100, (reserveDisplay / balanceDisplay) * 100)) : 0;
+  return { asset, symbol, balanceDisplay, reserveDisplay, pct };
+}
+
 function getSettingNumber(key){ const n = Number(settings?.[key]); return Number.isFinite(n) ? n : null; }
 function getSettingString(key){ const v = settings?.[key]; if (Array.isArray(v)) return v.join(', '); return v == null ? '' : String(v); }
 function parseCsvSetting(key){ const v = settings?.[key]; return Array.isArray(v) ? v.map(x=>String(x).trim()).filter(Boolean) : getSettingString(key).split(',').map(s=>s.trim()).filter(Boolean); }
@@ -1563,7 +1996,7 @@ function populateAssetSelectors(metaMap){
     const current = id === 's_asset' ? [el.value] : getSelectValues(id);
     const multiple = el.multiple;
     const placeholder = !multiple ? '<option value="">Select asset</option>' : '';
-    el.innerHTML = placeholder + opts.map(o => `<option value="${esc(o.value)}">${esc(o.label)} • ${esc(shortHex(o.value))}</option>`).join('');
+    el.innerHTML = placeholder + opts.map(o => `<option value="${esc(o.value)}">${esc(o.label)}  |  ${esc(shortHex(o.value))}</option>`).join('');
     if (id === 's_asset') setSingleValue(id, (current[0] || settings?.asset || ''));
     else setSelectValues(id, current.length ? current : settings?.[id.replace('s_','')]);
   }
@@ -1596,14 +2029,142 @@ function subtractAssetMaps(a, b){
   return out;
 }
 
+function uniqueStrings(values){
+  const out = [];
+  const seen = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const clean = cleanHex(value || '');
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    out.push(clean);
+  }
+  return out;
+}
+
+function freshTimestamp(value){
+  const ts = new Date(value || 0).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function freshnessWindowMs(){
+  const pollMs = Number(settings?.pollMs || 15000);
+  return Math.max(120000, pollMs * 8);
+}
+
+function normalizeReasonKey(reason){
+  const raw = String(reason || '').trim().toLowerCase();
+  if (!raw) return '';
+  return raw.replace(/[\s\/.-]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function normalizeReasonCountMap(input){
+  const out = {};
+  for (const [key, value] of Object.entries(input || {})) {
+    const normalized = normalizeReasonKey(key);
+    const count = Number(value || 0);
+    if (!normalized || !Number.isFinite(count) || count <= 0) continue;
+    out[normalized] = (out[normalized] || 0) + count;
+  }
+  return out;
+}
+
+function reasonPriority(reason){
+  const rank = {
+    cooldown: 0,
+    max_throws_per_game: 1,
+    max_throws_per_session: 2,
+    missing_price_basis: 3,
+    asset_not_allowed: 4,
+    asset_blocked: 5,
+    reserve_balance: 6,
+    insufficient_balance: 7,
+    no_balance_for_amounts: 8,
+    below_game_min_throw: 9,
+    below_min_throw_usd: 10,
+    above_max_throw_usd: 11,
+    above_max_single_throw_usd: 12,
+    above_game_exposure: 13,
+    target_profit: 14,
+    target_balance: 15,
+    search_budget_stop: 16,
+    no_candidates_after_filter: 17,
+    empty_no_eligible_candidates: 18,
+    candidate_risk_limits: 30,
+    no_cand_px: 40,
+    no_cand_bal: 41,
+    no_cand_min: 42,
+    no_cand_risk: 43,
+    no_cand_srch: 44,
+    no_cand_flt: 45
+  };
+  return Object.prototype.hasOwnProperty.call(rank, reason) ? rank[reason] : 99;
+}
+
+function sortReasonKeys(reasonCounts){
+  return Object.keys(reasonCounts || {}).sort((a, b) =>
+    reasonPriority(a) - reasonPriority(b) ||
+    Number(reasonCounts[b] || 0) - Number(reasonCounts[a] || 0) ||
+    String(a).localeCompare(String(b))
+  );
+}
+
+function liveStateIsFresh(state, now = Date.now()){
+  const updatedAt = Number(state?.updatedAt || 0);
+  return Number.isFinite(updatedAt) && updatedAt > 0 && (now - updatedAt) <= freshnessWindowMs();
+}
+
+function trackedGameIdsByFreshness(){
+  const cutoff = Date.now() - freshnessWindowMs();
+  const settledGames = new Set(
+    buildLatestResultsByDecision()
+      .filter(row => {
+        const status = Number(row?.actual?.wholeGame?.status ?? NaN);
+        return Number.isFinite(status) && status >= 2;
+      })
+      .map(row => cleanHex(row?.gameId || ''))
+      .filter(Boolean)
+  );
+  const ids = [];
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const row = runs[i];
+    const ts = freshTimestamp(row?.ts);
+    if (ts && ts < cutoff) break;
+    const gameId = cleanHex(row?.gameId || '');
+    if (gameId && !settledGames.has(gameId)) ids.push(gameId);
+    const perGame = Array.isArray(row?.eligibility?.perGame) ? row.eligibility.perGame : [];
+    for (const item of perGame) {
+      const perGameId = cleanHex(item?.gameId || '');
+      if (perGameId && !settledGames.has(perGameId)) ids.push(perGameId);
+    }
+  }
+  for (const row of throwsRows) {
+    const ts = freshTimestamp(row?.ts);
+    const gameId = cleanHex(row?.gameId || '');
+    if (ts >= cutoff && row?.submitted && gameId && !settledGames.has(gameId)) ids.push(gameId);
+  }
+  return uniqueStrings(ids);
+}
+
+function shouldDisplayGameRow(g){
+  const settledLike = Number(g?.latestStatus ?? -1) >= 2 || Number(g?.resolvedCount || 0) > 0 || !!g?.canonicalResult;
+  if (settledLike) return true;
+  if (Number(g?.agentPendingThrows || 0) > 0) return true;
+  if (g?.hasFreshLiveState) return true;
+  if (g?.hasFreshEligibilitySnapshot) return true;
+  return false;
+}
+
 function buildGamesIndex(metaMap){
   const map = new Map();
+  const now = Date.now();
+  const freshnessCutoff = now - freshnessWindowMs();
   const latestRunsByGame = latestByKey(runs, r => cleanHex(r?.gameId || ''));
   const latestThrowsByDecision = latestByKey(throwsRows, t => t?.decisionId);
   const latestResults = buildLatestResultsByDecision();
   const latestResultByGame = latestByKey(latestResults, r => cleanHex(r?.gameId || ''));
   const predictedRunsByGame = getPredictedRunByGame();
   const resolvedDecisionIds = new Set(latestResults.map(r => r?.decisionId).filter(Boolean));
+  const latestPerGameSnapshots = new Map();
 
   const ensure = (gameId) => {
     if (!map.has(gameId)) {
@@ -1641,6 +2202,23 @@ function buildGamesIndex(metaMap){
         submittedDecisionIds: new Set(),
         canonicalResult: null,
         userPlayed: false,
+        latestStoppedBy: null,
+        latestSubmitted: false,
+        latestEligibleCandidates: null,
+        latestEligibilityCode: null,
+        latestRawCandidates: null,
+        latestPlannedCandidates: null,
+        latestExaminedCandidates: null,
+        latestEligibilitySnapshotTs: null,
+        latestPerGameEligible: null,
+        latestPerGameReasons: [],
+        latestPerGameReasonKeys: [],
+        latestGlobalReasons: [],
+        latestGlobalReasonKeys: [],
+        latestCandidateFilterRawCounts: {},
+        latestCandidateFilterReasonCounts: {},
+        hasFreshEligibilitySnapshot: false,
+        hasFreshLiveState: false
       });
     }
     return map.get(gameId);
@@ -1648,12 +2226,23 @@ function buildGamesIndex(metaMap){
 
   for (const r of runs) {
     const gid = cleanHex(r?.gameId || '');
-    if (!gid) continue;
-    const g = ensure(gid);
-    g.scans += 1;
-    g.candidateObservedSum += Number(r?.search?.examinedCount ?? 0);
-    g.lastSeenTs = r.ts || g.lastSeenTs;
-    g.rowsRuns.push(r);
+    if (gid) {
+      const g = ensure(gid);
+      g.scans += 1;
+      g.candidateObservedSum += Number(r?.search?.examinedCount ?? 0);
+      if (freshTimestamp(r?.ts) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = r.ts || g.lastSeenTs;
+      g.rowsRuns.push(r);
+    }
+
+    const perGame = Array.isArray(r?.eligibility?.perGame) ? r.eligibility.perGame : [];
+    for (const item of perGame) {
+      const perGameId = cleanHex(item?.gameId || '');
+      if (!perGameId) continue;
+      const prev = latestPerGameSnapshots.get(perGameId);
+      if (!prev || freshTimestamp(r?.ts) >= freshTimestamp(prev.ts)) latestPerGameSnapshots.set(perGameId, { ts: r?.ts, item, row: r });
+      const g = ensure(perGameId);
+      if (freshTimestamp(r?.ts) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = r?.ts || g.lastSeenTs;
+    }
   }
 
   for (const [gid, row] of latestRunsByGame.entries()) {
@@ -1662,13 +2251,56 @@ function buildGamesIndex(metaMap){
     g.latestMinThrow = row?.game?.minThrowValue ?? g.latestMinThrow;
     if (row?.game?.status != null) g.latestStatus = Number(row.game.status);
     if (row?.game?.throws != null) g.totalThrows = Number(row.game.throws);
+    g.latestStoppedBy = row?.stoppedBy ?? null;
+    g.latestSubmitted = !!row?.submitted;
+    g.latestRawCandidates = row?.search?.generatedCandidates ?? null;
+    g.latestEligibleCandidates = row?.search?.eligibleCandidates ?? null;
+    g.latestPlannedCandidates = row?.search?.plannedCandidates ?? null;
+    g.latestExaminedCandidates = row?.search?.examinedCount ?? null;
+    g.latestEligibilityCode = row?.eligibilityCode ?? null;
+    g.latestGlobalReasons = Array.isArray(row?.eligibility?.globalReasons) ? row.eligibility.globalReasons.map(v => String(v)) : [];
+    g.latestGlobalReasonKeys = g.latestGlobalReasons.map(normalizeReasonKey).filter(Boolean);
+    g.latestCandidateFilterRawCounts = row?.search?.candidateFilterSummary?.reasonCounts && typeof row.search.candidateFilterSummary.reasonCounts === 'object'
+      ? { ...row.search.candidateFilterSummary.reasonCounts }
+      : {};
+    g.latestCandidateFilterReasonCounts = normalizeReasonCountMap(g.latestCandidateFilterRawCounts);
+  }
+
+  for (const [gid, snapshot] of latestPerGameSnapshots.entries()) {
+    const g = ensure(gid);
+    const item = snapshot.item || {};
+    const sourceRow = snapshot.row || {};
+    g.latestEligibilitySnapshotTs = snapshot.ts || g.latestEligibilitySnapshotTs;
+    g.latestPerGameEligible = item?.eligible == null ? g.latestPerGameEligible : !!item.eligible;
+    g.latestPerGameReasons = Array.isArray(item?.reasons) ? item.reasons.map(v => String(v)) : [];
+    g.latestPerGameReasonKeys = g.latestPerGameReasons.map(normalizeReasonKey).filter(Boolean);
+    if (item?.throws != null) g.totalThrows = Number(item.throws);
+    if (item?.status != null) g.latestStatus = Number(item.status);
+    if (item?.stake != null) g.latestStakeRaw = String(item.stake);
+    if (item?.minThrowValue != null) g.latestMinThrow = item.minThrowValue;
+    if (!g.rowsRuns.length) {
+      g.latestStoppedBy = sourceRow?.stoppedBy ?? g.latestStoppedBy;
+      g.latestSubmitted = !!sourceRow?.submitted;
+      g.latestRawCandidates = sourceRow?.search?.generatedCandidates ?? g.latestRawCandidates;
+      g.latestEligibleCandidates = sourceRow?.search?.eligibleCandidates ?? g.latestEligibleCandidates;
+      g.latestPlannedCandidates = sourceRow?.search?.plannedCandidates ?? g.latestPlannedCandidates;
+      g.latestExaminedCandidates = sourceRow?.search?.examinedCount ?? g.latestExaminedCandidates;
+      g.latestEligibilityCode = sourceRow?.eligibilityCode ?? g.latestEligibilityCode;
+      g.latestGlobalReasons = Array.isArray(sourceRow?.eligibility?.globalReasons) ? sourceRow.eligibility.globalReasons.map(v => String(v)) : g.latestGlobalReasons;
+      g.latestGlobalReasonKeys = g.latestGlobalReasons.map(normalizeReasonKey).filter(Boolean);
+      g.latestCandidateFilterRawCounts = sourceRow?.search?.candidateFilterSummary?.reasonCounts && typeof sourceRow.search.candidateFilterSummary.reasonCounts === 'object'
+        ? { ...sourceRow.search.candidateFilterSummary.reasonCounts }
+        : g.latestCandidateFilterRawCounts;
+      g.latestCandidateFilterReasonCounts = normalizeReasonCountMap(g.latestCandidateFilterRawCounts);
+    }
+    if (freshTimestamp(snapshot.ts) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = snapshot.ts || g.lastSeenTs;
   }
 
   for (const t of latestThrowsByDecision.values()) {
     const gid = cleanHex(t?.gameId || '');
     if (!gid) continue;
     const g = ensure(gid);
-    g.lastSeenTs = t.ts || g.lastSeenTs;
+    if (freshTimestamp(t?.ts) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = t.ts || g.lastSeenTs;
     g.rowsThrows.push(t);
     if (t.submitted && t.decisionId) g.submittedDecisionIds.add(t.decisionId);
   }
@@ -1677,7 +2309,7 @@ function buildGamesIndex(metaMap){
     const gid = cleanHex(r?.gameId || '');
     if (!gid) continue;
     const g = ensure(gid);
-    g.lastSeenTs = r.ts || g.lastSeenTs;
+    if (freshTimestamp(r?.ts) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = r.ts || g.lastSeenTs;
     g.rowsResults.push(r);
   }
 
@@ -1685,16 +2317,23 @@ function buildGamesIndex(metaMap){
     const live = liveGameStates.get(gid);
     const canonical = latestResultByGame.get(gid) || null;
     const predRun = predictedRunsByGame.get(gid) || null;
+    const hasFreshLive = liveStateIsFresh(live, now);
+    const liveStatus = hasFreshLive && live?.status != null ? Number(live.status) : null;
+    const canonicalStatusValue = Number(canonical?.actual?.wholeGame?.status ?? NaN);
+    const canonicalStatus = Number.isFinite(canonicalStatusValue) ? canonicalStatusValue : null;
     g.canonicalResult = canonical;
     g.resolvedCount = g.rowsResults.length;
     g.agentSubmittedThrows = g.submittedDecisionIds.size;
     g.agentPendingThrows = [...g.submittedDecisionIds].filter(id => !resolvedDecisionIds.has(id)).length;
+    g.hasFreshEligibilitySnapshot = freshTimestamp(g.latestEligibilitySnapshotTs) >= freshnessCutoff;
+    g.hasFreshLiveState = hasFreshLive;
 
-    if (live) {
+    if (hasFreshLive) {
       if (live.status != null) g.latestStatus = live.status;
       if (live.stakeRaw != null) g.latestStakeRaw = live.stakeRaw;
       if (live.throwMinValue != null) g.latestMinThrow = live.throwMinValue;
       if (live.throwsCount != null) g.liveThrowsCount = live.throwsCount;
+      if (Number(live.updatedAt || 0) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = new Date(Number(live.updatedAt)).toISOString();
     }
     if (g.liveThrowsCount != null) g.totalThrows = Number(g.liveThrowsCount);
     if (predRun?.prediction?.pnlUsd != null) g.predictedPnlUsd = Number(predRun.prediction.pnlUsd);
@@ -1726,26 +2365,196 @@ function buildGamesIndex(metaMap){
       g.outputsByAsset = wg?.outputs_by_asset || {};
       g.payoutsByKind = canonical?.actual?.payouts?.by_kind || {};
       g.payoutsByAsset = canonical?.actual?.payouts?.by_asset || {};
-      if (g.latestStatus == null) g.latestStatus = 2;
     }
 
-    g.rowsThrows.sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
-    g.rowsResults.sort((a,b) => new Date(b?.ts || 0) - new Date(a?.ts || 0));
+    if (Number.isFinite(liveStatus) && liveStatus < 2) {
+      g.latestStatus = liveStatus;
+    } else if (Number.isFinite(canonicalStatus) && canonicalStatus >= 2) {
+      g.latestStatus = canonicalStatus;
+    } else if (canonical) {
+      g.latestStatus = 2;
+    } else if (Number.isFinite(liveStatus)) {
+      g.latestStatus = liveStatus;
+    } else if (g.latestStatus != null && Number(g.latestStatus) < 2) {
+      g.latestStatus = null;
+    }
+
+    g.rowsThrows.sort((a, b) => freshTimestamp(b?.ts) - freshTimestamp(a?.ts));
+    g.rowsResults.sort((a, b) => freshTimestamp(b?.ts) - freshTimestamp(a?.ts));
   }
 
-  return [...map.values()].sort((a,b) => {
+  return [...map.values()].sort((a, b) => {
     const pa = gameStatePriority(a.latestStatus);
     const pb = gameStatePriority(b.latestStatus);
     if (pa !== pb) return pa - pb;
-    return new Date(b.lastSeenTs || 0).getTime() - new Date(a.lastSeenTs || 0).getTime();
+    return freshTimestamp(b.lastSeenTs) - freshTimestamp(a.lastSeenTs);
   });
 }
-
 function displayGameStatus(g){
   const actual = statusLabel(g.latestStatus);
   if (actual) return actual;
   addDataDiagnostic(`missing live/run game status (${g.gameId})`, g);
   return errorText('missing game.status');
+}
+
+function openInfoModal(title, body){
+  document.getElementById('kpiInfoTitle').textContent = title;
+  document.getElementById('kpiInfoBody').innerHTML = body;
+  const el = document.getElementById('kpiInfoModal');
+  el.classList.remove('hidden');
+  el.setAttribute('aria-hidden', 'false');
+}
+
+const eligibilityReasonMeta = {
+  READY: { code:'READY', tone:'tone-ok', title:'Ready To Sim', summary:'This game passed the latest per-game gate checks, but the cycle either searched a different game or stopped globally before search reached this game.' },
+  CLOSED: { code:'CLOSED', tone:'tone-neutral', title:'Game Closed', summary:'This game is already closed, finalized, or settled. No new throw window exists here.', clickable:false },
+  PLAYED: { code:'PLAYED', tone:'tone-ok', title:'Throw Already Played', summary:'The agent already used this game\'s current live throw opportunity.', clickable:false },
+  'WAIT/CD': { code:'WAIT/CD', tone:'tone-warn', title:'Cooldown Active', summary:'The live-throw cooldown is still active, so the agent must wait before submitting again.' },
+  'CAP/G': { code:'CAP/G', tone:'tone-warn', title:'Per-Game Cap Reached', summary:'The per-game throw cap stopped another live throw in this game.' },
+  'CAP/S': { code:'CAP/S', tone:'tone-warn', title:'Session Cap Reached', summary:'The session-wide throw cap stopped another live throw.' },
+  'NO-CAND/PX': { code:'NO-CAND/PX', tone:'tone-info', title:'Missing Price Basis', summary:'The agent could not derive a precise USD price basis for this game, so it could not score candidates honestly.' },
+  'NO-CAND/ALW': { code:'NO-CAND/ALW', tone:'tone-neutral', title:'Asset Not Allowed', summary:'This game only produced candidate assets that are outside the current allow-list.' },
+  'NO-CAND/BLK': { code:'NO-CAND/BLK', tone:'tone-neutral', title:'Asset Blocked', summary:'This game only produced candidate assets that are currently blocked.' },
+  'NO-CAND/RSV': { code:'NO-CAND/RSV', tone:'tone-pink', title:'Reserve Balance Gate', summary:'Reserve balance protection removed this game because usable balance would have dropped below the configured reserve.' },
+  'NO-CAND/NBAL': { code:'NO-CAND/NBAL', tone:'tone-pink', title:'No Usable Balance', summary:'No usable balance remained for any generated amount in this game.' },
+  'NO-CAND/GMIN': { code:'NO-CAND/GMIN', tone:'tone-warn', title:'Below Game Minimum', summary:'Generated throw values were below this game\'s on-chain minimum throw value.' },
+  'NO-CAND/MIN$': { code:'NO-CAND/MIN$', tone:'tone-warn', title:'Below Min Throw USD', summary:'Generated throw values were below the configured minimum throw USD setting.' },
+  'NO-CAND/MAX$': { code:'NO-CAND/MAX$', tone:'tone-pink', title:'Above Max Throw USD', summary:'Generated throw values were above the configured max-throw USD cap.' },
+  'NO-CAND/MAX1': { code:'NO-CAND/MAX1', tone:'tone-pink', title:'Above Max Single Throw USD', summary:'Generated throw values were above the max single throw USD cap.' },
+  'NO-CAND/GEXP': { code:'NO-CAND/GEXP', tone:'tone-pink', title:'Above Game Exposure', summary:'This game was blocked by the max game exposure USD limit.' },
+  'NO-CAND/TPRF': { code:'NO-CAND/TPRF', tone:'tone-pink', title:'Target Profit Reached', summary:'The current target-profit stop prevented another throw here.' },
+  'NO-CAND/TBAL': { code:'NO-CAND/TBAL', tone:'tone-pink', title:'Target Balance Reached', summary:'The current target-balance stop prevented another throw here.' },
+  'NO-CAND/FLT': { code:'NO-CAND/FLT', tone:'tone-neutral', title:'Filtered Out', summary:'Candidates were generated or considered, but none survived the final filtering stage.' },
+  'NO-CAND/SRCH': { code:'NO-CAND/SRCH', tone:'tone-info', title:'Search Budget Stop', summary:'Search stopped before a playable candidate survived ranking.' },
+  'NO-CAND/BAL': { code:'NO-CAND/BAL', tone:'tone-pink', title:'Balance Gate', summary:'A bankroll or reserve balance gate removed this game before a throw could be chosen.' },
+  'NO-CAND/MIN': { code:'NO-CAND/MIN', tone:'tone-warn', title:'Minimum Gate', summary:'A minimum-throw rule removed this game before a throw could be chosen.' },
+  'NO-CAND/RISK': { code:'NO-CAND/RISK', tone:'tone-pink', title:'Risk Gate', summary:'Risk controls removed this game after amount shaping and candidate filtering.' },
+  CHECK: { code:'CHECK', tone:'tone-info', title:'Awaiting Detail', summary:'The game is live, but the latest cycle did not publish a more specific stop reason for it yet.' }
+};
+
+function eligibilityCodeForReason(reasonKey){
+  const map = {
+    ready: 'READY',
+    cooldown: 'WAIT/CD',
+    max_throws_per_game: 'CAP/G',
+    max_throws_per_session: 'CAP/S',
+    missing_price_basis: 'NO-CAND/PX',
+    asset_not_allowed: 'NO-CAND/ALW',
+    asset_blocked: 'NO-CAND/BLK',
+    reserve_balance: 'NO-CAND/RSV',
+    insufficient_balance: 'NO-CAND/NBAL',
+    no_balance_for_amounts: 'NO-CAND/NBAL',
+    below_game_min_throw: 'NO-CAND/GMIN',
+    below_min_throw_usd: 'NO-CAND/MIN$',
+    above_max_throw_usd: 'NO-CAND/MAX$',
+    above_max_single_throw_usd: 'NO-CAND/MAX1',
+    above_game_exposure: 'NO-CAND/GEXP',
+    target_profit: 'NO-CAND/TPRF',
+    target_balance: 'NO-CAND/TBAL',
+    no_candidates_after_filter: 'NO-CAND/FLT',
+    empty_no_eligible_candidates: 'NO-CAND/FLT',
+    search_budget_stop: 'NO-CAND/SRCH',
+    candidate_risk_limits: 'NO-CAND/RISK',
+    no_cand_px: 'NO-CAND/PX',
+    no_cand_bal: 'NO-CAND/BAL',
+    no_cand_min: 'NO-CAND/MIN',
+    no_cand_risk: 'NO-CAND/RISK',
+    no_cand_srch: 'NO-CAND/SRCH',
+    no_cand_flt: 'NO-CAND/FLT'
+  };
+  return map[reasonKey] || (reasonKey ? reasonKey.toUpperCase().replace(/_/g, '-') : 'CHECK');
+}
+
+function pickEligibilityReasonKey(g){
+  const perGameKeys = Array.isArray(g?.latestPerGameReasonKeys) ? g.latestPerGameReasonKeys.filter(Boolean) : [];
+  const rawKey = normalizeReasonKey(g?.latestStoppedBy || '');
+  const codeKey = normalizeReasonKey(g?.latestEligibilityCode || '');
+  const filterKeys = sortReasonKeys(g?.latestCandidateFilterReasonCounts);
+  const globalKeys = Array.isArray(g?.latestGlobalReasonKeys) ? g.latestGlobalReasonKeys.filter(Boolean) : [];
+  const genericKeys = new Set(['candidate_risk_limits', 'no_cand_risk', 'no_cand_bal', 'no_cand_min', 'no_cand_srch', 'no_cand_flt', 'no_candidates_after_filter']);
+
+  if (perGameKeys.length) return perGameKeys[0];
+  if (filterKeys.length && (genericKeys.has(rawKey) || genericKeys.has(codeKey))) return filterKeys[0];
+  if (codeKey) return codeKey;
+  if (rawKey) return rawKey;
+  if (filterKeys.length) return filterKeys[0];
+  if (globalKeys.length) return globalKeys[0];
+  if (g?.latestPerGameEligible === true || g?.hasFreshEligibilitySnapshot) return 'ready';
+  return '';
+}
+
+function buildEligibilityInfo(reasonKey, ctx = {}){
+  if (reasonKey === 'closed') return eligibilityReasonMeta.CLOSED;
+  if (reasonKey === 'played') return eligibilityReasonMeta.PLAYED;
+
+  const displayCode = eligibilityCodeForReason(reasonKey);
+  const meta = eligibilityReasonMeta[displayCode] || { code:displayCode || 'CHECK', tone:'tone-info', title:'Eligibility Detail', summary:`Latest eligibility state: <code>${esc(displayCode || 'CHECK')}</code>.` };
+  const perGameReasons = Array.isArray(ctx.perGameReasons) ? ctx.perGameReasons.filter(Boolean) : [];
+  const globalReasons = Array.isArray(ctx.globalReasons) ? ctx.globalReasons.filter(Boolean) : [];
+  const filterReasonCounts = ctx.filterReasonCounts && typeof ctx.filterReasonCounts === 'object' ? ctx.filterReasonCounts : {};
+  const filterKeys = sortReasonKeys(normalizeReasonCountMap(filterReasonCounts));
+  const searchBits = [];
+  if (ctx.rawCandidates != null) searchBits.push(`raw=${ctx.rawCandidates}`);
+  if (ctx.eligibleCandidates != null) searchBits.push(`eligible=${ctx.eligibleCandidates}`);
+  if (ctx.plannedCandidates != null) searchBits.push(`planned=${ctx.plannedCandidates}`);
+  if (ctx.examinedCandidates != null) searchBits.push(`examined=${ctx.examinedCandidates}`);
+
+  const sections = [meta.summary];
+  if (perGameReasons.length) sections.push(`Per-game reasons: <code>${esc(perGameReasons.join(' | '))}</code>.`);
+  if (filterKeys.length) sections.push(`Candidate filter counts: <code>${esc(filterKeys.map(key => `${key}:${filterReasonCounts[key] ?? 0}`).join(' | '))}</code>.`);
+  if (globalReasons.length) sections.push(`Cycle-wide reasons: <code>${esc(globalReasons.join(' | '))}</code>.`);
+  if (ctx.rawCode) sections.push(`Backend code: <code>${esc(ctx.rawCode)}</code>.`);
+  if (ctx.stopReason) sections.push(`Stop reason: <code>${esc(ctx.stopReason)}</code>.`);
+  if (searchBits.length) sections.push(`Latest search counters: <code>${esc(searchBits.join(' | '))}</code>.`);
+
+  return {
+    code: meta.code,
+    tone: meta.tone,
+    title: meta.title,
+    body: sections.join('<br><br>'),
+    clickable: meta.clickable !== false
+  };
+}
+
+function eligibilitySignal(g){
+  if (Number(g.latestStatus ?? -1) >= 2) return buildEligibilityInfo('closed');
+  if (g.latestSubmitted) return buildEligibilityInfo('played');
+  const reasonKey = pickEligibilityReasonKey(g);
+  return buildEligibilityInfo(reasonKey, {
+    rawCode: g.latestEligibilityCode ? String(g.latestEligibilityCode) : '',
+    stopReason: g.latestStoppedBy ? String(g.latestStoppedBy) : '',
+    perGameReasons: g.latestPerGameReasons,
+    globalReasons: g.latestGlobalReasons,
+    filterReasonCounts: g.latestCandidateFilterRawCounts,
+    rawCandidates: g.latestRawCandidates,
+    eligibleCandidates: g.latestEligibleCandidates,
+    plannedCandidates: g.latestPlannedCandidates,
+    examinedCandidates: g.latestExaminedCandidates
+  });
+}
+
+function eligibilityChipHtml(g){
+  const info = eligibilitySignal(g);
+  const clickable = info.clickable === false ? '' : ' clickable';
+  const attrs = info.clickable === false ? '' : ` data-info-title="${escAttr(info.title)}" data-info-body="${escAttr(info.body)}"`;
+  return `<button class="elig-chip ${info.tone}${clickable}" type="button" title="${escAttr(info.title)}"${attrs}>${esc(info.code)}</button>`;
+}
+
+function statusChipHtml(g){
+  const tone = Number(g.latestStatus ?? -1) >= 2 ? 'tone-neutral' : Number(g.latestStatus ?? -1) === 1 ? 'tone-warn' : 'tone-info';
+  return `<span class="status-chip ${tone}">${esc(displayGameStatus(g))}</span>`;
+}function holeChipHtml(info){
+  if (!info) return `<span class="hole-chip missing">${esc(errorText('missing hole info'))}</span>`;
+  const tone = info.kind === 'undecided'
+    ? 'undecided'
+    : info.kind === 'settling'
+      ? 'settling'
+      : info.kind === 'no_hole'
+        ? 'no-hole'
+        : info.kind === 'missing'
+          ? 'missing'
+          : (info.kind === 'hole' && winnerHoleTypes().has(Number(info.value)) ? 'win' : 'resolved');
+  return `<span class="hole-chip ${tone}" title="${escAttr(info.detail || info.label)}">${esc(info.label)}</span>`;
 }
 
 function updateTopStats(games){
@@ -1763,6 +2572,8 @@ function updateTopStats(games){
 
 function renderGames(games, metaMap){
   document.getElementById('saveBadge').innerHTML = controlState?.state === 'paused' ? 'AGENT PAUSED' : controlState?.state === 'stopping' ? 'AGENT STOPPING' : 'AGENT LIVE';
+  const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
+  gamesPage = Math.max(0, Math.min(gamesPage, totalPages - 1));
   const start = gamesPage * GAMES_PAGE_SIZE;
   const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
 
@@ -1770,61 +2581,62 @@ function renderGames(games, metaMap){
     tr.className = `game-row ${selectedGameId === g.gameId ? 'active' : ''}`;
     tr.onclick = () => {
       selectedGameId = g.gameId;
-      document.getElementById('selectionBadge').textContent = `VIEWING SELECTED GAME: ${shortHex(g.gameId)}`;
+      document.getElementById('selectionBadge').innerHTML = `VIEWING SELECTED GAME: ${gameRefHtml(g.gameId)}`;
       setMainView('games');
       renderAll();
     };
 
     const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake');
-    const gameTotalDisplay = Number(g.latestStatus ?? -1) >= 2 ? (g.userPlayed && g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : openStakeDisplay) : openStakeDisplay;
-    const pnlDisplay = g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`) : '-';
-    const predDisplay = g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`);
+    const gameTotalDisplay = Number(g.latestStatus ?? -1) >= 2 ? (g.userPlayed && g.stakeUsd != null ? `$${formatDisplayNumber(g.stakeUsd)}` : openStakeDisplay) : openStakeDisplay;
+    const pnlDisplay = g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${formatDisplayNumber(g.pnlUsd)}`) : '-';
+    const predDisplay = g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${formatDisplayNumber(g.predictedPnlUsd)}`);
 
     tr.innerHTML = `
-      <td>${esc(shortHex(g.gameId))}</td>
-      <td>${esc(displayGameStatus(g))}</td>
+      <td>${gameRefHtml(g.gameId)}</td>
+      <td>${statusChipHtml(g)}</td>
       <td>${g.scans}</td>
       <td>${g.candidateObservedSum}</td>
       <td>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</td>
-      <td>${g.agentPendingThrows}</td>
+      <td>${eligibilityChipHtml(g)}</td>
       <td>${gameTotalDisplay}</td>
       <td class="${Number(g.pnlUsd) >= 0 ? 'ok' : 'pink'}">${pnlDisplay}</td>
-      <td>${predDisplay}</td>
+      <td class="${Number(g.predictedPnlUsd) >= 0 ? 'ok' : 'pink'}">${predDisplay}</td>
       <td>${g.points}</td>
-      <td>${esc(objectEntriesDisplayUnits(g.inputsByAsset, metaMap))}</td>
-      <td>${esc(objectEntriesDisplayUnits(g.outputsByAsset, metaMap))}</td>
+      <td>${objectEntriesDisplayUnitsHtml(g.inputsByAsset, metaMap, { copy:false })}</td>
+      <td>${objectEntriesDisplayUnitsHtml(g.outputsByAsset, metaMap, { copy:false })}</td>
       <td>${esc(g.lastSeenTs || '-')}</td>
     `;
   });
 
-  const totalPages = Math.max(1, Math.ceil(games.length / GAMES_PAGE_SIZE));
   document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages}`;
 }
-
 function renderBankStrategySummary(metaMap){
   const summary = document.getElementById('bankStrategySummary');
   if (!summary) return;
-  const allowed = parseCsvSetting('allowedAssets').join(', ') || '-';
-  const blocked = parseCsvSetting('blockedAssets').join(', ') || '-';
-  const keep = parseCsvSetting('keepAssets').join(', ') || '-';
-  const dispose = parseCsvSetting('disposeAssets').join(', ') || '-';
+  const reserve = reserveAssetBalanceDisplay(metaMap);
+  const reserveDisplay = reserve.asset ? formatDisplayNumber(reserve.reserveDisplay) : '';
+  const reservePct = reserve.balanceDisplay > 0 ? Math.round(reserve.pct) : 0;
+  const row = (label, control, meta = '') => `<div class="strategy-simple-row"><div class="strategy-simple-label">${label}</div><div class="strategy-simple-control">${control}${meta ? `<div class="strategy-simple-meta">${meta}</div>` : ''}</div></div>`;
   summary.innerHTML = `
-    <div class="muted">Min Game Value USD</div><div>${getSettingString('minGameStakeUsd') || '-'}</div>
-    <div class="muted">Throw Range USD</div><div>${getSettingString('minThrowUsd') || '-'} → ${getSettingString('maxThrowUsd') || '-'}</div>
-    <div class="muted">Max Single Throw USD</div><div>${getSettingString('maxSingleThrowUsd') || '-'}</div>
-    <div class="muted">Max Game Exposure USD</div><div>${getSettingString('maxGameExposureUsd') || '-'}</div>
-    <div class="muted">Reserve Balance Base</div><div>${getSettingString('reserveBalanceBase') || '-'}</div>
-    <div class="muted">Target Balance USD</div><div>${getSettingString('targetBalanceUsd') || '-'}</div>
-    <div class="muted">Target Profit USD</div><div>${getSettingString('targetProfitUsd') || '-'}</div>
-    <div class="muted">Risk Mode</div><div>${getSettingString('riskMode') || '-'}</div>
-    <div class="muted">Copy Slammers</div><div>${settingsBoolish('copySlammerWhenSameHoleType') ? 'yes' : 'no'}</div>
-    <div class="muted">Allowed Assets</div><div>${esc(allowed)}</div>
-    <div class="muted">Blocked Assets</div><div>${esc(blocked)}</div>
-    <div class="muted">Keep Assets</div><div>${esc(keep)}</div>
-    <div class="muted">Dispose Assets</div><div>${esc(dispose)}</div>`;
+    <div class="strategy-simple">
+      ${row('Min Game Value USD', `<div class="strategy-simple-inline"><input data-bank-target="s_minGameStakeUsd" type="number" step="0.01" value="${esc(getSettingString('minGameStakeUsd'))}"></div>`)}
+      ${row('Throw Range USD', `<div class="strategy-simple-inline"><input data-bank-target="s_minThrowUsd" type="number" step="0.01" value="${esc(getSettingString('minThrowUsd'))}" placeholder="Min"><span class="muted">to</span><input data-bank-target="s_maxThrowUsd" type="number" step="0.01" value="${esc(getSettingString('maxThrowUsd'))}" placeholder="Max"></div>`)}
+      ${row('Max Single Throw USD', `<div class="strategy-simple-inline"><input data-bank-target="s_maxSingleThrowUsd" type="number" step="0.01" value="${esc(getSettingString('maxSingleThrowUsd'))}"></div>`)}
+      ${row('Max Game Exposure USD', `<div class="strategy-simple-inline"><input data-bank-target="s_maxGameExposureUsd" type="number" step="0.01" value="${esc(getSettingString('maxGameExposureUsd'))}"></div>`)}
+      ${row('Reserve Balance Base', `<div class="strategy-simple-inline"><input data-bank-target="s_reserveBalanceBase_display" data-bank-display-asset="${esc(reserve.asset)}" type="number" step="0.001" value="${esc(reserveDisplay)}" placeholder="0"><span class="muted">${esc(reserve.symbol)}</span></div><input class="strategy-slider" data-bank-slider="reserve" data-bank-display-asset="${esc(reserve.asset)}" data-bank-total-display="${esc(String(reserve.balanceDisplay || 0))}" type="range" min="0" max="100" value="${reservePct}">`, reserve.asset ? `Current ${formatDisplayNumber(reserve.balanceDisplay)} ${esc(reserve.symbol)} | <span id="bankReserveSliderMeta">${reservePct}% of current ${esc(reserve.symbol)} balance</span>` : '<span id="bankReserveSliderMeta">Set a configured asset to enable the reserve slider.</span>')}
+      ${row('Target Balance USD', `<div class="strategy-simple-inline"><input data-bank-target="s_targetBalanceUsd" type="number" step="0.01" value="${esc(getSettingString('targetBalanceUsd'))}"></div>`)}
+      ${row('Target Profit USD', `<div class="strategy-simple-inline"><input data-bank-target="s_targetProfitUsd" type="number" step="0.01" value="${esc(getSettingString('targetProfitUsd'))}"></div>`)}
+      ${row('Risk Mode', `<div class="strategy-simple-inline"><select data-bank-target="s_riskMode"><option value="balanced" ${String(getSettingString('riskMode') || 'balanced') === 'balanced' ? 'selected' : ''}>balanced</option><option value="aggressive" ${String(getSettingString('riskMode')) === 'aggressive' ? 'selected' : ''}>aggressive</option><option value="conservative" ${String(getSettingString('riskMode')) === 'conservative' ? 'selected' : ''}>conservative</option></select></div>`)}
+      ${row('Copy Slammers', `<div class="strategy-simple-inline"><select data-bank-target="s_copySlammerWhenSameHoleType"><option value="false" ${settingsBoolish('copySlammerWhenSameHoleType') ? '' : 'selected'}>no</option><option value="true" ${settingsBoolish('copySlammerWhenSameHoleType') ? 'selected' : ''}>yes</option></select></div>`)}
+      ${row('Allowed Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.allowedAssets, metaMap)}</div>`, 'Use Open Settings to change the asset lists.')}
+      ${row('Blocked Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.blockedAssets, metaMap)}</div>`)}
+      ${row('Keep Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.keepAssets, metaMap)}</div>`)}
+      ${row('Dispose Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.disposeAssets, metaMap)}</div>`)}
+    </div>`;
 }
 
-function renderBankChart(metaMap){
+
+function renderBankChart(games, metaMap){
   const canvas = document.getElementById('bankBalanceChart');
   if (!canvas) return;
   if (bankBalanceChart) { try { bankBalanceChart.destroy(); } catch {} bankBalanceChart = null; }
@@ -1832,7 +2644,9 @@ function renderBankChart(metaMap){
   const totalNet = {};
   for (const dr of deltaRows){
     const net = subtractAssetMaps(dr.deltaOutputsByAsset, dr.deltaInputsByAsset);
-    for (const [k,v] of Object.entries(net)){ totalNet[cleanHex(k)] = (BigInt(String(totalNet[cleanHex(k)] || '0')) + BigInt(String(v || '0'))).toString(); }
+    for (const [k,v] of Object.entries(net)){
+      totalNet[cleanHex(k)] = (BigInt(String(totalNet[cleanHex(k)] || '0')) + BigInt(String(v || '0'))).toString();
+    }
   }
   const assets = [...new Set([...Object.keys(vmBalances || {}).map(cleanHex), ...Object.keys(totalNet)])];
   const startBalances = {};
@@ -1841,22 +2655,69 @@ function renderBankChart(metaMap){
     const net = BigInt(String(totalNet[asset] || '0'));
     startBalances[asset] = (current - net).toString();
   }
+
+  const priceMap = {};
+  for (const asset of assets) priceMap[asset] = lookupAssetUsdPrice(asset, metaMap, { games });
+
   const series = {};
-  for (const asset of assets){ series[asset] = [parseBaseUnitsToDisplayNumber(startBalances[asset], asset, metaMap)]; }
+  for (const asset of assets) {
+    const price = Number(priceMap[asset]);
+    const usdValue = Number.isFinite(price) && price > 0 ? parseBaseUnitsToDisplayNumber(startBalances[asset], asset, metaMap) * price : 0;
+    series[asset] = [Number(usdValue.toFixed(6))];
+  }
+
   const labels = ['Start'];
-  let knownUsdSeries = [assets.reduce((s,a)=>{ const sym=symbolForAsset(a, metaMap); const price=knownUsdPrice(sym); return s + (price ? parseBaseUnitsToDisplayNumber(startBalances[a], a, metaMap)*price : 0); },0)];
+  const totalUsdSeries = [assets.reduce((sum, asset) => sum + Number(series[asset][0] || 0), 0)];
   const running = { ...startBalances };
   for (const dr of deltaRows){
     const net = subtractAssetMaps(dr.deltaOutputsByAsset, dr.deltaInputsByAsset);
-    for (const asset of assets){ running[asset] = (BigInt(String(running[asset] || '0')) + BigInt(String(net[asset] || '0'))).toString(); series[asset].push(parseBaseUnitsToDisplayNumber(running[asset], asset, metaMap)); }
+    for (const asset of assets) {
+      running[asset] = (BigInt(String(running[asset] || '0')) + BigInt(String(net[asset] || '0'))).toString();
+      const price = Number(priceMap[asset]);
+      const usdValue = Number.isFinite(price) && price > 0 ? parseBaseUnitsToDisplayNumber(running[asset], asset, metaMap) * price : 0;
+      series[asset].push(Number(usdValue.toFixed(6)));
+    }
     labels.push(shortHex(cleanHex(dr.row?.gameId || '')));
-    knownUsdSeries.push(assets.reduce((s,a)=>{ const sym=symbolForAsset(a, metaMap); const price=knownUsdPrice(sym); return s + (price ? parseBaseUnitsToDisplayNumber(running[a], a, metaMap)*price : 0); },0));
+    totalUsdSeries.push(assets.reduce((sum, asset) => sum + Number(series[asset][series[asset].length - 1] || 0), 0));
   }
-  const colors = chartColors(assets.length);
+
+  const chartAssets = assets.filter(asset => series[asset].some(value => Number(value) > 0));
+  const colors = chartColors(Math.max(chartAssets.length, 1));
   bankBalanceChart = new Chart(canvas, {
     type:'bar',
-    data:{ labels, datasets:[...assets.map((asset, idx)=>({ label:symbolForAsset(asset, metaMap), data:series[asset], backgroundColor: colors[idx] + '88', borderColor: colors[idx], stack:'assets' })), { type:'line', label:'Known USD Total', data:knownUsdSeries, borderColor:'#ffffff', backgroundColor:'transparent', yAxisID:'yUsd', tension:.2, borderWidth:2 }] },
-    options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#d9ecff' } } }, scales:{ x:{ ticks:{ color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }, y:{ ticks:{ color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }, yUsd:{ position:'right', ticks:{ color:'#88a4c6', callback:(v)=>`$${formatDisplayNumber(v)}` }, grid:{ drawOnChartArea:false } } } }
+    data:{
+      labels,
+      datasets:[
+        ...chartAssets.map((asset, idx)=>({
+          label:`${symbolForAsset(asset, metaMap)} USD`,
+          data:series[asset],
+          backgroundColor: colors[idx] + '88',
+          borderColor: colors[idx],
+          borderWidth:0,
+          stack:'assets'
+        })),
+        {
+          type:'line',
+          label:'Latest Internal USD Total',
+          data:totalUsdSeries,
+          borderColor:'#ffffff',
+          backgroundColor:'transparent',
+          tension:.18,
+          borderWidth:2,
+          pointRadius:0,
+          yAxisID:'y'
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ labels:{ color:'#d9ecff' } } },
+      scales:{
+        x:{ ticks:{ color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } },
+        y:{ ticks:{ color:'#88a4c6', callback:(v)=>`$${compactTickLabel(v)}` }, title:{ display:true, text:'Estimated USD Value', color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }
+      }
+    }
   });
 }
 
@@ -1895,17 +2756,17 @@ function renderBank(games, metaMap){
     const pendingAmt = pendingByAsset[asset] || '0';
     const currentAmt = normBalances[asset] || '0';
     const net = (BigInt(outAmt) - BigInt(inAmt)).toString();
-    const sym = symbolForAsset(asset, metaMap);
     tr.innerHTML = `
-      <td>${assetIcon(sym)} ${esc(sym)}</td>
-      <td>${esc(formatBaseUnits(currentAmt, asset, metaMap))}</td>
-      <td>${esc(formatBaseUnits(net, asset, metaMap))}</td>
-      <td>${esc(formatBaseUnits(pendingAmt, asset, metaMap))}</td>
-      <td>${esc(formatBaseUnits(outAmt, asset, metaMap))}</td>
-      <td>${esc(formatBaseUnits(inAmt, asset, metaMap))}</td>
+      <td>${assetLabelHtml(asset, metaMap, { showShortHex:true })}</td>
+      <td>${formatBaseUnits(currentAmt, asset, metaMap)}</td>
+      <td>${formatBaseUnits(net, asset, metaMap)}</td>
+      <td>${formatBaseUnits(pendingAmt, asset, metaMap)}</td>
+      <td>${formatBaseUnits(outAmt, asset, metaMap)}</td>
+      <td>${formatBaseUnits(inAmt, asset, metaMap)}</td>
     `;
   });
 }
+
 
 function renderScoreboard(games, metaMap){
   const panel = document.getElementById('scoreboardPanel');
@@ -1916,8 +2777,8 @@ function renderScoreboard(games, metaMap){
       <div class="muted">Mode</div><div>All Games</div>
       <div class="muted">Tracked Games</div><div>${games.length}</div>
       <div class="muted">Resolved Games</div><div>${games.filter(g=>g.resolvedCount>0).length}</div>
-      <div class="muted">Total PnL</div><div>$${fmtNum(games.reduce((s,g)=>s+(Number.isFinite(Number(g.pnlUsd))?Number(g.pnlUsd):0),0),2)}</div>
-      <div class="muted">Pending USD</div><div>$${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
+      <div class="muted">Total PnL</div><div>${fmtNum(games.reduce((s,g)=>s+(Number.isFinite(Number(g.pnlUsd))?Number(g.pnlUsd):0),0),2)}</div>
+      <div class="muted">Pending USD</div><div>${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
       <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.agentPendingThrows||0),0)}</div>
       <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-'}</div>
     `;
@@ -1925,8 +2786,8 @@ function renderScoreboard(games, metaMap){
   }
 
   panel.innerHTML = `
-    <div class="muted">Game</div><div>${esc(shortHex(g.gameId))}</div>
-    <div class="muted">Status</div><div>${esc(displayGameStatus(g))}</div>
+    <div class="muted">Game</div><div>${gameRefHtml(g.gameId)}</div>
+    <div class="muted">Status</div><div>${statusChipHtml(g)}</div>
     <div class="muted">Scans</div><div>${g.scans}</div>
     <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
     <div class="muted">Agent Throws</div><div>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</div>
@@ -1935,9 +2796,10 @@ function renderScoreboard(games, metaMap){
     <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`) : '-'}</div>
     <div class="muted">Predicted PnL</div><div>${g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`)}</div>
     <div class="muted">Points</div><div>${g.points}</div>
-    <div class="muted">Latest Hole Type</div><div>${g.latestHoleType == null ? errorText('missing actual.throwMatch.hole_type') : holeTypeLabel(g.latestHoleType)}</div>
+
   `;
 }
+
 
 function renderHealth(games, metaMap){
   const configuredAsset = settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-';
@@ -1954,8 +2816,8 @@ function renderHealth(games, metaMap){
 }
 
 function destroyAnalyticsCharts(){
-  [holePieChart, payoutPieChart, bonusPieChart].forEach(ch => { try { ch && ch.destroy(); } catch {} });
-  holePieChart = payoutPieChart = bonusPieChart = null;
+  [holePieChart, payoutPieChart, payoutKeyPieChart, bonusPieChart, bonusPointsChart].forEach(ch => { try { ch && ch.destroy(); } catch {} });
+  holePieChart = payoutPieChart = payoutKeyPieChart = bonusPieChart = bonusPointsChart = null;
 }
 
 function chartColors(n){
@@ -1966,6 +2828,43 @@ function chartColors(n){
 function legendTable(entries, formatter){
   if (!entries.length) return '<div class="muted">No data</div>';
   return `<table style="width:100%;min-width:100%;border-collapse:collapse;font-size:12px">${entries.map(([k,v]) => `<tr><td style="padding:4px 0">${esc(k)}</td><td style="padding:4px 0;text-align:right">${formatter(v)}</td></tr>`).join('')}</table>`;
+}
+
+function setAnalyticsHoleMode(mode){
+  analyticsHoleMode = mode === 'value' ? 'value' : 'count';
+  renderAll();
+}
+
+function setAnalyticsPerspectiveMode(mode){
+  analyticsPerspectiveMode = mode === 'user' ? 'user' : 'all';
+  renderAll();
+}
+
+function compactTickLabel(value){
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return `${formatDisplayNumber(n / 1000000)}m`;
+  if (abs >= 1000) return `${formatDisplayNumber(n / 1000)}k`;
+  return formatDisplayNumber(n);
+}
+
+function prettyBonusKindLabel(kind){
+  const raw = String(kind ?? '').trim();
+  if (!raw) return 'Unknown';
+  if (raw.startsWith('RecordAllTime:')) {
+    try {
+      const parsed = JSON.parse(raw.slice('RecordAllTime:'.length));
+      if (parsed && parsed.record) return `RecordAllTime / ${parsed.record}`;
+    } catch {}
+  }
+  if (raw.startsWith('Slammer:')) {
+    try {
+      const parsed = JSON.parse(raw.slice('Slammer:'.length));
+      if (parsed && Number.isFinite(Number(parsed.streak))) return `Slammer / streak ${Number(parsed.streak)}`;
+    } catch {}
+  }
+  return raw.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
 function renderSelectedDetail(games, metaMap){
@@ -1984,26 +2883,35 @@ function renderSelectedDetail(games, metaMap){
     return;
   }
 
-  document.getElementById('selGameId').textContent = `Game: ${shortHex(g.gameId)}`;
-  document.getElementById('selGameStatus').textContent = `Status: ${displayGameStatus(g)}`;
-  document.getElementById('selGamePnl').textContent = `PnL: ${g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`}`;
+  const settlingSnapshot = g.rowsResults.some(r => getActualHoleInfo(r).kind === 'settling');
+  const valueCountToggleHtml = `<div class="mini-toggle"><button type="button" class="${analyticsHoleMode === 'value' ? 'active' : ''}" onclick="setAnalyticsHoleMode('value')">Value</button><button type="button" class="${analyticsHoleMode === 'count' ? 'active' : ''}" onclick="setAnalyticsHoleMode('count')">Count</button></div>`;
+
+  document.getElementById('selGameId').innerHTML = `Game: ${gameRefHtml(g.gameId)}`;
+  document.getElementById('selGameStatus').innerHTML = `Status: ${statusChipHtml(g)}`;
+  document.getElementById('selGamePnl').textContent = settlingSnapshot ? 'PnL: Settling' : `PnL: ${g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `${fmtNum(g.pnlUsd,2)}`}`;
   document.getElementById('selGamePending').textContent = `Pending: ${g.agentPendingThrows}`;
-  document.getElementById('selGamePoints').textContent = `Points: ${g.points}`;
+  document.getElementById('selGamePoints').textContent = settlingSnapshot && !g.bonusTimeline.length ? 'Points: Settling' : `Points: ${g.points}`;
 
   const resultByDecision = latestByKey(g.rowsResults, r => r?.decisionId);
+  const openLike = Number(g.latestStatus ?? -1) < 2 || Number(g.agentPendingThrows || 0) > 0;
   patchTableBody('selectedThrowsBody', g.rowsThrows.slice().reverse(), t => t.decisionId || t.ts, (tr, t) => {
     const p = t.payload || {};
     const resultRow = resultByDecision.get(t.decisionId) || null;
-    const actualHole = resultRow ? getActualHoleInfo(resultRow) : { ok:false, label:errorText('missing result row'), value:null };
+    const pendingHole = { ok:false, kind:'undecided', label:'UNDECIDED', value:null, detail:'Result row has not been logged yet for this throw.' };
+    const actualHole = resultRow ? getActualHoleInfo(resultRow) : ((t.submitted && openLike) ? pendingHole : { ok:false, kind:'missing', label:errorText('missing result row'), value:null, detail:'No result row found for this decision.' });
     const predictedHole = getPredictedHoleInfo(t);
+    const predictedInfo = predictedHole.ok ? { kind:'hole', value:predictedHole.value, label:predictedHole.label, detail:`Predicted hole: ${predictedHole.label}` } : { kind:'missing', value:null, label:predictedHole.label, detail:predictedHole.label };
     const match = resultRow?.actual?.throwMatch || {};
     const angleDeg = Number(p?.init_pose?.angle_rad ?? 0) * 180 / Math.PI;
+    const pendingActual = actualHole.kind === 'undecided' || actualHole.kind === 'settling';
+    const valueUsd = match.value_usd_e8 != null ? `${fmtNum(Number(match.value_usd_e8) / 1e8, 2)}` : (pendingActual ? '<span class="muted">Pending</span>' : errorText('missing actual.throwMatch.value_usd_e8'));
+    const massUsd = match.mass_usd != null ? fmtNum(match.mass_usd,4) : (pendingActual ? '<span class="muted">Pending</span>' : errorText('missing actual.throwMatch.mass_usd'));
     tr.innerHTML = `
       <td>${esc(t.ts)}</td>
-      <td>${esc(t.decisionId)}</td>
+      <td>${decisionRefHtml(t.decisionId)}</td>
       <td class="${t.submitted ? 'ok' : 'warn'}">${t.submitted ? 'yes' : 'no'}</td>
-      <td>${assetIcon(symbolForAsset(p.asset, metaMap))} ${esc(symbolForAsset(p.asset, metaMap))}</td>
-      <td>${esc(formatBaseUnits(p.amount, p.asset, metaMap))}</td>
+      <td>${assetLabelHtml(p.asset, metaMap, { copy:false })}</td>
+      <td>${formatBaseUnits(p.amount, p.asset, metaMap)}</td>
       <td>${fmtNum(p?.init_pose?.pos?.x,0)}</td>
       <td>${fmtNum(p?.init_pose?.pos?.y,0)}</td>
       <td>${fmtNum(angleDeg,1)}</td>
@@ -2011,73 +2919,191 @@ function renderSelectedDetail(games, metaMap){
       <td>${fmtNum(p?.init_linvel?.y,2)}</td>
       <td>${fmtNum(p?.init_angvel,2)}</td>
       <td>${fmtNum(t?.score?.final,2)}</td>
-      <td>${predictedHole.label}</td>
-      <td>${actualHole.label}</td>
-      <td>${match.value_usd_e8 ? `$${fmtNum(Number(match.value_usd_e8)/1e8,2)}` : errorText('missing actual.throwMatch.value_usd_e8')}</td>
-      <td>${match.mass_usd != null ? fmtNum(match.mass_usd,4) : errorText('missing actual.throwMatch.mass_usd')}</td>
+      <td>${holeChipHtml(predictedInfo)}</td>
+      <td>${holeChipHtml(actualHole)}</td>
+      <td>${valueUsd}</td>
+      <td>${massUsd}</td>
     `;
   });
 
-  const scoreboardRows = (g.perUserScoreboard || []).slice().sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0)).slice(0,8);
-  const exactRows = buildResolvedDeltaRows(g.rowsResults);
-  const holeValueTotals = {};
-  for (const entry of exactRows) {
-    if (!entry.actualHole.ok) continue;
+  const scoreboardRows = (g.perUserScoreboard || []).map(r => {
+    const user = cleanHex(r?.user || '');
+    const points = (g.bonusTimeline || []).filter(x => cleanHex(x?.user || '') === user).reduce((sum, x) => sum + Number(x?.points || 0), 0);
+    return { ...r, user, points };
+  }).sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0)).slice(0, 24);
+
+  const userExactRows = buildResolvedDeltaRows(g.rowsResults).filter(entry => entry.actualHole.kind === 'hole');
+  const holeUserCountTotals = {};
+  const holeUserValueTotals = {};
+  for (const entry of userExactRows) {
     const label = holeTypeLabel(entry.actualHole.value);
+    holeUserCountTotals[label] = (holeUserCountTotals[label] || 0) + 1;
     const usd = Number(entry.row?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8;
-    holeValueTotals[label] = (holeValueTotals[label] || 0) + usd;
+    if (Number.isFinite(usd) && usd > 0) holeUserValueTotals[label] = (holeUserValueTotals[label] || 0) + usd;
   }
-  const holeEntries = Object.entries(holeValueTotals).sort((a,b)=>Number(b[1])-Number(a[1]));
 
-  const payoutKindCounts = {};
-  const payoutKindAmounts = {};
-  for (const row of (g.payoutTimeline || [])) {
-    payoutKindCounts[row.kind] = (payoutKindCounts[row.kind] || 0) + 1;
-    const key = `${row.kind}__${row.asset}`;
-    payoutKindAmounts[key] = (BigInt(payoutKindAmounts[key] || '0') + BigInt(String(row.amount || '0'))).toString();
+  const holeAllCountTotals = {};
+  for (const [holeId, count] of Object.entries(g.holeTypeCounts || {})) {
+    const label = holeTypeLabel(Number(holeId));
+    holeAllCountTotals[label] = (holeAllCountTotals[label] || 0) + Number(count || 0);
   }
-  const payoutKindCountEntries = Object.entries(payoutKindCounts).sort((a,b)=>Number(b[1])-Number(a[1]));
-  const payoutAmountEntries = Object.entries(payoutKindAmounts).sort((a,b)=> String(b[1]).localeCompare(String(a[1])));
 
+  let holeEntries = [];
+  let holeSubtext = '';
+  let holeEmptyText = '';
+  let holeFormatter = (v) => `${fmtNum(v,0)} throws`;
+  if (analyticsHoleMode === 'value') {
+    holeEntries = Object.entries(holeUserValueTotals).sort((a,b) => Number(b[1]) - Number(a[1]));
+    holeSubtext = 'Configured-user resolved throw USD by result type.';
+    holeEmptyText = 'No configured-user resolved throw USD is logged for this game yet.';
+    holeFormatter = (v) => `$${formatDisplayNumber(v)}`;
+  } else {
+    const useAllCounts = Object.keys(holeAllCountTotals).length > 0;
+    const source = useAllCounts ? holeAllCountTotals : holeUserCountTotals;
+    holeEntries = Object.entries(source).sort((a,b) => Number(b[1]) - Number(a[1]));
+    holeSubtext = useAllCounts ? 'All resolved throw count by result type.' : 'Configured-user resolved throw count by result type.';
+    holeEmptyText = 'No resolved hole-count snapshot has been logged for this game yet.';
+  }
+  const holeLegendHtml = holeEntries.length ? legendTable(holeEntries, holeFormatter) : `<div class="analytics-chart-note">${esc(holeEmptyText)}</div>`;
+
+  const payoutRows = Array.isArray(g.payoutTimeline) ? g.payoutTimeline : [];
+  const payoutPriceSnapshot = buildGameAssetPriceSnapshot(g, metaMap, 'all');
+  const payoutKindValueTotals = {};
+  const payoutAssetValueTotals = {};
+  const payoutExactTotals = new Map();
+  for (const row of payoutRows) {
+    const kind = String(row?.kind || 'Unknown');
+    const asset = cleanHex(row?.asset || '');
+    const usd = payoutRowUsdValue(row, g, metaMap, { scope:'all', games, priceSnapshot:payoutPriceSnapshot });
+    if (Number.isFinite(usd) && usd > 0) {
+      payoutKindValueTotals[kind] = (payoutKindValueTotals[kind] || 0) + usd;
+      if (asset) {
+        const assetLabel = symbolForAsset(asset, metaMap);
+        payoutAssetValueTotals[assetLabel] = (payoutAssetValueTotals[assetLabel] || 0) + usd;
+      }
+    }
+    const key = `${kind}__${asset}`;
+    const prev = payoutExactTotals.get(key) || { kind, asset, amount:'0', usd:0 };
+    prev.amount = (BigInt(String(prev.amount || '0')) + BigInt(String(row?.amount || '0'))).toString();
+    if (Number.isFinite(usd) && usd > 0) prev.usd += usd;
+    payoutExactTotals.set(key, prev);
+  }
+  const payoutKindEntries = Object.entries(payoutKindValueTotals).sort((a,b) => Number(b[1]) - Number(a[1]));
+  const payoutAssetEntries = Object.entries(payoutAssetValueTotals).sort((a,b) => Number(b[1]) - Number(a[1]));
+  const payoutValueNote = payoutRows.length
+    ? 'Payout rows exist, but no precise USD price could be derived from the logged game price snapshots yet.'
+    : 'No payout rows are logged for this game yet.';
+  const payoutKindLegendHtml = payoutKindEntries.length
+    ? legendTable(payoutKindEntries, v => `$${formatDisplayNumber(v)}`)
+    : `<div class="analytics-chart-note">${esc(payoutValueNote)}</div>`;
+  const payoutKeyRows = [...payoutExactTotals.values()].sort((a,b) => Number(b.usd || 0) - Number(a.usd || 0) || String(a.kind || '').localeCompare(String(b.kind || '')) || cleanHex(a.asset || '').localeCompare(cleanHex(b.asset || '')));
+  const payoutKeyPieEntries = payoutAssetEntries.length ? payoutAssetEntries : payoutKindEntries;
+  const payoutKeyTotalUsd = payoutKeyRows.reduce((sum, item) => sum + Number(item.usd || 0), 0);
+  const payoutKeyTableHtml = payoutKeyRows.length
+    ? `<table class="analytics-cross-table">
+        <thead>
+          <tr><th>Kind</th><th>Asset</th><th>Amount</th><th>USD</th></tr>
+        </thead>
+        <tbody>
+          ${payoutKeyRows.map(item => {
+            const asset = cleanHex(item.asset || '');
+            const symbol = asset ? symbolForAsset(asset, metaMap) : '-';
+            const displayAmount = asset ? formatDisplayNumber(parseBaseUnitsToDisplayNumber(item.amount, asset, metaMap)) : formatDisplayNumber(item.amount);
+            const usdText = Number(item.usd || 0) > 0 ? `$${formatDisplayNumber(item.usd)}` : '-';
+            return `<tr><td>${esc(item.kind)}</td><td>${asset ? `<span class="asset-inline">${assetIcon(symbol)}<span>${esc(symbol)}</span></span>` : '-'}</td><td>${esc(displayAmount)}</td><td>${esc(usdText)}</td></tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3">Total USD</td><td>${esc(payoutKeyTotalUsd > 0 ? `$${formatDisplayNumber(payoutKeyTotalUsd)}` : '-')}</td></tr>
+        </tfoot>
+      </table>`
+    : `<div class="analytics-chart-note">${esc(payoutValueNote)}</div>`;
+  const bonusRows = Array.isArray(g.bonusTimeline) ? g.bonusTimeline : [];
   const bonusKindTotalsMap = {};
-  for (const row of (g.bonusTimeline || [])) bonusKindTotalsMap[row.kind] = (bonusKindTotalsMap[row.kind] || 0) + Number(row.points || 0);
-  const bonusKindTotals = Object.entries(bonusKindTotalsMap).sort((a,b)=>Number(b[1])-Number(a[1]));
+  for (const row of bonusRows) {
+    const label = prettyBonusKindLabel(row.kind);
+    bonusKindTotalsMap[label] = (bonusKindTotalsMap[label] || 0) + Number(row.points || 0);
+  }
+  const bonusKindTotals = Object.entries(bonusKindTotalsMap).sort((a,b) => Number(b[1]) - Number(a[1]));
+  const bonusLegendHtml = bonusKindTotals.length
+    ? legendTable(bonusKindTotals, v => `${fmtNum(v,0)} pts`)
+    : `<div class="analytics-chart-note">No bonus rows are logged for this game yet.</div>`;
+
+  const bonusProgressRows = bonusRows
+    .filter(row => Number.isFinite(Number(row?.endFrame ?? NaN)) && Number(row?.points || 0) > 0)
+    .slice()
+    .sort((a,b) => Number(a.endFrame) - Number(b.endFrame) || Number(a.idx || 0) - Number(b.idx || 0));
+  let runningPoints = 0;
+  const bonusProgressSeries = bonusProgressRows.map(row => ({
+    x: Number(row.endFrame),
+    y: (runningPoints += Number(row.points || 0)),
+    meta: {
+      frame: Number(row.endFrame),
+      points: Number(row.points || 0),
+      kind: prettyBonusKindLabel(row.kind),
+      user: cleanHex(row?.user || ''),
+      throwId: cleanHex(row?.throw_id || '')
+    }
+  }));
+  const bonusTimelineRows = bonusRows
+    .filter(row => Number(row?.points || 0) > 0)
+    .slice()
+    .sort((a,b) => Number(b.points || 0) - Number(a.points || 0) || Number(a.endFrame ?? Number.MAX_SAFE_INTEGER) - Number(b.endFrame ?? Number.MAX_SAFE_INTEGER) || Number(a.idx || 0) - Number(b.idx || 0));
+  const bonusTimelineHtml = bonusTimelineRows.length
+    ? bonusTimelineRows.map(r => `<div class="analytics-key-row"><span title="${escAttr(cleanHex(r?.user || ''))}">${esc(prettyBonusKindLabel(r.kind))} | ${esc(shortHex(r?.user || ''))}</span><span>${fmtNum(r.points,0)} pts</span></div>`).join('')
+    : `<div class="analytics-chart-note">No bonus timeline rows are logged for this game yet.</div>`;
+
+  const scoreboardHtml = scoreboardRows.length ? scoreboardRows.map(r => {
+        const pnl = Number(r.pnl_usd || 0);
+        const points = Number(r.points || 0);
+        return `<div class="analytics-scoreboard-row"><span>${shortRefHtml(r.user, { copyLabel:'Copy user ID' })}</span><span class="analytics-profit"><span class="${pnl >= 0 ? 'ok' : 'pink'}">${pnl >= 0 ? '+' : ''}${fmtNum(pnl,2)}</span>${points ? `<span class="analytics-points">+${fmtNum(points,0)} pts</span>` : ''}</span></div>`;
+      }).join('') : `<div class="muted">${settlingSnapshot ? 'Settling: the final per-user scoreboard has not been logged yet.' : errorText('missing actual.wholeGame.per_user_scoreboard')}</div>`;
 
   analytics.innerHTML = `
-    <div class="mini">
-      <div class="k">Per-User Scoreboard</div>
-      <div class="v">${scoreboardRows.length ? scoreboardRows.map(r => `<div style="display:flex;justify-content:space-between;gap:12px"><span>${esc(shortHex(r.user))}</span><span class="${Number(r.pnl_usd||0)>=0 ? 'ok':'pink'}">$${fmtNum(r.pnl_usd,2)}</span></div>`).join('') : errorText('missing actual.wholeGame.per_user_scoreboard')}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Per-User Scoreboard</div><div class="analytics-sub">PnL with points context</div></div>
+      <div class="analytics-scroll">${scoreboardHtml}</div>
     </div>
 
-    <div class="mini">
-      <div class="k">Hole Value Distribution</div>
-      <div style="height:220px">${holeEntries.length ? '<canvas id="holePieCanvas"></canvas>' : `<div class="red">${esc(errorText('missing actual.throwMatch.hole_type in selected game result rows'))}</div>`}</div>
-      <div class="v">${holeEntries.length ? legendTable(holeEntries, v => `$${formatDisplayNumber(v)}`) : ''}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Hole Distribution</div><div class="analytics-toggle-cluster">${valueCountToggleHtml}</div></div>
+      <div class="analytics-sub">${esc(holeSubtext)}</div>
+      <div class="analytics-card-body">
+        <div class="analytics-chart-wrap compact">${holeEntries.length ? '<canvas id="holePieCanvas"></canvas>' : `<div class="analytics-chart-note">${esc(holeEmptyText)}</div>`}</div>
+        <div class="analytics-side-list">${holeLegendHtml}</div>
+      </div>
     </div>
 
-    <div class="mini">
-      <div class="k">Payout Kind Breakdown</div>
-      <div style="height:220px">${payoutKindCountEntries.length ? '<canvas id="payoutPieCanvas"></canvas>' : '<div class="muted">No payout rows</div>'}</div>
-      <div class="v">${payoutKindCountEntries.length ? legendTable(payoutKindCountEntries, v => esc(String(v)) + ' rows') : ''}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Payout Value Breakdown</div><div class="analytics-sub">Game-wide USD-weighted payout kinds.</div></div>
+      <div class="analytics-card-body">
+        <div class="analytics-chart-wrap compact">${payoutKindEntries.length ? '<canvas id="payoutPieCanvas"></canvas>' : `<div class="analytics-chart-note">${esc(payoutValueNote)}</div>`}</div>
+        <div class="analytics-side-list">${payoutKindLegendHtml}</div>
+      </div>
     </div>
 
-    <div class="mini">
-      <div class="k">Bonus Awards Breakdown</div>
-      <div style="height:220px">${bonusKindTotals.length ? '<canvas id="bonusPieCanvas"></canvas>' : '<div class="muted">No bonus rows</div>'}</div>
-      <div class="v">${bonusKindTotals.length ? legendTable(bonusKindTotals, v => esc(String(v)) + ' pts') : ''}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Bonus Awards Breakdown</div><div class="analytics-sub">All logged bonus points by exact kind.</div></div>
+      <div class="analytics-card-body">
+        <div class="analytics-chart-wrap compact">${bonusKindTotals.length ? '<canvas id="bonusPieCanvas"></canvas>' : '<div class="analytics-chart-note">No bonus rows are logged for this game yet.</div>'}</div>
+        <div class="analytics-side-list">${bonusLegendHtml}</div>
+      </div>
     </div>
 
-    <div class="mini">
-      <div class="k">Payout Key</div>
-      <div class="v">${payoutAmountEntries.length ? payoutAmountEntries.map(([key,amt]) => {
-        const [kind, asset] = key.split('__');
-        return `<div>${esc(kind)} • ${assetIcon(symbolForAsset(asset, metaMap))} ${esc(formatBaseUnits(amt, asset, metaMap))}</div>`;
-      }).join('') : 'No payout rows yet'}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Payout Key</div><div class="analytics-sub">Exact payout rows cross-referenced by kind and asset.</div></div>
+      <div class="analytics-card-body keyed">
+        <div class="analytics-chart-wrap micro">${payoutKeyPieEntries.length ? '<canvas id="payoutKeyPieCanvas"></canvas>' : `<div class="analytics-chart-note">${esc(payoutValueNote)}</div>`}</div>
+        <div class="analytics-side-list table">${payoutKeyTableHtml}</div>
+      </div>
     </div>
 
-    <div class="mini">
-      <div class="k">Bonus Timeline</div>
-      <div class="v">${(g.bonusTimeline || []).length ? g.bonusTimeline.slice(0,12).map(r => `<div>${esc(String(r.idx))}. ${esc(r.kind)} • ${esc(String(r.points))} pts • ${esc(shortHex(r.user))}</div>`).join('') : 'No bonus awards yet'}</div>
+    <div class="mini analytics-card">
+      <div class="analytics-head"><div class="k">Bonus Points Over Replay</div><div class="analytics-sub">Cumulative bonus points by exact outcome frame.</div></div>
+      <div class="analytics-card-body wide-chart">
+        <div class="analytics-chart-wrap tall">${bonusProgressSeries.length ? '<canvas id="bonusProgressCanvas"></canvas>' : '<div class="analytics-chart-note">No bonus endFrame rows are logged for this game yet.</div>'}</div>
+        <div class="analytics-side-list"><div class="analytics-key-list compact">${bonusTimelineHtml}</div></div>
+      </div>
     </div>
   `;
 
@@ -2085,16 +3111,16 @@ function renderSelectedDetail(games, metaMap){
   if (holeCtx && holeEntries.length) {
     holePieChart = new Chart(holeCtx, {
       type:'doughnut',
-      data:{ labels: holeEntries.map(([k])=>String(k)), datasets:[{ data: holeEntries.map(([_,v])=>Number(v)), backgroundColor: chartColors(holeEntries.length) }] },
+      data:{ labels: holeEntries.map(([k]) => String(k)), datasets:[{ data: holeEntries.map(([_,v]) => Number(v)), backgroundColor: chartColors(holeEntries.length) }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
 
   const payoutCtx = document.getElementById('payoutPieCanvas');
-  if (payoutCtx && payoutKindCountEntries.length) {
+  if (payoutCtx && payoutKindEntries.length) {
     payoutPieChart = new Chart(payoutCtx, {
       type:'doughnut',
-      data:{ labels: payoutKindCountEntries.map(([k])=>String(k)), datasets:[{ data: payoutKindCountEntries.map(([_,v])=>Number(v)), backgroundColor: chartColors(payoutKindCountEntries.length) }] },
+      data:{ labels: payoutKindEntries.map(([k]) => String(k)), datasets:[{ data: payoutKindEntries.map(([_,v]) => Number(v)), backgroundColor: chartColors(payoutKindEntries.length) }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -2103,12 +3129,54 @@ function renderSelectedDetail(games, metaMap){
   if (bonusCtx && bonusKindTotals.length) {
     bonusPieChart = new Chart(bonusCtx, {
       type:'doughnut',
-      data:{ labels: bonusKindTotals.map(([k])=>String(k)), datasets:[{ data: bonusKindTotals.map(([_,v])=>Number(v)), backgroundColor: chartColors(bonusKindTotals.length) }] },
+      data:{ labels: bonusKindTotals.map(([k]) => String(k)), datasets:[{ data: bonusKindTotals.map(([_,v]) => Number(v)), backgroundColor: chartColors(bonusKindTotals.length) }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
-}
 
+  const payoutKeyCtx = document.getElementById('payoutKeyPieCanvas');
+  if (payoutKeyCtx && payoutKeyPieEntries.length) {
+    payoutKeyPieChart = new Chart(payoutKeyCtx, {
+      type:'doughnut',
+      data:{ labels: payoutKeyPieEntries.map(([k]) => String(k)), datasets:[{ data: payoutKeyPieEntries.map(([_,v]) => Number(v)), backgroundColor: chartColors(payoutKeyPieEntries.length) }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  const bonusProgressCtx = document.getElementById('bonusProgressCanvas');
+  if (bonusProgressCtx && bonusProgressSeries.length) {
+    bonusPointsChart = new Chart(bonusProgressCtx, {
+      type:'line',
+      data:{ datasets:[{ label:'Cumulative Bonus Points', data: bonusProgressSeries, parsing:false, borderColor:'#ffe66d', backgroundColor:'rgba(255,230,109,.14)', pointRadius:3, pointHoverRadius:4, tension:.14 }] },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{ display:false },
+          tooltip:{
+            callbacks:{
+              label:(ctx) => `Cumulative ${fmtNum(ctx.parsed.y,0)} pts`,
+              afterLabel:(ctx) => {
+                const meta = ctx.raw?.meta || {};
+                const lines = [];
+                if (meta.kind) lines.push(`${meta.kind} | ${fmtNum(meta.points || 0,0)} pts`);
+                const tail = [];
+                if (Number.isFinite(Number(meta.frame))) tail.push(`Frame ${fmtNum(meta.frame,0)}`);
+                if (meta.user) tail.push(shortHex(meta.user));
+                if (tail.length) lines.push(tail.join(' | '));
+                return lines;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{ type:'linear', title:{ display:true, text:'Replay Frame', color:'#88a4c6' }, ticks:{ color:'#88a4c6', maxTicksLimit:6 }, grid:{ color:'rgba(82,230,255,.08)' } },
+          y:{ beginAtZero:true, ticks:{ display:false, maxTicksLimit:4 }, title:{ display:false }, grid:{ color:'rgba(82,230,255,.08)' } }
+        }
+      }
+    });
+  }
+}
 function renderResolvedBottom(metaMap){
   const deltaRows = buildResolvedDeltaRows(buildLatestResultsByDecision()).slice(0,100);
   const throwByDecision = latestByKey(throwsRows, t => t?.decisionId);
@@ -2119,27 +3187,47 @@ function renderResolvedBottom(metaMap){
     const bonuses = Array.isArray(a.bonuses) ? a.bonuses.map(b => `${b.kind}(${b.points})`).join(', ') : '-';
     const predictedThrow = throwByDecision.get(r?.decisionId);
     const predictedHole = predictedThrow ? getPredictedHoleInfo(predictedThrow) : { ok:false, label:errorText('missing throw row'), value:null };
+    const predictedInfo = predictedThrow && predictedHole.ok ? { kind:'hole', value:predictedHole.value, label:predictedHole.label, detail:`Predicted hole: ${predictedHole.label}` } : { kind:'missing', value:null, label:predictedHole.label, detail:predictedHole.label };
     tr.innerHTML = `
       <td>${esc(r.ts)}</td>
-      <td>${esc(shortHex(r.gameId))}</td>
+      <td>${gameRefHtml(r.gameId)}</td>
       <td class="${a.matched ? 'ok' : 'warn'}">${a.matched ? 'yes' : 'no'}</td>
-      <td>${predictedHole.label}</td>
-      <td>${entry.actualHole.label}</td>
+      <td>${holeChipHtml(predictedInfo)}</td>
+      <td>${holeChipHtml(entry.actualHole)}</td>
       <td>${entry.deltaStakeUsd == null ? errorText('missing per_user_scoreboard stake_usd') : fmtNum(entry.deltaStakeUsd,2)}</td>
       <td>${entry.deltaReturnedUsd == null ? errorText('missing per_user_scoreboard returned_usd') : fmtNum(entry.deltaReturnedUsd,2)}</td>
       <td class="${Number(entry.deltaPnlUsd) >= 0 ? 'ok' : 'pink'}">${entry.deltaPnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : fmtNum(entry.deltaPnlUsd,2)}</td>
-      <td>${esc(objectEntriesDisplayUnits(wg.inputs_by_asset, metaMap))}</td>
-      <td>${esc(objectEntriesDisplayUnits(wg.outputs_by_asset, metaMap))}</td>
+      <td>${objectEntriesDisplayUnitsHtml(wg.inputs_by_asset, metaMap, { copy:false })}</td>
+      <td>${objectEntriesDisplayUnitsHtml(wg.outputs_by_asset, metaMap, { copy:false })}</td>
       <td>${esc(bonuses)}</td>
     `;
   });
 }
 
+
 function renderCharts(games, metaMap){
   if (profitChart) profitChart.destroy();
   if (positionChart) positionChart.destroy();
+  profitChart = null;
+  positionChart = null;
 
   const honestModel = computeHonestPerformance(games, metaMap);
+  const profitPanel = document.getElementById('gamesReviewProfitPanel');
+  const positionPanel = document.getElementById('gamesReviewPositionPanel');
+  const profitCanvas = document.getElementById('profitChart');
+  const positionCanvas = document.getElementById('positionChart');
+  if (profitPanel) profitPanel.classList.remove('view-hidden');
+  if (positionPanel) positionPanel.classList.remove('view-hidden');
+  if (profitCanvas) {
+    const profitHeight = selectedGameId ? '288px' : '96px';
+    profitCanvas.style.height = profitHeight;
+    profitCanvas.style.minHeight = profitHeight;
+    profitCanvas.style.maxHeight = profitHeight;
+  }
+  if (positionCanvas) {
+    positionCanvas.style.height = '180px';
+    positionCanvas.style.maxHeight = '180px';
+  }
 
   if (!selectedGameId) {
     const rows = games.slice(0,20).reverse();
@@ -2149,7 +3237,7 @@ function renderCharts(games, metaMap){
     const predSeries = rows.map(g => Number.isFinite(Number(g.predictedPnlUsd)) ? Number(g.predictedPnlUsd) : null);
     const honestSeries = honestModel.samples.map(s => s.honestScore);
 
-    profitChart = new Chart(document.getElementById('profitChart'), {
+    profitChart = new Chart(profitCanvas, {
       type: 'bar',
       data: {
         labels,
@@ -2161,7 +3249,11 @@ function renderCharts(games, metaMap){
         ]
       },
       options: {
+        animation:false,
         responsive: true,
+        maintainAspectRatio:false,
+        normalized:true,
+        resizeDelay:120,
         plugins: { legend: { labels: { color: '#d9ecff' } } },
         scales: {
           x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
@@ -2172,10 +3264,10 @@ function renderCharts(games, metaMap){
     });
 
     const allPos = throwsRows.map(t => ({ x: Number(t?.payload?.init_pose?.pos?.x ?? 0), y: Number(t?.payload?.init_pose?.pos?.y ?? 0) }));
-    positionChart = new Chart(document.getElementById('positionChart'), {
+    positionChart = new Chart(positionCanvas, {
       type: 'scatter',
       data: { datasets: [{ label: 'All Throws', data: allPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }] },
-      options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
+      options: { animation:false, responsive: true, maintainAspectRatio:false, normalized:true, resizeDelay:120, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
     });
     return;
   }
@@ -2183,28 +3275,154 @@ function renderCharts(games, metaMap){
   const g = games.find(x => x.gameId === selectedGameId);
   if (!g) return;
 
-  const labels = g.rowsResults.slice().reverse().map((r,i) => `${i+1}`);
-  const pnlSeries = g.rowsResults.slice().reverse().map(r => Number(getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId)?.pnl_usd ?? null));
-  const returnedSeries = g.rowsResults.slice().reverse().map(r => Number(getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId)?.returned_usd ?? null));
-
-  profitChart = new Chart(document.getElementById('profitChart'), {
-    type: 'line',
-    data: { labels, datasets: [
-      { label: 'Selected Game PnL USD', data: pnlSeries, borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension:.2 },
-      { label: 'Selected Game Returned USD', data: returnedSeries, borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension:.2 }
-    ] },
-    options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
-  });
-
   const selectedPos = g.rowsThrows.map(t => ({ x: Number(t?.payload?.init_pose?.pos?.x ?? 0), y: Number(t?.payload?.init_pose?.pos?.y ?? 0) }));
-  positionChart = new Chart(document.getElementById('positionChart'), {
+  positionChart = new Chart(positionCanvas, {
     type: 'scatter',
     data: { datasets: [{ label: 'Selected Game Throws', data: selectedPos, backgroundColor: 'rgba(255,79,216,.35)', borderColor: '#ff4fd8' }] },
-    options: { responsive: true, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
+    options: { animation:false, responsive: true, maintainAspectRatio:false, normalized:true, resizeDelay:120, plugins: { legend: { labels: { color: '#d9ecff' } } }, scales: { x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } }, y: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } } } }
   });
-}
 
-function updateCommandPreview(){
+  const settledLike = Number(g.latestStatus ?? -1) >= 2 || !!g.canonicalResult || Number(g.resolvedCount || 0) > 0;
+  if (!settledLike) {
+    if (profitPanel) profitPanel.classList.add('view-hidden');
+    return;
+  }
+
+  const resolvedEntries = buildResolvedDeltaRows(g.rowsResults)
+    .filter(entry => Number.isFinite(Number(entry?.row?.actual?.throwMatch?.endFrame ?? NaN)))
+    .slice()
+    .sort((a,b) => Number(a.row?.actual?.throwMatch?.endFrame ?? 0) - Number(b.row?.actual?.throwMatch?.endFrame ?? 0) || freshTimestamp(a.row?.ts) - freshTimestamp(b.row?.ts));
+
+  const priceSnapshot = buildGameAssetPriceSnapshot(g, metaMap, 'user');
+  const cumulativeByAsset = {};
+  const assetOrder = [];
+  const assetSeen = new Set();
+  const eventPoints = [];
+
+  for (const entry of resolvedEntries) {
+    const frame = Number(entry?.row?.actual?.throwMatch?.endFrame ?? NaN);
+    if (!Number.isFinite(frame)) continue;
+    const perAssetUsd = {};
+    let totalPositiveUsd = 0;
+
+    for (const [asset, amount] of Object.entries(entry?.deltaOutputsByAsset || {})) {
+      const cleanAsset = cleanHex(asset);
+      const usd = knownUsdValueForAssetAmount(amount, cleanAsset, metaMap, { game:g, games, scope:'user', priceSnapshot });
+      if (!Number.isFinite(Number(usd)) || Number(usd) <= 0) continue;
+      perAssetUsd[cleanAsset] = (perAssetUsd[cleanAsset] || 0) + Number(usd);
+      totalPositiveUsd += Number(usd);
+    }
+
+    const deltaReturnedUsd = Number(entry?.deltaReturnedUsd ?? NaN);
+    const positiveReturnedUsd = Number.isFinite(deltaReturnedUsd) && deltaReturnedUsd > 0 ? deltaReturnedUsd : 0;
+    const matchAsset = cleanHex(entry?.row?.actual?.throwMatch?.asset || settings?.asset || '');
+
+    if (!totalPositiveUsd && positiveReturnedUsd > 0 && matchAsset) {
+      perAssetUsd[matchAsset] = (perAssetUsd[matchAsset] || 0) + positiveReturnedUsd;
+      totalPositiveUsd = positiveReturnedUsd;
+    } else if (positiveReturnedUsd > 0 && totalPositiveUsd > 0 && Math.abs(totalPositiveUsd - positiveReturnedUsd) > 0.000001) {
+      const scale = positiveReturnedUsd / totalPositiveUsd;
+      for (const asset of Object.keys(perAssetUsd)) perAssetUsd[asset] = Number((perAssetUsd[asset] * scale).toFixed(6));
+      totalPositiveUsd = positiveReturnedUsd;
+    }
+
+    if (!(totalPositiveUsd > 0)) continue;
+
+    for (const [asset, usd] of Object.entries(perAssetUsd)) {
+      cumulativeByAsset[asset] = (cumulativeByAsset[asset] || 0) + Number(usd);
+      if (!assetSeen.has(asset)) {
+        assetSeen.add(asset);
+        assetOrder.push(asset);
+      }
+    }
+
+    const snapshot = {};
+    for (const asset of assetOrder) snapshot[asset] = Number((cumulativeByAsset[asset] || 0).toFixed(6));
+    const lastPoint = eventPoints.length ? eventPoints[eventPoints.length - 1] : null;
+    if (lastPoint && Number(lastPoint.frame) === frame) {
+      lastPoint.cumulativeByAsset = snapshot;
+      lastPoint.returnedUsd = Number(((lastPoint.returnedUsd || 0) + totalPositiveUsd).toFixed(6));
+    } else {
+      eventPoints.push({ frame, cumulativeByAsset: snapshot, returnedUsd: Number(totalPositiveUsd.toFixed(6)) });
+    }
+  }
+
+  const maxFrame = Math.max(1, ...resolvedEntries.map(entry => Number(entry?.row?.actual?.throwMatch?.endFrame ?? 0)).filter(v => Number.isFinite(v)));
+  const colors = chartColors(Math.max(assetOrder.length, 1));
+  const returnedDatasets = assetOrder.map((asset, idx) => ({
+    type:'bar',
+    label:`${symbolForAsset(asset, metaMap)} Returned USD`,
+    data: eventPoints.map(point => ({ x: point.frame, y: Number(point.cumulativeByAsset[asset] || 0) })),
+    parsing:false,
+    backgroundColor: colors[idx] + 'a8',
+    borderColor: colors[idx],
+    borderWidth:0,
+    borderSkipped:false,
+    stack:'returned',
+    barThickness:16,
+    maxBarThickness:18
+  })).filter(dataset => dataset.data.some(point => Number(point.y) > 0));
+
+  const breakEvenUsd = Number(g.stakeUsd ?? 0);
+  const datasets = [...returnedDatasets];
+  if (Number.isFinite(breakEvenUsd) && breakEvenUsd > 0) {
+    datasets.push({
+      type:'line',
+      label:'Break-even stake',
+      data:[{ x:0, y:Number(breakEvenUsd.toFixed(6)) }, { x:maxFrame, y:Number(breakEvenUsd.toFixed(6)) }],
+      parsing:false,
+      borderColor:'#ff6b88',
+      borderDash:[8,6],
+      pointRadius:0,
+      pointHoverRadius:0,
+      tension:0,
+      fill:false,
+      yAxisID:'y'
+    });
+  }
+
+  profitChart = new Chart(profitCanvas, {
+    type:'bar',
+    data:{ datasets },
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      normalized:true,
+      resizeDelay:120,
+      interaction:{ mode:'nearest', intersect:false, axis:'x' },
+      plugins:{
+        legend:{ labels:{ color:'#d9ecff' } },
+        tooltip:{
+          callbacks:{
+            title:(items) => items?.length ? `Frame ${fmtNum(items[0]?.parsed?.x,0)}` : '',
+            label:(ctx) => ctx.dataset?.type === 'line'
+              ? `Break-even: $${formatDisplayNumber(ctx.parsed?.y)}`
+              : `${ctx.dataset.label}: $${formatDisplayNumber(ctx.parsed?.y)}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          type:'linear',
+          min:0,
+          max:maxFrame,
+          stacked:true,
+          title:{ display:true, text:'Replay Frame', color:'#88a4c6' },
+          ticks:{ color:'#88a4c6', maxTicksLimit:10, callback:(value) => compactTickLabel(Number(value)) },
+          grid:{ color:'rgba(82,230,255,.08)' }
+        },
+        y:{
+          stacked:true,
+          beginAtZero:true,
+          title:{ display:true, text:'Cumulative Returned USD', color:'#88a4c6' },
+          ticks:{ color:'#88a4c6', callback:(value) => `$${compactTickLabel(Number(value))}` },
+          grid:{ color:'rgba(82,230,255,.08)' }
+        }
+      }
+    }
+  });
+}function updateCommandPreview(){
   const cmd = [
     "node dist/cli/main.js",
     "--loop --serve-monitor",
@@ -2216,8 +3434,10 @@ function updateCommandPreview(){
     `--max-candidates ${document.getElementById("s_maxCandidates").value.trim()}`,
     `--max-ms ${document.getElementById("s_maxMs").value.trim()}`,
     `--poll-ms ${document.getElementById("s_pollMs").value.trim()}`
-  ].join(" \\\n  ");
-  document.getElementById("cmdPreview").textContent = cmd;
+  ].join(" ");
+  const btn = document.getElementById("copyLaunchBtn");
+  if (btn) btn.setAttribute("data-copy-text", cmd);
+  return cmd;
 }
 
 async function saveSettings(){
@@ -2306,52 +3526,237 @@ function renderAll(){
   resetDataDiagnostics();
   const metaMap = buildAssetMetaMap();
   const games = buildGamesIndex(metaMap);
+  const reviewGames = games.filter(shouldDisplayGameRow);
 
-  if (selectedGameId && !games.find(g => g.gameId === selectedGameId)) {
+  if (selectedGameId && !reviewGames.find(g => g.gameId === selectedGameId)) {
     selectedGameId = null;
-    document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
+    document.getElementById("selectionBadge").innerHTML = "VIEWING ALL GAMES";
   }
 
   if (mainView === 'honest') {
     renderHonestPerformance(games, metaMap);
   }
   if (mainView === 'games') {
-    updateTopStats(games);
-    renderGames(games, metaMap);
-    renderScoreboard(games, metaMap);
-    renderHealth(games, metaMap);
-    renderSelectedDetail(games, metaMap);
-    renderCharts(games, metaMap);
+    updateTopStats(reviewGames);
+    renderGames(reviewGames, metaMap);
+    renderScoreboard(reviewGames, metaMap);
+    renderHealth(reviewGames, metaMap);
+    renderSelectedDetail(reviewGames, metaMap);
+    renderCharts(reviewGames, metaMap);
   }
   if (mainView === 'bank') {
     renderBank(games, metaMap);
     renderBankStrategySummary(metaMap);
-    renderBankChart(metaMap);
+    renderBankChart(games, metaMap);
   }
   if (mainView === 'resolved') {
     renderResolvedBottom(metaMap);
   }
 }
+function buildRefreshFingerprint(nextRuns, nextThrowsRows, nextResults, nextManagerState){
+  const latestRun = nextRuns[nextRuns.length - 1] || null;
+  const latestThrow = nextThrowsRows[nextThrowsRows.length - 1] || null;
+  const latestResult = nextResults[nextResults.length - 1] || null;
+  return JSON.stringify({
+    runCount: nextRuns.length,
+    throwCount: nextThrowsRows.length,
+    resultCount: nextResults.length,
+    latestRunTs: latestRun?.ts || '',
+    latestThrowTs: latestThrow?.ts || '',
+    latestResultTs: latestResult?.ts || '',
+    latestEligibilityTs: nextManagerState?.latestEligibility?.ts || '',
+    latestCandidateTs: nextManagerState?.latestCandidates?.ts || '',
+    overlayUpdatedAt: nextManagerState?.overlay?.updatedAt || '',
+    candidateSetUpdatedAt: nextManagerState?.managerCandidateSet?.updatedAt || '',
+    controlTs: nextManagerState?.control?.lastAction?.ts || '',
+    controlMessage: nextManagerState?.control?.lastMessage || ''
+  });
+}function buildVmRefreshFingerprint(){
+  const liveRows = [...liveGameStates.entries()]
+    .map(([gameId, state]) => ({
+      gameId,
+      status: state?.status ?? null,
+      stakeRaw: state?.stakeRaw ?? null,
+      throwsCount: state?.throwsCount ?? null,
+      throwMinValue: state?.throwMinValue ?? null,
+      updatedAt: state?.updatedAt ?? null,
+    }))
+    .sort((a, b) => String(a.gameId).localeCompare(String(b.gameId)));
+  const balances = Object.fromEntries(
+    Object.entries(vmBalances || {})
+      .map(([asset, amount]) => [cleanHex(asset), String(amount ?? '0')])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+  );
+  return JSON.stringify({ balances, liveRows });
+}
 
+function hasRenderableMonitorData(){
+  return runs.length > 0 || throwsRows.length > 0 || results.length > 0;
+}
+
+function setMonitorLoading(active, detail){
+  const overlay = document.getElementById('monitorLoading');
+  const text = document.getElementById('monitorLoadingText');
+  if (!overlay) return;
+  if (detail && text) text.textContent = detail;
+  overlay.classList.toggle('is-hidden', !active);
+}
+
+async function maybeRefreshManagerState(){
+  if (managerStateRequestInFlight) return;
+  managerStateRequestInFlight = true;
+  try {
+    const nextManagerState = await fetchJson('/api/manager/state').catch(() => null);
+    managerState = nextManagerState;
+    if (managerState?.control && typeof managerState.control === 'object') {
+      controlState = { ...controlState, ...managerState.control };
+    }
+    const nextFingerprint = buildRefreshFingerprint(runs, throwsRows, results, managerState);
+    if (nextFingerprint !== lastRefreshFingerprint) {
+      lastRefreshFingerprint = nextFingerprint;
+      renderAll();
+    }
+  } catch (err) {
+    console.warn('non-fatal manager state refresh failed', err);
+  } finally {
+    managerStateRequestInFlight = false;
+    if (monitorInitialDataReady || hasRenderableMonitorData()) setMonitorLoading(false);
+  }
+}
 
 async function refresh(){
   const scrollState = saveScrollState();
+  let rendered = false;
+  if (!monitorInitialDataReady) setMonitorLoading(true, 'Loading recent agent logs and monitor state...');
   try{
-    [runs, throwsRows, results] = await Promise.all([
-      fetchJson("/api/logs/runs"),
-      fetchJson("/api/logs/throws"),
-      fetchJson("/api/logs/results")
+    const [nextRuns, nextThrowsRows, nextResults] = await Promise.all([
+      fetchJson('/api/logs/runs'),
+      fetchJson('/api/logs/throws'),
+      fetchJson('/api/logs/results')
     ]);
-    const trackedGameIds = [...new Set([...runs.map(r => cleanHex(r?.gameId)).filter(Boolean), ...throwsRows.map(t => cleanHex(t?.gameId)).filter(Boolean), ...results.map(r => cleanHex(r?.gameId)).filter(Boolean)])];
-    await Promise.all([
-      maybeRefreshVmBalances(),
-      maybeRefreshVmGameStates(trackedGameIds),
-    ]);
-    renderAll();
+
+    runs = nextRuns;
+    throwsRows = nextThrowsRows;
+    results = nextResults;
+
+    const nextFingerprint = buildRefreshFingerprint(runs, throwsRows, results, managerState);
+    if (nextFingerprint !== lastRefreshFingerprint) {
+      lastRefreshFingerprint = nextFingerprint;
+      renderAll();
+      rendered = true;
+    }
+    monitorInitialDataReady = true;
+    setMonitorLoading(false);
   }catch(err){
     console.error(err);
+    if (!monitorInitialDataReady) setMonitorLoading(true, 'Failed to load recent logs. Retrying...');
   } finally {
-    restoreScrollState(scrollState);
+    if (rendered) restoreScrollState(scrollState);
+  }
+
+  void maybeRefreshManagerState();
+
+  const trackedGameIds = trackedGameIdsByFreshness();
+  if (!trackedGameIds.length) {
+    liveGameStates = new Map();
+    liveGameStateRefreshDone = true;
+  }
+
+  const vmFingerprintBefore = buildVmRefreshFingerprint();
+  Promise.allSettled([
+    maybeRefreshVmBalances(),
+    trackedGameIds.length ? maybeRefreshVmGameStates(trackedGameIds) : Promise.resolve(),
+  ]).then((vmRefreshResults) => {
+    vmRefreshResults.forEach(result => {
+      if (result.status === 'rejected') console.warn('non-fatal monitor side fetch failed', result.reason);
+    });
+    const vmFingerprintAfter = buildVmRefreshFingerprint();
+    if (vmFingerprintAfter !== lastVmRefreshFingerprint || vmFingerprintAfter !== vmFingerprintBefore) {
+      lastVmRefreshFingerprint = vmFingerprintAfter;
+      renderAll();
+    }
+  }).catch((err) => console.warn('background monitor refresh failed', err));
+}function syncInlineReserveDisplay(sourceEl){
+  const metaMap = buildAssetMetaMap();
+  const asset = cleanHex(sourceEl.dataset.bankDisplayAsset || reserveAssetId(metaMap));
+  const slider = document.querySelector('[data-bank-slider="reserve"]');
+  const totalDisplay = Number(slider?.dataset.bankTotalDisplay || 0);
+  const displayValue = Number(String(sourceEl.value || '0').replace(/,/g, ''));
+  const pct = totalDisplay > 0 && Number.isFinite(displayValue) ? Math.max(0, Math.min(100, (displayValue / totalDisplay) * 100)) : 0;
+  if (slider) slider.value = String(Math.round(pct));
+  const raw = asset ? displayUnitsToBaseUnitsString(displayValue, asset, metaMap) : '';
+  const target = document.getElementById('s_reserveBalanceBase');
+  if (target) target.value = raw;
+  settings.reserveBalanceBase = raw;
+  const meta = document.getElementById('bankReserveSliderMeta');
+  if (meta) meta.textContent = asset ? `${formatDisplayNumber(pct)}% of current ${symbolForAsset(asset, metaMap)} balance` : 'Set a configured asset to enable reserve slider control.';
+  scheduleSave();
+}
+
+function syncInlineReserveSlider(sourceEl){
+  const metaMap = buildAssetMetaMap();
+  const asset = cleanHex(sourceEl.dataset.bankDisplayAsset || reserveAssetId(metaMap));
+  const totalDisplay = Number(sourceEl.dataset.bankTotalDisplay || 0);
+  const displayValue = totalDisplay > 0 ? (Number(sourceEl.value) / 100) * totalDisplay : 0;
+  const displayInput = document.querySelector('[data-bank-target="s_reserveBalanceBase_display"]');
+  if (displayInput) displayInput.value = totalDisplay > 0 ? String(Number(displayValue.toFixed(3))) : '';
+  const raw = asset ? displayUnitsToBaseUnitsString(displayValue, asset, metaMap) : '';
+  const target = document.getElementById('s_reserveBalanceBase');
+  if (target) target.value = raw;
+  settings.reserveBalanceBase = raw;
+  const meta = document.getElementById('bankReserveSliderMeta');
+  if (meta) meta.textContent = asset ? `${formatDisplayNumber(Number(sourceEl.value))}% of current ${symbolForAsset(asset, metaMap)} balance` : 'Set a configured asset to enable reserve slider control.';
+  scheduleSave();
+}
+
+function syncInlineBankTarget(sourceEl){
+  const targetId = sourceEl.dataset.bankTarget;
+  if (!targetId) return;
+  if (targetId === 's_reserveBalanceBase_display') {
+    syncInlineReserveDisplay(sourceEl);
+    return;
+  }
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const key = targetId.replace(/^s_/, '');
+  if (sourceEl.tagName === 'SELECT' && sourceEl.multiple) {
+    const values = [...sourceEl.options].filter(o => o.selected).map(o => o.value);
+    setSelectValues(targetId, values);
+    settings[key] = values;
+  } else {
+    target.value = sourceEl.value;
+    settings[key] = targetId === 's_copySlammerWhenSameHoleType' ? (String(sourceEl.value) === 'true') : sourceEl.value;
+  }
+  const hint = document.getElementById('bankStrategyHint');
+  if (hint) hint.textContent = 'Bank strategy edited inline. Changes auto-save to the live agent and sync the full settings panel.';
+  scheduleSave();
+}
+
+async function copyTextToClipboard(raw, btn){
+  const text = String(raw || '');
+  if (!text) return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      document.execCommand('copy');
+      document.body.removeChild(area);
+    }
+    if (btn) {
+      btn.classList.add('copied');
+      const oldTitle = btn.getAttribute('title') || 'Copy value';
+      btn.setAttribute('title', 'Copied');
+      setTimeout(() => { btn.classList.remove('copied'); btn.setAttribute('title', oldTitle); }, 1200);
+    }
+  } catch (err) {
+    console.warn('copy failed', err);
   }
 }
 
@@ -2375,13 +3780,13 @@ document.getElementById("gamesPrev").addEventListener("click", () => {
   renderAll();
 });
 document.getElementById("gamesNext").addEventListener("click", () => {
-  const totalPages = Math.max(1, Math.ceil(buildGamesIndex(buildAssetMetaMap()).length / GAMES_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(buildGamesIndex(buildAssetMetaMap()).filter(shouldDisplayGameRow).length / GAMES_PAGE_SIZE));
   gamesPage = Math.min(totalPages - 1, gamesPage + 1);
   renderAll();
 });
 document.getElementById("clearSelection").addEventListener("click", () => {
   selectedGameId = null;
-  document.getElementById("selectionBadge").textContent = "VIEWING ALL GAMES";
+  document.getElementById("selectionBadge").innerHTML = "VIEWING ALL GAMES";
   renderAll();
 });
 document.getElementById("saveSettingsBtn").addEventListener("click", () => {
@@ -2389,9 +3794,13 @@ document.getElementById("saveSettingsBtn").addEventListener("click", () => {
 });
 document.getElementById("ctlStart").addEventListener("click", () => { controlState.lastMessage = 'Start requested. Agent should resume regular play.'; postControlAction("start").catch?.(console.error); });
 document.getElementById("ctlStop").addEventListener("click", () => { controlState.lastMessage = 'Stop requested by operator.'; postControlAction("stop").catch?.(console.error); });
-document.getElementById("ctlCalibrate").addEventListener("click", () => { setScoreScope('calibrate_50', { startTs:new Date().toISOString(), targetThrows:50, label:'Calibration 50' }); controlState.lastMessage = 'Calibration run requested. The honest score now uses the next 50 throws.'; postControlAction("calibrate", { throwsTarget:50, exclusive:false }).catch?.(console.error); renderAll(); });
-document.getElementById("ctlFullClean").addEventListener("click", () => { setScoreScope('full_clean_2000', { startTs:new Date().toISOString(), targetThrows:2000, exclusive:true, label:'Full Clean 2000' }); controlState.lastMessage = 'Full clean requested. The honest score now uses the next 2000 throws only until the run completes.'; postControlAction("full_clean", { throwsTarget:2000, exclusive:true }).catch?.(console.error); renderAll(); });
+document.getElementById("ctlSnapshot").addEventListener("click", () => { setScoreScope('snapshot_20', { startTs:new Date().toISOString(), targetThrows:20, label:'Snapshot (20)' }); controlState.lastMessage = 'Snapshot requested. The honest score now uses the next 20 throws.'; postControlAction("calibrate", { throwsTarget:20, exclusive:false }).catch?.(console.error); renderAll(); });
+document.getElementById("ctlCalibrate").addEventListener("click", () => { setScoreScope('calibrate_100', { startTs:new Date().toISOString(), targetThrows:100, label:'Calibrate (100)' }); controlState.lastMessage = 'Calibrate requested. The honest score now uses the next 100 throws.'; postControlAction("calibrate", { throwsTarget:100, exclusive:false }).catch?.(console.error); renderAll(); });
+document.getElementById("ctlFullClean").addEventListener("click", () => { setScoreScope('cleanse_1000', { startTs:new Date().toISOString(), targetThrows:1000, exclusive:true, label:'Cleanse (1000)' }); controlState.lastMessage = 'Cleanse requested. The honest score now uses the next 1000 throws only until the run completes.'; postControlAction("full_clean", { throwsTarget:1000, exclusive:true }).catch?.(console.error); renderAll(); });
 document.getElementById("ctlUseAllData").addEventListener("click", () => { setScoreScope('all_data', { label:'All Data' }); controlState.lastMessage = 'Using all historical data for performance scoring.'; renderAll(); });
+document.addEventListener("click", (e) => { const copyBtn = e.target.closest("[data-copy-text]"); if (copyBtn) { e.preventDefault(); e.stopPropagation(); copyTextToClipboard(copyBtn.getAttribute("data-copy-text"), copyBtn); return; } const infoBtn = e.target.closest("[data-info-title]"); if (infoBtn) { e.preventDefault(); e.stopPropagation(); openInfoModal(infoBtn.getAttribute("data-info-title") || "Info", infoBtn.getAttribute("data-info-body") || ""); } });
+document.addEventListener("input", (e) => { const el = e.target; if (el?.dataset?.bankTarget) syncInlineBankTarget(el); if (el?.dataset?.bankSlider === "reserve") syncInlineReserveSlider(el); });
+document.addEventListener("change", (e) => { const el = e.target; if (el?.dataset?.bankTarget) syncInlineBankTarget(el); if (el?.dataset?.bankSlider === "reserve") syncInlineReserveSlider(el); });
 document.getElementById("ctlResetScores").addEventListener("click", () => { setScoreScope('reset_window', { startTs:new Date().toISOString(), label:'Since Reset' }); controlState.lastMessage = 'Scores reset. Honest-performance metrics now rebuild from this point forward.'; renderAll(); });
 
 [
@@ -2407,8 +3816,45 @@ document.getElementById("ctlResetScores").addEventListener("click", () => { setS
 
 loadScoreScopeState();
 setMainView('honest');
-loadSettings().then(refresh);
+setMonitorLoading(true, 'Loading agent settings and recent logs...');
+loadSettings().then(refresh).catch((err) => { console.error(err); setMonitorLoading(false); });
 setInterval(refresh, 2000);
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
