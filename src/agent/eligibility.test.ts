@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { GameListItem, SimRunInput } from "../collider/types.js";
-import { buildAssetPlanningResult, buildEligibilityCompactCode, getCandidateFilterReasons } from "./eligibility.js";
+import { buildAssetPlanningResult, buildEligibilityCompactCode, evaluateGamesForEligibility, getCandidateFilterReasons } from "./eligibility.js";
 import type { AgentPolicy } from "../policy/schema.js";
 
 const assetA = "01".repeat(32);
@@ -172,4 +172,34 @@ test("compact eligibility codes stay specific", () => {
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["search_budget_stop"] }), "NO-CAND/SEARCH");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["target_balance"] }), "TARGET/BAL");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["cooldown"] }), "COOLDOWN");
+});
+
+test("eligible game selection rotates toward least recently touched games", () => {
+  const games: GameListItem[] = [
+    { ...makeGame(), game_id: "aa".repeat(32), stake: "5000000000", throws: 6 },
+    { ...makeGame(), game_id: "bb".repeat(32), stake: "1000000000", throws: 2 },
+    { ...makeGame(), game_id: "cc".repeat(32), stake: "3000000000", throws: 4 },
+  ];
+
+  const { selectedGame } = evaluateGamesForEligibility(
+    games,
+    { enabled: true },
+    {
+      now: 10_000,
+      cooldownMsPerGame: 100,
+      recentGameTouches: {
+        [games[0].game_id]: 9_900,
+        [games[1].game_id]: 0,
+        [games[2].game_id]: 5_000,
+      },
+      sessionThrowCounts: {
+        [games[0].game_id]: 3,
+        [games[1].game_id]: 0,
+        [games[2].game_id]: 1,
+      },
+      maxThrowsPerGame: 99,
+    },
+  );
+
+  assert.equal(selectedGame?.game_id, games[1].game_id);
 });

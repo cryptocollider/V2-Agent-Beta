@@ -223,14 +223,26 @@ export function evaluateGamesForEligibility(
     };
   });
 
-  let selectedGame: GameListItem | null = null;
-  for (const game of games) {
+  const eligibleGames = games.filter((game) => {
     const entry = entries.find((item) => item.gameId === game.game_id);
-    if (!entry || !entry.eligible) continue;
-    if (!selectedGame || entry.stakeUsd > parseStakeUsdLike(selectedGame.stake)) {
-      selectedGame = game;
-    }
-  }
+    return !!entry?.eligible;
+  });
+
+  const selectedGame = eligibleGames.sort((a, b) => {
+    const aTouch = sessionContext?.recentGameTouches?.[a.game_id] ?? 0;
+    const bTouch = sessionContext?.recentGameTouches?.[b.game_id] ?? 0;
+    if (aTouch !== bTouch) return aTouch - bTouch;
+
+    const aCount = sessionContext?.sessionThrowCounts?.[a.game_id] ?? 0;
+    const bCount = sessionContext?.sessionThrowCounts?.[b.game_id] ?? 0;
+    if (aCount !== bCount) return aCount - bCount;
+
+    const aStake = parseStakeUsdLike(a.stake);
+    const bStake = parseStakeUsdLike(b.stake);
+    if (aStake !== bStake) return bStake - aStake;
+
+    return String(a.game_id).localeCompare(String(b.game_id));
+  })[0] ?? null;
 
   return { entries, selectedGame };
 }
@@ -421,6 +433,7 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   if (reasons.has("below_min_game_stake")) return "STAKE/MIN";
   return "NO-CAND";
 }
+
 
 
 
