@@ -357,10 +357,6 @@ export async function runAgentSession(
         continue;
       }
 
-      const customStrategy = String(rt.customStrategy || "").trim();
-      const copySlammersEnabled = parseBool(rt.copySlammerWhenSameHoleType)
-        || customStrategy.toLowerCase() === "copy_slammers";
-
       const effectivePolicy: AgentPolicy = {
         ...basePolicy,
         maxThrowsPerGame: Number(rt.maxThrowsPerGame ?? basePolicy.maxThrowsPerGame ?? 3),
@@ -374,8 +370,7 @@ export async function runAgentSession(
         minThrowUsd: parseOptionalNumber(rt.minThrowUsd),
         maxThrowUsd: parseOptionalNumber(rt.maxThrowUsd),
         riskMode: String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
-        customStrategy: customStrategy || undefined,
-        copySlammerWhenSameHoleType: copySlammersEnabled,
+        copySlammerWhenSameHoleType: parseBool(rt.copySlammerWhenSameHoleType),
         allowedAssets: parseStringArray(rt.allowedAssets),
         blockedAssets: parseStringArray(rt.blockedAssets),
         keepAssets: parseStringArray(rt.keepAssets),
@@ -398,7 +393,6 @@ export async function runAgentSession(
           ...baseLoopCfg.scoreConfig,
           recentShots,
         },
-        preferredGameId: ctl.targetGameId || undefined,
       };
 
       for (let i = pendingSubmitted.length - 1; i >= 0; i--) {
@@ -592,21 +586,12 @@ export async function runAgentSession(
           while (recentShots.length > 20) recentShots.shift();
         }
 
-        if (ctl.targetGameId && result.gameId === ctl.targetGameId) {
-          updateControlState({
-            targetGameId: null,
-            lastMessage: `Submitted priority throw into ${result.gameId.slice(0, 10)}...`,
-          });
-        } else {
-          updateControlState({
-            lastMessage: `Submitted throw into ${result.gameId.slice(0, 10)}...`,
-          });
-        }
+        updateControlState({
+          lastMessage: `Submitted throw into ${result.gameId.slice(0, 10)}...`,
+        });
       } else {
         updateControlState({
-          lastMessage: ctl.targetGameId
-            ? `No throw placed: ${result.eligibilityCode ?? result.stoppedBy ?? "unknown"} (priority ${ctl.targetGameId.slice(0, 10)}...)`
-            : `No throw placed: ${result.eligibilityCode ?? result.stoppedBy ?? "unknown"}`,
+          lastMessage: `No throw placed: ${result.eligibilityCode ?? result.stoppedBy ?? "unknown"}`,
         });
       }
 
@@ -626,10 +611,4 @@ export async function runAgentSession(
     }
   }
 }
-
-
-
-
-
-
 

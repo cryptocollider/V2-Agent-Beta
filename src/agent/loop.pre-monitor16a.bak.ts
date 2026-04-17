@@ -99,7 +99,6 @@ export type LoopConfig = {
   };
   prefetchedGames?: GameListItem[];
   sessionEligibility?: SessionEligibilityContext;
-  preferredGameId?: Hex32 | string;
   sessionId: string;
   storage?: StoragePaths;
 };
@@ -158,112 +157,6 @@ type PredictionSummaryLike = {
 
 function cleanHex(value: string): string {
   return String(value || "").replace(/^0x/i, "").toLowerCase();
-}
-
-type AssetPriceHintState = {
-  epoch: number;
-  usdPerBase: number;
-};
-
-let cachedInternalPriceHintState: Record<string, AssetPriceHintState> = {};
-
-function normalizeSimAssetHex(value: unknown): string {
-  return Array.isArray(value)
-    ? value.map((b) => Number(b).toString(16).padStart(2, "0")).join("")
-    : cleanHex(String(value || ""));
-}
-
-function collectAssetPriceHintState(simInput: SimRunInput): Record<string, AssetPriceHintState> {
-  const out: Record<string, AssetPriceHintState> = {};
-  for (const throwRecord of simInput.throws || []) {
-    const asset = normalizeSimAssetHex((throwRecord as { asset?: unknown }).asset);
-    if (!asset) continue;
-    const epoch = Number((throwRecord as { price_epoch?: unknown }).price_epoch ?? 0);
-    const amountBase = Number((throwRecord as { amount?: unknown }).amount ?? 0);
-    const valueUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0) / 1e8;
-    if (!(amountBase > 0) || !Number.isFinite(valueUsd) || valueUsd <= 0) continue;
-    const usdPerBase = valueUsd / amountBase;
-    const prev = out[asset];
-    if (!prev || epoch >= prev.epoch) {
-      out[asset] = { epoch, usdPerBase };
-    }
-  }
-  return out;
-}
-
-function mergeAssetPriceHintState(...sources: Array<Record<string, AssetPriceHintState> | null | undefined>): Record<string, AssetPriceHintState> {
-  const merged: Record<string, AssetPriceHintState> = {};
-  for (const source of sources) {
-    for (const [asset, hint] of Object.entries(source || {})) {
-      if (!hint || !(hint.usdPerBase > 0)) continue;
-      const cleanAsset = cleanHex(asset);
-      const prev = merged[cleanAsset];
-      if (!prev || Number(hint.epoch ?? 0) >= Number(prev.epoch ?? -1)) {
-        merged[cleanAsset] = { epoch: Number(hint.epoch ?? 0), usdPerBase: Number(hint.usdPerBase) };
-      }
-    }
-  }
-  return merged;
-}
-
-function toUsdPerBaseHints(state: Record<string, AssetPriceHintState>): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(state)
-      .filter(([, hint]) => hint && hint.usdPerBase > 0)
-      .map(([asset, hint]) => [asset, hint.usdPerBase]),
-  );
-}
-
-function requiredPricingAssets(policy: AgentPolicy, defaultAsset: Hex32): string[] {
-  const assets = new Set<string>([cleanHex(String(defaultAsset || ""))]);
-  for (const asset of policy.allowedAssets ?? []) {
-    const cleanAsset = cleanHex(String(asset || ""));
-    if (cleanAsset) assets.add(cleanAsset);
-  }
-  return [...assets].filter(Boolean);
-}
-
-function hasPriceCoverageForAssets(state: Record<string, AssetPriceHintState>, assets: string[]): boolean {
-  return assets.every((asset) => {
-    const hint = state[cleanHex(asset)];
-    return !!hint && hint.usdPerBase > 0;
-  });
-}
-
-async function buildPriceHintsUsdPerBase(params: {
-  client: ColliderClientLike;
-  games: GameListItem[];
-  selectedGameId: Hex32;
-  selectedSimInput: SimRunInput;
-  policy: AgentPolicy;
-  defaultAsset: Hex32;
-}): Promise<Record<string, number>> {
-  const { client, games, selectedGameId, selectedSimInput, policy, defaultAsset } = params;
-  const neededAssets = requiredPricingAssets(policy, defaultAsset);
-  let merged = mergeAssetPriceHintState(
-    cachedInternalPriceHintState,
-    collectAssetPriceHintState(selectedSimInput),
-  );
-
-  if (!hasPriceCoverageForAssets(merged, neededAssets)) {
-    const fallbackGames = games
-      .filter((game) => cleanHex(String(game.game_id || "")) !== cleanHex(String(selectedGameId || "")))
-      .filter((game) => Number(game.throws || 0) > 0)
-      .sort((a, b) => Number(b.last_throw_height || 0) - Number(a.last_throw_height || 0));
-
-    for (const fallbackGame of fallbackGames.slice(0, 4)) {
-      try {
-        const fallbackInput = await client.getSimInput(fallbackGame.game_id);
-        merged = mergeAssetPriceHintState(merged, collectAssetPriceHintState(fallbackInput));
-      } catch {
-        // keep the strongest internal price evidence already collected
-      }
-      if (hasPriceCoverageForAssets(merged, neededAssets)) break;
-    }
-  }
-
-  cachedInternalPriceHintState = mergeAssetPriceHintState(cachedInternalPriceHintState, merged);
-  return toUsdPerBaseHints(cachedInternalPriceHintState);
 }
 
 function emptyCandidateFilterSummary(): CandidateFilterSummary {
@@ -519,13 +412,9 @@ function setManagerSnapshots(snapshot: LatestEligibilitySnapshot, candidateConte
   setLatestCandidateContext(candidateContext);
 }
 
-function estimateKnownWalletUsd(
-  balances: Record<string, string>,
-  simInput: SimRunInput,
-  priceHintsUsdPerBase?: Record<string, number>,
-): number {
+function estimateKnownWalletUsd(balances: Record<string, string>, simInput: SimRunInput): number {
   return Object.entries(balances || {}).reduce((sum, [assetHex, amount]) => {
-    const usd = estimateCandidateUsd(String(amount), cleanHex(assetHex), simInput, priceHintsUsdPerBase);
+    const usd = estimateCandidateUsd(String(amount), cleanHex(assetHex), simInput);
     return usd == null ? sum : sum + usd;
   }, 0);
 }
@@ -645,11 +534,7 @@ export async function runAgentOnce(
 ): Promise<RunOnceResult> {
   const nowIso = new Date().toISOString();
   const games = cfg.prefetchedGames ?? await client.listGames(cfg.gameStatusMask);
-  const { entries: perGame, selectedGame: defaultSelectedGame } = evaluateGamesForEligibility(games, policy, cfg.sessionEligibility);
-  const preferredGameId = String(cfg.preferredGameId || '').trim();
-  const selectedGame = preferredGameId
-    ? (games.find((game) => String(game.game_id) === preferredGameId && perGame.find((entry) => entry.gameId === game.game_id)?.eligible) ?? defaultSelectedGame)
-    : defaultSelectedGame;
+  const { entries: perGame, selectedGame } = evaluateGamesForEligibility(games, policy, cfg.sessionEligibility);
   const managerCandidateSet = getManagerCandidateSet();
 
   if (!selectedGame) {
@@ -710,15 +595,7 @@ export async function runAgentOnce(
   const game = await client.getGame(gameId);
   const simInput = await client.getSimInput(gameId);
   const balances = await client.getBalances(cfg.botUser);
-  const priceHintsUsdPerBase = await buildPriceHintsUsdPerBase({
-    client,
-    games,
-    selectedGameId: gameId,
-    selectedSimInput: simInput,
-    policy,
-    defaultAsset: cfg.defaultAsset,
-  });
-  const knownWalletUsd = estimateKnownWalletUsd(balances, simInput, priceHintsUsdPerBase);
+  const knownWalletUsd = estimateKnownWalletUsd(balances, simInput);
 
   if (policy.targetBalanceUsd != null && knownWalletUsd >= policy.targetBalanceUsd) {
     const snapshot: LatestEligibilitySnapshot = {
@@ -794,7 +671,6 @@ export async function runAgentOnce(
     simInput,
     defaultAsset: cfg.defaultAsset,
     defaultAmount: cfg.defaultAmount,
-    priceHintsUsdPerBase,
   });
 
   const managerCandidates = buildManagerCandidates(managerCandidateSet);
@@ -810,9 +686,7 @@ export async function runAgentOnce(
       asset,
       amount,
     });
-    const copied = policy.copySlammerWhenSameHoleType || String(policy.customStrategy || '').trim().toLowerCase() === 'copy_slammers'
-      ? await loadHistoricalWinningSeeds(cfg.storage, asset, amount)
-      : [];
+    const copied = policy.copySlammerWhenSameHoleType ? await loadHistoricalWinningSeeds(cfg.storage, asset, amount) : [];
     return [...copied, ...grid];
   }));
 
@@ -826,7 +700,6 @@ export async function runAgentOnce(
       policy,
       simInput,
       balances,
-      priceHintsUsdPerBase,
     });
     if (reasons.length === 0) {
       filtered.push(candidate);
@@ -1138,4 +1011,3 @@ export async function runAgentOnce(
     stoppedBy,
   };
 }
-

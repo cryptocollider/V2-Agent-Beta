@@ -19,7 +19,6 @@ export type AgentPolicy = {
   avoidAllIn?: boolean;
   riskMode?: RiskMode;
 
-  customStrategy?: string;
   copySlammerWhenSameHoleType?: boolean;
 
   allowedAssets?: string[];

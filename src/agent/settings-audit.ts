@@ -135,7 +135,7 @@ const AUDIT_TEMPLATES: AuditTemplate[] = [
     state: "partial",
     summary: "Maximum throw USD shapes generated target sizes and now hard-rejects oversized candidates.",
     evidence: ["USD target generation", "candidate filter diagnostics"],
-    gaps: ["Still depends on price-basis availability from sim input."],
+    gaps: ["If the current game has no priced throws yet, sizing now falls back to the latest internally observed asset price from recent sim inputs. External oracle validation is still pending."],
   },
   {
     key: "riskMode",

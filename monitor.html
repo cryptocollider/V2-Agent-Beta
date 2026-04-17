@@ -229,15 +229,21 @@
     .analytics-chart-wrap.micro{height:156px;min-height:156px;flex:0 0 156px}
     .analytics-scroll.tight{font-size:11px}
     .analytics-chart-note{font-size:12px;color:var(--muted);line-height:1.45;padding:8px 0}
-    .analytics-card-body.keyed{grid-template-columns:minmax(146px,.8fr) minmax(0,1.2fr)}
-    .analytics-side-list.table{padding-right:0}
-    .analytics-cross-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3}
-    .analytics-cross-table th,.analytics-cross-table td{padding:6px 8px;border-bottom:1px solid rgba(82,230,255,.08);white-space:nowrap;text-align:right}
-    .analytics-cross-table th:first-child,.analytics-cross-table td:first-child{text-align:left}
-    .analytics-cross-table th:nth-child(2),.analytics-cross-table td:nth-child(2){text-align:left}
-    .analytics-cross-table thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
-    .analytics-cross-table tfoot td{font-weight:700;color:var(--cyan)}
-    #profitChart{width:100%;height:288px;min-height:288px;max-height:288px;display:block}
+.analytics-card-body.keyed{grid-template-columns:minmax(150px,180px) minmax(280px,380px);gap:14px;align-items:center;justify-content:center;max-width:100%;margin:0 auto}
+.analytics-card-body.keyed .analytics-chart-wrap.micro{height:168px;min-height:168px;flex:0 0 168px;justify-self:center}
+.analytics-side-list.table{display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding-right:0}
+.analytics-cross-table{width:100%;border-collapse:collapse;table-layout:auto;font-size:10px;line-height:1.25}
+.analytics-cross-table th,.analytics-cross-table td{padding:4px 6px;border-bottom:1px solid rgba(82,230,255,.08);white-space:nowrap;text-align:right;vertical-align:top}
+.analytics-cross-table th:first-child,.analytics-cross-table td:first-child{text-align:left}
+.analytics-cross-table th:nth-child(2),.analytics-cross-table td:nth-child(2){text-align:left}
+.analytics-cross-table thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.analytics-cross-table tfoot td{font-weight:700;color:var(--cyan)}
+.analytics-cross-table.compact{font-size:10px;line-height:1.2}
+.analytics-cross-table.compact th,.analytics-cross-table.compact td{padding:3px 5px}
+.analytics-cross-table.payout-key-table{width:auto;min-width:0;display:inline-table;margin:0 auto}
+.analytics-cross-table.payout-key-table th,.analytics-cross-table.payout-key-table td{padding:3px 6px}
+.payout-key-asset{font-size:10px;letter-spacing:.08em;color:#9ec8ff}
+    #profitChart{width:100%;height:380px;min-height:380px;max-height:380px;display:block}
     #positionChart{width:100%!important;height:180px!important;max-height:180px!important;display:block}
     .monitor-loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,8,19,.48);backdrop-filter:blur(10px);z-index:50;transition:opacity .18s ease, visibility .18s ease}
     .monitor-loading.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
@@ -304,7 +310,15 @@
     .copy-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;white-space:nowrap}
     .copy-btn{width:20px;height:20px;min-width:20px;padding:0;border-radius:999px;font-size:12px;line-height:1;display:inline-flex;align-items:center;justify-content:center;background:rgba(8,19,33,.92);border:1px solid rgba(82,230,255,.24);color:#d9ecff;box-shadow:none}
     .copy-btn:hover{border-color:rgba(101,255,176,.45);color:var(--green);box-shadow:0 0 0 1px rgba(101,255,176,.18),0 0 12px rgba(101,255,176,.16)}
-    .copy-btn.copied{color:var(--green);border-color:rgba(101,255,176,.45);background:rgba(15,41,31,.94)}
+.copy-btn.copied{color:var(--green);border-color:rgba(101,255,176,.45);background:rgba(15,41,31,.94)}
+.game-cell{display:inline-flex;align-items:center;gap:8px;max-width:100%;white-space:nowrap}
+.row-action-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:999px;border:1px solid rgba(82,230,255,.22);background:rgba(8,25,42,.92);color:var(--cyan);font-size:11px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.row-action-btn:hover{border-color:rgba(255,230,109,.38);color:var(--yellow);box-shadow:0 0 0 1px rgba(255,230,109,.14),0 0 12px rgba(255,230,109,.1)}
+.row-action-btn.active{border-color:rgba(255,230,109,.34);background:rgba(47,38,12,.9);color:var(--yellow)}
+.priority-target-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 11px;border-radius:999px;border:1px solid rgba(255,172,79,.35);background:rgba(58,34,8,.92);color:#ffbf66;font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.priority-target-btn:hover{border-color:rgba(255,214,138,.48);color:#ffe08a;box-shadow:0 0 0 1px rgba(255,172,79,.16),0 0 12px rgba(255,172,79,.12)}
+.priority-target-btn.active{border-color:rgba(255,214,138,.52);background:rgba(79,42,9,.96);color:#ffe7ad}
+.priority-target-btn.is-hidden{display:none}
     .asset-flow-list{display:flex;flex-wrap:nowrap;gap:8px 10px;align-items:center;white-space:nowrap}
     .asset-flow-item{display:inline-flex;align-items:center;gap:6px}
     .asset-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(82,230,255,.16);background:rgba(8,20,35,.88);color:var(--text)}
@@ -339,6 +353,8 @@
     .hps-card.metric{grid-column:span 2}
     .hps-card.metric.wide{grid-column:span 4}
     .hps-card.quad{grid-column:span 4}
+    .hps-card.lens{grid-column:span 4;min-height:264px}
+    .hps-card.heatmap{grid-column:span 4;min-height:264px}
     .hps-card.chart{grid-column:span 8;min-height:255px}
     .hps-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px}
     .hps-big{font-size:34px;font-weight:900;color:var(--green);line-height:1.05}
@@ -357,6 +373,49 @@
     .control-btn.stop{border-color:rgba(255,107,136,.45);color:#ffd5de}
     .control-btn.cal{border-color:rgba(255,230,109,.35)}
     .control-btn.clean{border-color:rgba(255,79,216,.35)}
+    .hps-card.lens .hps-head{align-items:flex-start;margin-bottom:12px}
+    .hps-card.lens .hps-label{font-size:17px;font-weight:900;color:#fff;letter-spacing:.13em}
+    .lens-layout{display:grid;grid-template-columns:minmax(188px,220px) minmax(0,1fr);gap:14px;align-items:center;flex:1 1 auto}
+    .lens-widget-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+    .lens-stack{position:relative;width:208px;height:208px;margin:0 auto}
+    .lens-ring{position:absolute;border-radius:50%;background:conic-gradient(var(--tone) calc(var(--pct) * 1%), rgba(82,230,255,.08) 0);box-shadow:0 0 0 1px rgba(82,230,255,.08)}
+    .lens-ring::after{content:'';position:absolute;inset:var(--cut);border-radius:50%;background:rgba(7,17,31,.96);box-shadow:inset 0 0 0 1px rgba(82,230,255,.08)}
+    .lens-ring.temporal{inset:0;--cut:18px}
+    .lens-ring.game{inset:20px;--cut:18px}
+    .lens-ring.value{inset:40px;--cut:16px}
+    .lens-ring.outcome{inset:58px;--cut:16px}
+    .lens-core{position:absolute;inset:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:radial-gradient(circle at 30% 30%, rgba(82,230,255,.12), rgba(7,17,31,.96) 62%);border:1px solid rgba(82,230,255,.14);z-index:2;text-align:center;padding:10px}
+    .lens-core-score{font-size:26px;font-weight:900;line-height:1;color:var(--green)}
+    .lens-core-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#dfefff}
+    .lens-widget-caption{font-size:13px;font-weight:800;color:#fff;letter-spacing:.05em;text-align:center}
+    .lens-legend{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .lens-legend-item{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(82,230,255,.08)}
+    .lens-legend-item:last-child{border-bottom:0}
+    .lens-dot{width:12px;height:12px;border-radius:999px;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+    .lens-legend-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .lens-legend-title{font-size:12px;font-weight:700;color:var(--text)}
+    .lens-legend-meta{font-size:11px;color:var(--muted);line-height:1.35}
+    .lens-legend-value{font-size:13px;font-weight:800;color:#d9ecff;white-space:nowrap}
+    .heatmap-wrap{display:flex;flex-direction:column;gap:10px;flex:1 1 auto}
+    .heatmap-grid{display:grid;grid-template-columns:120px repeat(5,minmax(0,1fr));gap:6px;align-items:stretch}
+    .heatmap-head{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 0 6px 0;text-align:center}
+    .heatmap-side{display:flex;align-items:center;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#d9ecff;padding-right:6px}
+    .heatmap-cell{width:100%;min-height:56px;border-radius:12px;border:1px solid rgba(82,230,255,.12);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:8px;background:rgba(7,17,31,.68);text-align:center;cursor:pointer;appearance:none;font:inherit;color:inherit;transition:border-color .16s ease, transform .16s ease, background .16s ease}
+    .heatmap-cell strong{font-size:15px;line-height:1}
+    .heatmap-cell span{font-size:10px;color:var(--muted);line-height:1.25}
+    .heatmap-cell:hover{border-color:rgba(82,230,255,.34);transform:translateY(-1px)}
+    .heatmap-cell:focus-visible{outline:2px solid rgba(82,230,255,.45);outline-offset:2px}
+    .heatmap-cell.muted{opacity:.42}
+    .heatmap-cell.structural{opacity:.82;border-style:dashed;border-color:rgba(160,190,220,.16);background:linear-gradient(180deg, rgba(70,86,110,.16), rgba(7,17,31,.82))}
+    .heatmap-cell.structural strong{color:#c9d9ef}
+    .heatmap-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+    .lens-foot{margin-top:12px;color:#cfe6ff;line-height:1.45}
+    .panel-head-inline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+    .panel-head-inline .title2{margin-bottom:0}
+    .chart-mode-toggle{display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid rgba(82,230,255,.18);border-radius:999px;background:rgba(8,19,33,.92)}
+    .chart-mode-toggle button{min-width:110px;padding:5px 12px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+    .chart-mode-toggle button.active{background:rgba(82,230,255,.16);color:var(--cyan)}
+    .chart-mode-meta{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4}
     .status-box{padding:12px;border:1px solid rgba(82,230,255,.12);border-radius:14px;background:rgba(7,17,31,.72)}
     .message-bar{min-height:82px;display:flex;flex-direction:column;gap:8px}
     .message-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
@@ -382,7 +441,11 @@
     .strategy-simple-control{display:flex;flex-direction:column;gap:6px;min-width:0}
     .strategy-simple-inline{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0}
     .strategy-simple-inline input,.strategy-simple-inline select{max-width:180px}
+    .strategy-simple-inline.range{gap:8px}
+    .strategy-simple-inline.range input{max-width:152px;flex:1 1 152px;min-width:0}
+    .strategy-inline-bridge{flex:0 0 auto;min-width:16px;text-align:center}
     .strategy-simple-meta{font-size:12px;color:var(--muted)}
+    .bank-total-row td{font-weight:700;color:var(--cyan);background:rgba(82,230,255,.04)}
     .strategy-simple-list{display:flex;align-items:center;gap:8px;min-height:32px;min-width:0;overflow:hidden}
     #gamesReviewScoreboardPanel,#gamesReviewHealthPanel,#gamesReviewPositionPanel{grid-column:span 4}
     #gamesReviewScoreboardPanel{order:1}
@@ -416,12 +479,12 @@
     @media (max-width:1500px){.cards.analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
     @media (max-width:1300px){
-      .hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.quad,.hps-card.chart{grid-column:span 12}
+      .hps-main,.hps-side,.hps-card.hero,.hps-card.metric,.hps-card.metric.wide,.hps-card.quad,.hps-card.lens,.hps-card.heatmap,.hps-card.chart{grid-column:span 12}
       .hps-wrap,.hps-main{grid-template-columns:repeat(12,minmax(0,1fr))}
       .control-grid,.control-grid.wide{grid-template-columns:repeat(2,minmax(0,1fr))}
       .strategy-grid,.strategy-range,.cards.analytics-grid{grid-template-columns:1fr}
       .strategy-card.wide,.strategy-field.full{grid-column:span 1}
-      .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}
+      .stat,.half,.third,.four,.six,.eight,.wide{grid-column:span 12}`r`n      .lens-layout{grid-template-columns:1fr}`r`n      .heatmap-grid{grid-template-columns:110px repeat(5,minmax(0,1fr))}
     }
 
     .modal-backdrop{position:fixed;inset:0;background:rgba(3,7,14,.74);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1200;padding:24px}
@@ -467,7 +530,7 @@
           <div class="hps-card hero">
             <div class="hps-head"><div class="hps-label">Honest Performance Score</div><button class="info-btn" data-kpi-info="honest_score" type="button">?</button></div>
             <div class="hps-big" id="honestScoreValue">Waiting</div>
-            <div class="hps-sub" id="honestScoreSummary">This score measures whether the agentÃ¢â‚¬â„¢s own expectations are converging toward reality while real performance improves. Profit is tracked per game. Win quality is tracked per throw, but the headline win % is based on USD value into Winner holes, not raw throw count.</div>
+            <div class="hps-sub" id="honestScoreSummary">HPS v2 uses settled reveal artifacts to score BCE, RPS, and TemporalError. Coverage and sharpness are displayed beside the headline, but they do not change it.</div>
             <div class="row" style="margin-top:10px">
               <span class="pill active-scope" id="scoreScopeBadge">Scope: All Data</span>
               <span class="pill" id="scoreProgressBadge">Progress: 0</span>
@@ -486,38 +549,53 @@
             <div class="hps-small" id="hpsActualProfitMeta">0 games / $0 per game</div>
             <canvas class="mini-chart" id="miniActualProfitChart" height="56"></canvas>
           </div>
+          <div class="hps-card lens">
+            <div class="hps-head"><div class="hps-label">Intuition Lens</div></div>
+            <div class="lens-layout">
+              <div id="hpsLensWidget"></div>
+              <div id="hpsLensLegend"></div>
+            </div>
+            <div class="hps-small lens-foot" id="hpsLensMeta">Activation order: Outcome -> Value -> Game -> Temporal.</div>
+          </div>
+          <div class="hps-card heatmap">
+            <div class="hps-head"><div class="hps-label">Coverage Heatmap</div><div class="hps-small" id="hpsHeatmapMeta">Waiting for reveal artifacts with tracked throw forecasts.</div></div>
+            <div class="heatmap-wrap">
+              <div id="hpsCoverageHeatmap"></div>
+              <div class="heatmap-foot" id="hpsHeatmapFoot"></div>
+            </div>
+          </div>
           <div class="hps-card metric quad">
-            <div class="hps-head"><div class="hps-label">Predicted Win-Hole %</div><button class="info-btn" data-kpi-info="predicted_win_pct" type="button">?</button></div>
+            <div class="hps-head"><div class="hps-label">Outcome Layer</div><button class="info-btn" data-kpi-info="outcome_layer" type="button">?</button></div>
             <div class="hps-value" id="hpsPredictedWinPct">Waiting</div>
-            <div class="hps-small" id="hpsPredictedWinPctMeta">Throw-level expectation  |  waiting for logged predicted hole outcomes</div>
+            <div class="hps-small" id="hpsPredictedWinPctMeta">RPS truth across settled throw forecasts</div>
             <canvas class="mini-chart" id="miniPredictedWinChart" height="56"></canvas>
           </div>
           <div class="hps-card metric quad">
-            <div class="hps-head"><div class="hps-label">Actual Win-Hole %</div><button class="info-btn" data-kpi-info="actual_win_pct" type="button">?</button></div>
+            <div class="hps-head"><div class="hps-label">Value Layer</div><button class="info-btn" data-kpi-info="value_layer" type="button">?</button></div>
             <div class="hps-value" id="hpsActualWinPct">0%</div>
-            <div class="hps-small" id="hpsActualWinPctMeta">0 throws / 0 wins  |  % is USD into Winner</div>
+            <div class="hps-small" id="hpsActualWinPctMeta">BCE truth across settled throw forecasts</div>
             <canvas class="mini-chart" id="miniActualWinChart" height="56"></canvas>
           </div>
           <div class="hps-card metric quad">
-            <div class="hps-head"><div class="hps-label">Calibration Gap</div><button class="info-btn" data-kpi-info="calibration_gap" type="button">?</button></div>
-            <div class="hps-row"><div class="hps-value" id="hpsCalibrationGap">Waiting</div><div class="hps-small" id="hpsCalibrationGapMeta">((real / expected) - 1) Ãƒâ€” 100  |  profit + win components</div></div>
+            <div class="hps-head"><div class="hps-label">Game Layer</div><button class="info-btn" data-kpi-info="game_layer" type="button">?</button></div>
+            <div class="hps-row"><div class="hps-value" id="hpsCalibrationGap">Waiting</div><div class="hps-small" id="hpsCalibrationGapMeta">Board-level forecast error across settled reveals</div></div>
             <canvas class="mini-chart" id="miniGapChart" height="56"></canvas>
           </div>
           <div class="hps-card metric quad">
-            <div class="hps-head"><div class="hps-label">Consistency Over Time</div><button class="info-btn" data-kpi-info="consistency" type="button">?</button></div>
-            <div class="hps-row"><div class="hps-value" id="hpsConsistency">Waiting</div><div class="hps-small" id="hpsConsistencyMeta">Gap should shrink while real performance rises</div></div>
+            <div class="hps-head"><div class="hps-label">Temporal Layer</div><button class="info-btn" data-kpi-info="temporal_layer" type="button">?</button></div>
+            <div class="hps-row"><div class="hps-value" id="hpsConsistency">Waiting</div><div class="hps-small" id="hpsConsistencyMeta">EndFrame + shift + horizon truth across commit history</div></div>
             <canvas class="mini-chart" id="miniConsistencyChart" height="56"></canvas>
           </div>
           <div class="hps-card chart">
             <div class="hps-chart-meta">
               <div>
                 <div class="hps-label" style="margin-bottom:4px">Score Flow</div>
-                <div class="hps-small" id="hpsTrendMeta">Tracks honest score, actual profit, and actual win quality across the current scoring window.</div>
+                <div class="hps-small" id="hpsTrendMeta">Tracks real HPS and its four layers across settled reveal artifacts in the current scoring window.</div>
               </div>
               <div class="hps-badges">
-                <span class="pill" id="hpsTrendGames">0 games</span>
-                <span class="pill" id="hpsTrendThrows">0 throws</span>
-                <span class="pill" id="hpsTrendPredictions">0 predictions</span>
+                <span class="pill" id="hpsTrendGames">0 scored games</span>
+                <span class="pill" id="hpsTrendThrows">0 throw evals</span>
+                <span class="pill" id="hpsTrendPredictions">0 reveals</span>
               </div>
             </div>
             <canvas id="hpsTrendChart" height="180"></canvas>
@@ -587,6 +665,7 @@
           <button id="gamesPrev">Prev</button>
           <button id="gamesNext">Next</button>
           <button id="clearSelection">Clear Selection</button>
+          <button id="targetSelectedGameBtn" class="priority-target-btn is-hidden" type="button">Urgent Throw</button>
         </div>
         <div class="muted" id="gamesPageInfo">Page 1</div>
       </div>
@@ -607,8 +686,7 @@
       <div class="row" style="margin-bottom:12px">
         <button id="bankDepositBtn" type="button">Deposit</button>
         <button id="bankWithdrawBtn" type="button">Withdraw</button>
-        <button id="bankOpenSettingsBtn" type="button">Strategy Settings</button>
-        <span class="muted">Use bridge / VM deposit and withdrawal flow until dedicated endpoints exist.</span>
+        <button id="bankOpenSettingsBtn" type="button">Request Test Tokens</button>
       </div>
       <div class="table-wrap" style="max-height:320px">
         <table style="min-width:100%">
@@ -616,6 +694,7 @@
             <tr><th>Asset</th><th>Current</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
           </thead>
           <tbody id="bankBody"></tbody>
+          <tfoot id="bankFoot"></tfoot>
         </table>
       </div>
     </div>
@@ -634,8 +713,15 @@
       </div>
     </div>
 
-    <div class="panel half games-review view-hidden" id="gamesReviewProfitPanel">
-      <div class="title2">Profit / Game Total</div>
+        <div class="panel half games-review view-hidden" id="gamesReviewProfitPanel">
+      <div class="panel-head-inline">
+        <div class="title2">Profit / Game Total</div>
+        <div class="chart-mode-toggle" id="selectedGameChartModeToggle">
+          <button type="button" id="chartModeReturnBtn" class="active" onclick="setSelectedGameChartMode('return_flow')">Return Flow</button>
+          <button type="button" id="chartModeRibbonBtn" onclick="setSelectedGameChartMode('forecast_ribbon')">Forecast Ribbon</button>
+        </div>
+      </div>
+      <div class="chart-mode-meta" id="selectedGameChartMeta">Selected-game return flow by resolved outcome frame.</div>
       <canvas id="profitChart" height="88"></canvas>
     </div>
 
@@ -714,7 +800,7 @@
       <div class="field"><label>Min Throw USD</label><input id="s_minThrowUsd" /></div>
       <div class="field"><label>Max Throw USD</label><input id="s_maxThrowUsd" /></div>
       <div class="field"><label>Risk Mode</label><select id="s_riskMode"><option value="balanced">Balanced</option><option value="defensive">Defensive</option><option value="aggressive">Aggressive</option></select></div>
-      <div class="field"><label>Copy Slammers</label><select id="s_copySlammerWhenSameHoleType"><option value="false">Off</option><option value="true">On</option></select></div>
+<div class="field"><label>Custom Strategy</label><input id="s_customStrategy" type="text" placeholder="copy_slammers"></div>
       <div class="field"><label>Reserve Balance Base</label><input id="s_reserveBalanceBase" /></div>
       <div class="field"><label>Target Balance USD</label><input id="s_targetBalanceUsd" /></div>
       <div class="field"><label>Target Profit USD</label><input id="s_targetProfitUsd" /></div>
@@ -772,6 +858,10 @@ let controlState = { mode: "regular", state: "live", lastAction: null, lastMessa
 let lastControlFetch = 0;
 let hpsTrendChart = null;
 let miniCharts = {};
+let predictionCommitArtifacts = new Map();
+let predictionRevealArtifacts = new Map();
+let artifactLoadInFlight = new Set();
+let selectedGameChartMode = 'return_flow';
 let controlApiAvailable = false;
 let lastRefreshFingerprint = '';
 let lastVmRefreshFingerprint = '';
@@ -792,6 +882,15 @@ function escAttr(s){ return String(s ?? "").replace(/[&<>"']/g,c=>({ "&":"&amp;"
 function copyButtonHtml(value, label = 'Copy value'){ const raw = String(value ?? '').trim(); if (!raw) return ''; return `<button class="copy-btn" type="button" data-copy-text="${escAttr(raw)}" title="${escAttr(label)}" aria-label="${escAttr(label)}">&#10697;</button>`; }
 function shortRefHtml(value, opts = {}){ const raw = String(value ?? '').trim(); if (!raw) return '-'; const display = opts.short === false ? raw : shortHex(raw, opts.limit || 10); return `<span class="${opts.className || 'copy-ref'}" title="${escAttr(opts.title || raw)}"><span class="copy-text">${esc(display)}</span>${opts.extra ? `<span class="asset-short">${esc(opts.extra)}</span>` : ''}${opts.copy === false ? '' : copyButtonHtml(raw, opts.copyLabel || 'Copy value')}</span>`; }
 function gameRefHtml(gameId){ return shortRefHtml(gameId, { className:'copy-ref', copyLabel:'Copy game ID' }); }
+function urgentGameButtonHtml(gameId, status){
+  if (Number(status ?? -1) >= 2) return '';
+  const cleanId = cleanHex(gameId);
+  const active = cleanHex(controlState?.targetGameId || '') === cleanId;
+  const title = active
+    ? 'Clear the urgent target for this game.'
+    : 'Prioritise this game for the next live throw selection.';
+  return `<button class="row-action-btn ${active ? 'active' : ''}" type="button" data-target-game="${escAttr(cleanId)}" title="${escAttr(title)}">${active ? 'Targeted' : 'Urgent'}</button>`;
+}
 function decisionRefHtml(decisionId){ return shortRefHtml(decisionId, { className:'copy-ref', copyLabel:'Copy decision ID' }); }
 function hashRefHtml(hash){ return shortRefHtml(hash, { className:'copy-ref', copyLabel:'Copy hash' }); }
 
@@ -846,6 +945,79 @@ function extractPredictedValueUsd(row){
 function fmtNum(v,d=2){ const n=Number(v); return Number.isFinite(n)?n.toFixed(d):"-"; }
 function esc(s){ return String(s ?? "").replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
 async function fetchJson(url){ const r=await fetch(url,{cache:"no-store"}); return await r.json(); }
+
+function normalizeLocalDataPath(localPath){
+  const raw = String(localPath || '').trim().replace(/\\/g,'/').replace(/^\.\//,'');
+  if (!raw) return '';
+  return raw.startsWith('/') ? raw : `/${raw.replace(/^\/+/, '')}`;
+}
+
+function artifactCacheKey(entry){
+  const cid = cleanHex(entry?.cid || '');
+  if (cid) return cid;
+  return normalizeLocalDataPath(entry?.localPath || '');
+}
+
+function cachedArtifact(cache, entry){
+  const key = artifactCacheKey(entry);
+  return key && cache.has(key) ? cache.get(key) : null;
+}
+
+function getPredictionCommitArtifact(row){
+  return cachedArtifact(predictionCommitArtifacts, row?.predictionCommit);
+}
+
+function getPredictionRevealArtifact(row){
+  return cachedArtifact(predictionRevealArtifacts, row?.predictionReveal);
+}
+
+async function ensureArtifactEntryLoaded(cache, entry){
+  const key = artifactCacheKey(entry);
+  const url = normalizeLocalDataPath(entry?.localPath || '');
+  if (!key || !url || cache.has(key) || artifactLoadInFlight.has(key)) return false;
+  artifactLoadInFlight.add(key);
+  try {
+    const json = await fetchJson(url);
+    cache.set(key, json);
+    return true;
+  } catch (err) {
+    console.warn('artifact load failed', url, err);
+    return false;
+  } finally {
+    artifactLoadInFlight.delete(key);
+  }
+}
+
+async function warmPredictionArtifacts(){
+  const latestRows = buildLatestResultsByDecision();
+  const scopedRows = scopeFilter(latestRows)
+    .filter(row => row?.predictionReveal?.localPath || row?.predictionCommit?.localPath)
+    .sort((a,b) => freshTimestamp(b?.ts) - freshTimestamp(a?.ts));
+  const selectedRows = selectedGameId
+    ? latestRows.filter(row => cleanHex(row?.gameId || '') === selectedGameId)
+    : [];
+  const merged = [];
+  const seen = new Set();
+  for (const row of [...selectedRows, ...scopedRows.slice(0, 48)]) {
+    const key = row?.decisionId || `${cleanHex(row?.gameId || '')}|${row?.ts || ''}`;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(row);
+  }
+  if (!merged.length) return;
+  const loaded = await Promise.all(merged.flatMap(row => [
+    ensureArtifactEntryLoaded(predictionCommitArtifacts, row?.predictionCommit),
+    ensureArtifactEntryLoaded(predictionRevealArtifacts, row?.predictionReveal),
+  ]));
+  if (loaded.some(Boolean)) renderAll();
+}
+
+function setSelectedGameChartMode(mode){
+  if (!['return_flow','forecast_ribbon'].includes(mode)) return;
+  selectedGameChartMode = mode;
+  renderAll();
+  void warmPredictionArtifacts();
+}
 
 function buildAssetMetaMap() {
   const map = { ...defaultAssetMeta };
@@ -1093,6 +1265,38 @@ async function postControlAction(action, payload = {}){
   } catch (err) {
     controlApiAvailable = false;
     controlState.lastMessage = `${friendly} Control endpoint unavailable; add /api/control/action to make buttons live.`;
+  }
+  renderAll();
+}
+
+async function postManagerTargetGame(gameId){
+  const cleanId = cleanHex(gameId || '');
+  const clear = !cleanId || cleanHex(controlState?.targetGameId || '') === cleanId;
+  const action = clear ? 'clear_target_game' : 'target_game';
+  const payload = clear ? { clear:true } : { gameId: cleanId };
+
+  controlState = {
+    ...controlState,
+    targetGameId: clear ? null : cleanId,
+    lastAction: { action, ts: new Date().toISOString(), gameId: clear ? null : cleanId },
+    lastMessage: clear ? 'Priority target cleared.' : `Priority target requested for ${shortHex(cleanId)}.`
+  };
+
+  try {
+    const res = await fetch('/api/manager/target-game', {
+      method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json().catch(() => ({}));
+    if (json?.control && typeof json.control === 'object') {
+      controlState = { ...controlState, ...json.control };
+    }
+    controlApiAvailable = true;
+  } catch (err) {
+    await postControlAction(action, clear ? {} : { gameId: cleanId });
+    return;
   }
   renderAll();
 }
@@ -1392,34 +1596,33 @@ function buildAgentMessages(metaMap){
 const KPI_INFO = {
   honest_score: {
     title: 'Honest Performance Score',
-    body: `This is the benchmark headline. It combines <code>Calibration Gap</code> and <code>Consistency Over Time</code>. If prediction data exists, the score rises when predicted profit and predicted win-hole quality converge toward what actually happened. If prediction data is missing, the display falls back to a weaker consistency-only proxy, which is why the aggregate can show a number while the predicted KPI boxes still say Waiting.`
+    body: `This is the locked public headline. Formula: <code>100 * (1 - ((BCE + RPS + TemporalError) / 3))</code>. It is computed from settled reveal artifacts, not from monitor-side proxy math. Coverage and sharpness are shown beside the score, but they do not change the locked headline.`
   },
   predicted_profit: {
-    title: 'Predicted Profit',
-    body: `This is the agent's expected final <code>PnL USD</code> for a chosen game, logged at decision time. It must come from the agent logs, not from the monitor. The correct source is one prediction per chosen game. Without that logging patch, this box stays Waiting.`
+    title: 'Predicted Profit Context',
+    body: `This is cumulative <code>predictedBotPnlUsd</code> from the game layer when reveal data exists, with older run-log <code>prediction.pnlUsd</code> only used as fallback context. It is useful for supervision, but it is not part of the locked HPS formula.`
   },
   actual_profit: {
-    title: 'Actual Profit',
-    body: `This is the configured agent user's real game-level profit from settled game reports. It is read from <code>per_user_scoreboard</code> when available, because that is the canonical per-player summary for multiplayer games.`
+    title: 'Actual Profit Context',
+    body: `This is the configured agent user's real settled game profit from <code>per_user_scoreboard</code>. It stays as a supervision context card beside HPS, but it is not itself the headline HPS.`
   },
-  predicted_win_pct: {
-    title: 'Predicted Win-Hole %',
-    body: `This is not raw win count. It is the predicted value-weighted percentage of throw USD expected to land in Winner holes. Each chosen throw can contribute a probability-weighted win expectation based on simulated scenarios. Without prediction logging, this box must stay Waiting.`
+  outcome_layer: {
+    title: 'Outcome Layer',
+    body: `Outcome truth is the throw-level result-hole layer. It is scored from ordered hole probabilities against the actual settled hole using <code>RPS</code>. Higher is better. Coverage tells you how much of the tracked throw set was actually forecast and later evaluable.`
   },
-  actual_win_pct: {
-    title: 'Actual Win-Hole %',
-    body: `This is the realized value-weighted percentage of throw USD that actually landed in Winner holes. It uses resolved throw outcomes and <code>value_usd_e8</code>, not just raw throw count.`
+  value_layer: {
+    title: 'Value Layer',
+    body: `Value truth is the throw-level returned-USD / PnL layer. It uses normalized payout error against the actual returned value for each tracked throw. Higher is better. This is where profitable-looking but numerically wrong forecasts get caught.`
   },
-  calibration_gap: {
-    title: 'Calibration Gap',
-    body: `This shows the distance between expectation and reality. The formula is <code>((real / expected) - 1) Ãƒâ€” 100</code>. The monitor combines profit-gap and win-quality-gap when prediction data exists.`
+  game_layer: {
+    title: 'Game Layer',
+    body: `Game truth is the broader board forecast: expected final frame, total returned USD, and the configured bot user's final PnL. It is logged as a diagnostic layer so we can see strategic context truth without changing the locked public headline formula.`
   },
-  consistency: {
-    title: 'Consistency Over Time',
-    body: `This score rises when the calibration gap shrinks while real performance keeps improving. The point is not just being right once. The point is tightening alignment between what the agent thinks it can do and what it repeatedly proves.`
+  temporal_layer: {
+    title: 'Temporal Layer',
+    body: `Temporal truth measures whether the model knew earlier and updated honestly over time. It combines <code>EndFrameMAE</code>, <code>DynamicShiftError</code>, and <code>HorizonAccuracy</code> using successive commits from the same game for the same settled throw.`
   }
 };
-
 function openKpiInfo(key){
   const cfg = KPI_INFO[key];
   if (!cfg) return;
@@ -1449,151 +1652,481 @@ function displayThrowCount(agentCount, totalCount){
 }
 function computeHonestPerformance(games, metaMap){
   const scopedRuns = scopeFilter(runs || []);
-  const scopedThrows = scopeFilter(throwsRows || []).filter(t => t?.submitted);
   const scopedResults = scopeFilter(buildLatestResultsByDecision());
 
-  const actualGames = [...latestByKey(scopedResults.filter(r => r?.actual?.wholeGame?.per_user_scoreboard && isCompleteResultSnapshot(r)), r => cleanHex(r?.gameId || '')).values()]
-    .sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+  const mean = (values) => {
+    const nums = (values || []).map((value) => Number(value)).filter((value) => Number.isFinite(value));
+    return nums.length ? nums.reduce((sum, value) => sum + value, 0) / nums.length : null;
+  };
+  const pctFromUnit = (value) => Number.isFinite(Number(value)) ? Number(value) * 100 : null;
 
-  const resolvedResultRows = scopedResults
-    .map(r => ({
-      row:r,
-      hole:getActualHoleInfo(r),
-      valueUsd:Number(r?.actual?.throwMatch?.value_usd_e8 || 0) / 1e8
-    }))
-    .filter(x => x.row?.actual?.throwMatch && x.hole.kind === 'hole')
-    .sort((a,b) => new Date(a.row?.ts || 0) - new Date(b.row?.ts || 0));
+  const actualGames = [...latestByKey(
+    scopedResults.filter((row) => row?.actual?.wholeGame?.per_user_scoreboard && isCompleteResultSnapshot(row)),
+    (row) => cleanHex(row?.gameId || ''),
+  ).values()].sort((a, b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
 
-  const predictedGames = [...latestByKey(scopedRuns.filter(r => r?.prediction?.pnlUsd != null && r?.gameId), r => cleanHex(r?.gameId || '')).values()]
-    .sort((a,b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+  const scoredRows = scopedResults
+    .filter((row) => row?.honestScore && (Number.isFinite(Number(row?.honestScore?.honestScore)) || row?.honestScore?.layers))
+    .sort((a, b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
 
-  const totalActualProfit = actualGames.reduce((sum, r) => {
-    const score = getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId);
+  const scoredPredictedGames = [...latestByKey(
+    scoredRows.filter((row) => Number.isFinite(Number(row?.honestScore?.layers?.game?.predictedBotPnlUsd)) && row?.gameId),
+    (row) => cleanHex(row?.gameId || ''),
+  ).values()].sort((a, b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+
+  const fallbackPredictedGames = [...latestByKey(
+    scopedRuns.filter((row) => row?.prediction?.pnlUsd != null && row?.gameId),
+    (row) => cleanHex(row?.gameId || ''),
+  ).values()].sort((a, b) => new Date(a?.ts || 0) - new Date(b?.ts || 0));
+
+  const totalActualProfit = actualGames.reduce((sum, row) => {
+    const score = getConfiguredUserScoreExact(row?.actual?.wholeGame?.per_user_scoreboard, row?.decisionId || row?.gameId);
     return sum + Number(score?.pnl_usd ?? 0);
   }, 0);
 
-  const totalPredictedProfit = predictedGames.reduce((sum, r) => sum + Number(r?.prediction?.pnlUsd || 0), 0);
-  const actualProfitGames = actualGames.length;
-  const predictedProfitGames = predictedGames.length;
-
-  const totalActualResolvedValue = resolvedResultRows.reduce((sum, x) => sum + Number(x.valueUsd || 0), 0);
-  const totalActualWinValue = resolvedResultRows.reduce((sum, x) => sum + ((x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))) ? Number(x.valueUsd || 0) : 0), 0);
-  const actualWinPct = totalActualResolvedValue > 0 ? (totalActualWinValue / totalActualResolvedValue) * 100 : null;
-  const actualWinCount = resolvedResultRows.filter(x => x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))).length;
-  const actualNoHoleCount = 0;
-  const actualThrowCount = resolvedResultRows.length;
-
-  const predictedThrowStatsByGame = buildPredictedThrowStatsByGame(scopedThrows.filter(t => t?.prediction?.winnerValuePct != null || t?.prediction?.holeType != null));
-  let predictedThrowCount = 0, predictedWinCount = 0, totalPredictedValue = 0, totalPredictedWinValue = 0;
-  for (const stats of predictedThrowStatsByGame.values()) {
-    predictedThrowCount += Number(stats.throws || 0);
-    predictedWinCount += Number(stats.wins || 0);
-    totalPredictedValue += Number(stats.value || 0);
-    totalPredictedWinValue += Number(stats.winValue || 0);
+  let totalPredictedProfit = scoredPredictedGames.reduce(
+    (sum, row) => sum + Number(row?.honestScore?.layers?.game?.predictedBotPnlUsd ?? 0),
+    0,
+  );
+  let predictedProfitGames = scoredPredictedGames.length;
+  if (!predictedProfitGames) {
+    totalPredictedProfit = fallbackPredictedGames.reduce((sum, row) => sum + Number(row?.prediction?.pnlUsd ?? 0), 0);
+    predictedProfitGames = fallbackPredictedGames.length;
   }
-  const predictedWinPct = totalPredictedValue > 0 ? (totalPredictedWinValue / totalPredictedValue) * 100 : null;
 
-  const profitGap = totalPredictedProfit ? (((totalActualProfit / totalPredictedProfit) - 1) * 100) : null;
-  const winGap = (predictedWinPct && actualWinPct != null) ? (((actualWinPct / predictedWinPct) - 1) * 100) : null;
+  const actualResolvedRows = scopedResults.filter((row) => row?.actual?.throwMatch && isCompleteResultSnapshot(row));
 
-  const gameMapActual = new Map();
-  for (const r of actualGames) {
-    const score = getConfiguredUserScoreExact(r?.actual?.wholeGame?.per_user_scoreboard, r?.decisionId || r?.gameId);
-    if (score) gameMapActual.set(cleanHex(r?.gameId), Number(score?.pnl_usd ?? 0));
-  }
-  const gameMapPred = new Map();
-  for (const r of predictedGames) gameMapPred.set(cleanHex(r?.gameId), Number(r?.prediction?.pnlUsd || 0));
+  const layerSummary = (key) => {
+    const layers = scoredRows.map((row) => row?.honestScore?.layers?.[key]).filter((layer) => layer && typeof layer === 'object');
+    return {
+      score: mean(layers.map((layer) => pctFromUnit(layer?.score))),
+      error: mean(layers.map((layer) => pctFromUnit(layer?.error))),
+      evaluatedThrows: layers.reduce((sum, layer) => sum + Number(layer?.evaluatedThrows || 0), 0),
+      predictedThrows: layers.reduce((sum, layer) => sum + Number(layer?.predictedThrows || 0), 0),
+      endFrameMae: mean(layers.map((layer) => pctFromUnit(layer?.endFrameMae))),
+      dynamicShiftError: mean(layers.map((layer) => pctFromUnit(layer?.dynamicShiftError))),
+      horizonAccuracy: mean(layers.map((layer) => pctFromUnit(layer?.horizonAccuracy))),
+      historyPoints: layers.reduce((sum, layer) => sum + Number(layer?.historyPoints || 0), 0),
+      dynamicUpdates: layers.reduce((sum, layer) => sum + Number(layer?.dynamicUpdates || 0), 0),
+      actualFinalFrame: mean(layers.map((layer) => layer?.actualFinalFrame)),
+      predictedFinalFrame: mean(layers.map((layer) => layer?.predictedFinalFrame)),
+      actualBotPnlUsd: mean(layers.map((layer) => layer?.actualBotPnlUsd)),
+      predictedBotPnlUsd: mean(layers.map((layer) => layer?.predictedBotPnlUsd)),
+      actualReturnedUsdSum: mean(layers.map((layer) => layer?.actualReturnedUsdSum)),
+      predictedReturnedUsdSum: mean(layers.map((layer) => layer?.predictedReturnedUsdSum)),
+    };
+  };
 
-  const sampleGameIds = [...new Set([...gameMapActual.keys(), ...gameMapPred.keys(), ...predictedThrowStatsByGame.keys()])];
+  const coveragePct = mean(scoredRows.map((row) => {
+    const coverage = row?.honestScore?.coverage;
+    return mean([
+      pctFromUnit(coverage?.outcomeCoveragePct),
+      pctFromUnit(coverage?.valueCoveragePct),
+      pctFromUnit(coverage?.gameCoveragePct),
+      pctFromUnit(coverage?.temporalCoveragePct),
+    ]);
+  }));
+
+  const overallSharpnessPct = mean(scoredRows.map((row) => mean([
+    pctFromUnit(row?.honestScore?.sharpness?.outcome),
+    pctFromUnit(row?.honestScore?.sharpness?.value),
+    pctFromUnit(row?.honestScore?.sharpness?.temporal),
+  ])));
+
+  const focalSharpnessPct = mean(scoredRows.map((row) => mean([
+    pctFromUnit(row?.honestScore?.sharpness?.focalOutcome),
+    pctFromUnit(row?.honestScore?.sharpness?.focalValue),
+    pctFromUnit(row?.honestScore?.sharpness?.focalTemporal),
+  ])));
+
+  const revealCount = scoredRows.length;
+  const scoredGameCount = new Set(scoredRows.map((row) => cleanHex(row?.gameId || '')).filter(Boolean)).size;
+  const totalForecastEvaluations = scoredRows.reduce((sum, row) => sum + Number(row?.honestScore?.coverage?.evaluatedThrows || 0), 0);
+  const maxSnapshotCount = Math.max(0, ...scoredRows.map((row) => Number(row?.honestScore?.coverage?.snapshotCount || 0)));
+
+  const running = {
+    honestScore: [],
+    outcome: [],
+    value: [],
+    game: [],
+    temporal: [],
+    coverage: [],
+    sharpness: [],
+  };
+  let runningActualProfit = 0;
+  let runningPredictedProfit = 0;
+  const seenActualGames = new Set();
+  const seenPredictedGames = new Set();
   const samples = [];
-  let cumActual = 0, cumPred = 0, runningResolvedValue = 0, runningWinValue = 0, runningPredValue = 0, runningPredWinValue = 0;
-  for (const gid of sampleGameIds){
-    if (gameMapActual.has(gid)) cumActual += Number(gameMapActual.get(gid) || 0);
-    if (gameMapPred.has(gid)) cumPred += Number(gameMapPred.get(gid) || 0);
 
-    const gameResults = resolvedResultRows.filter(x => cleanHex(x.row?.gameId) === gid);
-    for (const x of gameResults){
-      const val = Number(x.valueUsd || 0);
-      runningResolvedValue += val;
-      if (x.hole.kind === 'hole' && winnerHoleTypes().has(Number(x.hole.value))) runningWinValue += val;
+  for (const row of scoredRows) {
+    const gid = cleanHex(row?.gameId || '');
+    const actualScore = getConfiguredUserScoreExact(row?.actual?.wholeGame?.per_user_scoreboard, row?.decisionId || row?.gameId);
+    if (gid && actualScore && !seenActualGames.has(gid)) {
+      runningActualProfit += Number(actualScore?.pnl_usd ?? 0);
+      seenActualGames.add(gid);
     }
-    const predStats = predictedThrowStatsByGame.get(gid);
-    if (predStats) {
-      runningPredValue += Number(predStats.value || 0);
-      runningPredWinValue += Number(predStats.winValue || 0);
+    const predictedBotPnl = Number(row?.honestScore?.layers?.game?.predictedBotPnlUsd);
+    if (gid && Number.isFinite(predictedBotPnl) && !seenPredictedGames.has(gid)) {
+      runningPredictedProfit += predictedBotPnl;
+      seenPredictedGames.add(gid);
     }
-    const sampleActualWinPct = runningResolvedValue > 0 ? (runningWinValue / runningResolvedValue) * 100 : null;
-    const samplePredWinPct = runningPredValue > 0 ? (runningPredWinValue / runningPredValue) * 100 : null;
-    const sampleProfitGap = cumPred ? (((cumActual / cumPred) - 1) * 100) : null;
-    const sampleCombinedGap = (sampleProfitGap == null || samplePredWinPct == null || sampleActualWinPct == null) ? null : ((((sampleActualWinPct / Math.max(samplePredWinPct, 0.0001)) - 1) * 100) + sampleProfitGap) / 2;
+
+    const honestScore = Number(row?.honestScore?.honestScore);
+    if (Number.isFinite(honestScore)) running.honestScore.push(honestScore);
+
+    const outcomeScore = pctFromUnit(row?.honestScore?.layers?.outcome?.score);
+    if (outcomeScore != null) running.outcome.push(outcomeScore);
+
+    const valueScore = pctFromUnit(row?.honestScore?.layers?.value?.score);
+    if (valueScore != null) running.value.push(valueScore);
+
+    const gameScore = pctFromUnit(row?.honestScore?.layers?.game?.score);
+    if (gameScore != null) running.game.push(gameScore);
+
+    const temporalScore = pctFromUnit(row?.honestScore?.layers?.temporal?.score);
+    if (temporalScore != null) running.temporal.push(temporalScore);
+
+    const rowCoverage = mean([
+      pctFromUnit(row?.honestScore?.coverage?.outcomeCoveragePct),
+      pctFromUnit(row?.honestScore?.coverage?.valueCoveragePct),
+      pctFromUnit(row?.honestScore?.coverage?.gameCoveragePct),
+      pctFromUnit(row?.honestScore?.coverage?.temporalCoveragePct),
+    ]);
+    if (rowCoverage != null) running.coverage.push(rowCoverage);
+
+    const rowSharpness = mean([
+      pctFromUnit(row?.honestScore?.sharpness?.outcome),
+      pctFromUnit(row?.honestScore?.sharpness?.value),
+      pctFromUnit(row?.honestScore?.sharpness?.temporal),
+    ]);
+    if (rowSharpness != null) running.sharpness.push(rowSharpness);
+
     samples.push({
-      label: shortHex(gid), actualProfit: cumActual, predictedProfit: cumPred || null,
-      actualWinPct: sampleActualWinPct, predictedWinPct: samplePredWinPct,
-      honestScore: sampleCombinedGap == null ? null : Math.max(0, Math.min(100, 100 - Math.abs(sampleCombinedGap))),
-      profitGap: sampleProfitGap, combinedGap: sampleCombinedGap
+      label: shortHex(gid || row?.decisionId || String(samples.length + 1)),
+      honestScore: mean(running.honestScore),
+      outcomeLayer: mean(running.outcome),
+      valueLayer: mean(running.value),
+      gameLayer: mean(running.game),
+      temporalLayer: mean(running.temporal),
+      coverage: mean(running.coverage),
+      sharpness: mean(running.sharpness),
+      actualProfit: runningActualProfit,
+      predictedProfit: seenPredictedGames.size ? runningPredictedProfit : null,
     });
   }
 
-  let consistency = null;
-  const gapSamples = samples.map(s => s.combinedGap).filter(v => Number.isFinite(v));
-  if (gapSamples.length >= 2) {
-    const first = Math.abs(gapSamples[0]);
-    const last = Math.abs(gapSamples[gapSamples.length - 1]);
-    consistency = first > 0 ? Math.max(0, Math.min(100, 50 + (((first - last) / first) * 50))) : null;
+  return {
+    honestScore: mean(scoredRows.map((row) => row?.honestScore?.honestScore)),
+    bce: mean(scoredRows.map((row) => pctFromUnit(row?.honestScore?.bce))),
+    rps: mean(scoredRows.map((row) => pctFromUnit(row?.honestScore?.rps))),
+    temporalError: mean(scoredRows.map((row) => pctFromUnit(row?.honestScore?.temporalError))),
+    totalActualProfit,
+    totalPredictedProfit: predictedProfitGames ? totalPredictedProfit : null,
+    actualProfitGames: actualGames.length,
+    predictedProfitGames,
+    actualThrowCount: actualResolvedRows.length,
+    revealCount,
+    scoredGameCount,
+    totalForecastEvaluations,
+    snapshotCount: maxSnapshotCount,
+    coveragePct,
+    overallSharpnessPct,
+    focalSharpnessPct,
+    layers: {
+      outcome: layerSummary('outcome'),
+      value: layerSummary('value'),
+      game: layerSummary('game'),
+      temporal: layerSummary('temporal'),
+    },
+    samples,
+  };
+}
+
+function rgbaFromHex(hex, alpha = 1){
+  const clean = String(hex || '').replace('#','');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return `rgba(82,230,255,${alpha})`;
+  const r = Number.parseInt(clean.slice(0,2),16);
+  const g = Number.parseInt(clean.slice(2,4),16);
+  const b = Number.parseInt(clean.slice(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function buildHpsLensLayers(model){
+  return [
+    { id:'outcome', label:'Outcome', color:'#52e6ff', score:model.layers.outcome.score, meta:model.layers.outcome.score == null ? 'Waiting for settled hole truth.' : `RPS err ${formatDisplayNumber(model.layers.outcome.error ?? 0)}%` },
+    { id:'value', label:'Value', color:'#ffe66d', score:model.layers.value.score, meta:model.layers.value.score == null ? 'Waiting for settled payout truth.' : `BCE err ${formatDisplayNumber(model.layers.value.error ?? 0)}%` },
+    { id:'game', label:'Game', color:'#ff9f40', score:model.layers.game.score, meta:model.layers.game.score == null ? 'Waiting for board-level reveal truth.' : `Game err ${formatDisplayNumber(model.layers.game.error ?? 0)}%` },
+    { id:'temporal', label:'Temporal', color:'#5e9cff', score:model.layers.temporal.score, meta:model.layers.temporal.score == null ? 'Waiting for commit-to-commit temporal truth.' : `Shift ${formatDisplayNumber(model.layers.temporal.dynamicShiftError ?? 0)}%` },
+  ];
+}
+
+function renderHpsLens(model){
+  const widget = document.getElementById('hpsLensWidget');
+  const legend = document.getElementById('hpsLensLegend');
+  const meta = document.getElementById('hpsLensMeta');
+  if (!widget || !legend || !meta) return;
+  const layers = buildHpsLensLayers(model);
+  const activated = layers.filter(layer => Number.isFinite(Number(layer.score)) && Number(layer.score) >= 50).length;
+  const scoreText = model.honestScore == null ? 'Pending' : `${formatDisplayNumber(model.honestScore)}%`;
+  const scoreColor = model.honestScore == null ? '#ffe66d' : model.honestScore >= 75 ? '#65ffb0' : model.honestScore >= 55 ? '#ffe66d' : '#ff4fd8';
+  meta.textContent = `Activation ${activated}/4 layers above 50%. A stronger agent should wake these layers in order: Outcome -> Value -> Game -> Temporal.`;
+  const ringClassOrder = ['temporal','game','value','outcome'];
+  widget.innerHTML = `<div class="lens-widget-wrap"><div class="lens-stack">${ringClassOrder.map((ringId) => {
+    const layer = layers.find(item => item.id === ringId);
+    const pct = Number.isFinite(Number(layer?.score)) ? Math.max(0, Math.min(100, Number(layer.score))) : 0;
+    return `<div class="lens-ring ${ringId}" style="--pct:${pct};--tone:${layer?.color || '#52e6ff'}"></div>`;
+  }).join('')}<div class="lens-core"><div class="lens-core-label">HPS</div><div class="lens-core-score" style="color:${scoreColor}">${esc(scoreText)}</div></div></div><div class="lens-widget-caption">${activated}/4 layers active</div></div>`;
+  legend.innerHTML = layers.map((layer, index) => {
+    const scoreText = layer.score == null ? 'Pending' : `${formatDisplayNumber(layer.score)}%`;
+    return `<div class="lens-legend-item"><span class="lens-dot" style="background:${layer.color}"></span><div class="lens-legend-copy"><div class="lens-legend-title">${index + 1}. ${esc(layer.label)} Layer</div><div class="lens-legend-meta">${esc(layer.meta)}</div></div><div class="lens-legend-value">${esc(scoreText)}</div></div>`;
+  }).join('');
+}
+
+function coverageAgeBucket(ageFromNewest, source){
+  if (String(source || '') === 'candidate') return 'next';
+  if (ageFromNewest <= 2) return 'age_0_2';
+  if (ageFromNewest <= 6) return 'age_3_6';
+  return 'age_7_plus';
+}
+
+function buildTrackedForecastRowsForHeatmap(artifact){
+  const evaluations = Array.isArray(artifact?.evaluations?.throws) ? artifact.evaluations.throws : [];
+  const temporalRows = Array.isArray(artifact?.evaluations?.temporalHistory?.throws) ? artifact.evaluations.temporalHistory.throws : [];
+  const temporalByActualThrowId = new Map();
+  const temporalBySubjectKey = new Map();
+  temporalRows.forEach((row, index) => {
+    const actualThrowId = cleanHex(row?.actualThrowId || '');
+    const subjectKey = String(row?.subjectKey || `temporal:${index}`);
+    if (actualThrowId) temporalByActualThrowId.set(actualThrowId, row);
+    temporalBySubjectKey.set(subjectKey, row);
+  });
+  if (evaluations.length) {
+    return evaluations.map((entry, index) => {
+      const actualThrowId = cleanHex(entry?.actualThrowId || '');
+      const subjectKey = String(entry?.subjectKey || `eval:${index}`);
+      const temporal = (actualThrowId && temporalByActualThrowId.get(actualThrowId)) || temporalBySubjectKey.get(subjectKey) || null;
+      return {
+        source: String(entry?.source || temporal?.source || 'existing'),
+        subjectKey,
+        actualThrowId: actualThrowId || null,
+        enterFrame: Number.isFinite(Number(temporal?.enterFrame)) ? Number(temporal.enterFrame) : null,
+        predictedHoleType: entry?.predictedHoleType,
+        predictedReturnedUsd: entry?.predictedReturnedUsd,
+        predictedPnlUsd: entry?.predictedPnlUsd,
+        predictedEndFrame: entry?.predictedEndFrame,
+        historyPoints: Number(temporal?.points?.length ?? entry?.historyPoints ?? 0),
+      };
+    });
   }
+  return temporalRows.map((row, index) => {
+    const latestPoint = Array.isArray(row?.points) && row.points.length ? row.points[row.points.length - 1] : null;
+    return {
+      source: String(row?.source || 'existing'),
+      subjectKey: String(row?.subjectKey || `temporal:${index}`),
+      actualThrowId: cleanHex(row?.actualThrowId || '') || null,
+      enterFrame: Number.isFinite(Number(row?.enterFrame)) ? Number(row.enterFrame) : null,
+      predictedHoleType: latestPoint?.predictedHoleType ?? null,
+      predictedReturnedUsd: latestPoint?.predictedReturnedUsd ?? null,
+      predictedPnlUsd: latestPoint?.predictedPnlUsd ?? null,
+      predictedEndFrame: latestPoint?.predictedEndFrame ?? null,
+      historyPoints: Number(row?.points?.length ?? 0),
+    };
+  });
+}
 
-  const availableGaps = [profitGap, winGap].filter(v => Number.isFinite(v));
-  const combinedGap = availableGaps.length ? (availableGaps.reduce((a,b)=>a+b,0) / availableGaps.length) : null;
-  const honestScore = combinedGap == null ? null : Math.max(0, Math.min(100, 100 - Math.abs(combinedGap)));
+function buildCoverageHeatmapModel(){
+  const columns = [
+    { id:'board', label:'Board', description:'Whole-game forecast coverage.' },
+    { id:'next', label:'Next', description:'Candidate or immediate next-slot forecasts.' },
+    { id:'age_0_2', label:'0-2', description:'Newest settled throw forecasts.' },
+    { id:'age_3_6', label:'3-6', description:'Mid-age throw forecasts.' },
+    { id:'age_7_plus', label:'7+', description:'Deep-history throw forecasts.' },
+  ];
+  const rowDefs = [
+    { id:'outcome', label:'Outcome', color:'#52e6ff' },
+    { id:'value', label:'Value', color:'#ffe66d' },
+    { id:'game', label:'Game', color:'#ff9f40' },
+    { id:'temporal', label:'Temporal', color:'#5e9cff' },
+  ];
+  const support = {
+    outcome: { board:false, next:true, age_0_2:true, age_3_6:true, age_7_plus:true },
+    value: { board:false, next:true, age_0_2:true, age_3_6:true, age_7_plus:true },
+    game: { board:true, next:false, age_0_2:false, age_3_6:false, age_7_plus:false },
+    temporal: { board:false, next:true, age_0_2:true, age_3_6:true, age_7_plus:true },
+  };
+  const supportNotes = {
+    outcome: { board:'Board-level outcome distribution is not modeled in this commit format.' },
+    value: { board:'Board-level value aggregation belongs to the game layer, not the throw-value layer.' },
+    game: {
+      next:'The game layer is board-only. It does not split into candidate-vs-age buckets.',
+      age_0_2:'The game layer is board-only. It does not split into candidate-vs-age buckets.',
+      age_3_6:'The game layer is board-only. It does not split into candidate-vs-age buckets.',
+      age_7_plus:'The game layer is board-only. It does not split into candidate-vs-age buckets.'
+    },
+    temporal: { board:'Board-level temporal coverage is not modeled separately from per-throw temporal forecasts.' },
+  };
+  const counts = Object.fromEntries(rowDefs.map(row => [row.id, Object.fromEntries(columns.map(col => [col.id, {
+    covered:0,
+    possible:0,
+    supported: !!support[row.id]?.[col.id],
+    note: supportNotes[row.id]?.[col.id] || null,
+  }]))]));
+  const rows = scopeFilter(buildLatestResultsByDecision())
+    .filter(row => row?.honestScore && row?.predictionReveal?.localPath)
+    .sort((a,b) => freshTimestamp(b?.ts) - freshTimestamp(a?.ts))
+    .slice(0, 24);
+  const artifacts = rows.map(row => getPredictionRevealArtifact(row)).filter(Boolean);
+  let trackedThrowCount = 0;
+  for (const artifact of artifacts) {
+    counts.game.board.possible += 1;
+    if (artifact?.coverage?.predictedGameTotals) counts.game.board.covered += 1;
+    const tracked = buildTrackedForecastRowsForHeatmap(artifact);
+    const existing = tracked
+      .filter(throwEntry => String(throwEntry?.source || '') !== 'candidate')
+      .sort((a,b) => {
+        const frameA = Number.isFinite(Number(a?.enterFrame)) ? Number(a.enterFrame) : Number.MAX_SAFE_INTEGER;
+        const frameB = Number.isFinite(Number(b?.enterFrame)) ? Number(b.enterFrame) : Number.MAX_SAFE_INTEGER;
+        if (frameA !== frameB) return frameA - frameB;
+        return String(a?.subjectKey || '').localeCompare(String(b?.subjectKey || ''));
+      });
+    const candidates = tracked.filter(throwEntry => String(throwEntry?.source || '') === 'candidate');
+    trackedThrowCount += tracked.length;
+    existing.forEach((throwEntry, index) => {
+      const bucket = coverageAgeBucket(existing.length - 1 - index, throwEntry?.source);
+      counts.outcome[bucket].possible += 1;
+      counts.value[bucket].possible += 1;
+      counts.temporal[bucket].possible += 1;
+      if (throwEntry?.predictedHoleType != null) counts.outcome[bucket].covered += 1;
+      if (Number.isFinite(Number(throwEntry?.predictedReturnedUsd)) || Number.isFinite(Number(throwEntry?.predictedPnlUsd))) counts.value[bucket].covered += 1;
+      if (Number.isFinite(Number(throwEntry?.predictedEndFrame)) || Number(throwEntry?.historyPoints ?? 0) > 0) counts.temporal[bucket].covered += 1;
+    });
+    candidates.forEach((throwEntry) => {
+      const bucket = 'next';
+      counts.outcome[bucket].possible += 1;
+      counts.value[bucket].possible += 1;
+      counts.temporal[bucket].possible += 1;
+      if (throwEntry?.predictedHoleType != null) counts.outcome[bucket].covered += 1;
+      if (Number.isFinite(Number(throwEntry?.predictedReturnedUsd)) || Number.isFinite(Number(throwEntry?.predictedPnlUsd))) counts.value[bucket].covered += 1;
+      if (Number.isFinite(Number(throwEntry?.predictedEndFrame)) || Number(throwEntry?.historyPoints ?? 0) > 0) counts.temporal[bucket].covered += 1;
+    });
+  }
+  return {
+    artifactCount: artifacts.length,
+    trackedThrowCount,
+    columns,
+    rows: rowDefs.map(row => ({
+      ...row,
+      cells: Object.fromEntries(columns.map(col => {
+        const cell = counts[row.id][col.id];
+        const pct = cell.possible ? (cell.covered / cell.possible) * 100 : null;
+        return [col.id, { ...cell, pct }];
+      })),
+    })),
+  };
+}
 
-  return { totalActualProfit, totalPredictedProfit: predictedProfitGames ? totalPredictedProfit : null, actualProfitGames, predictedProfitGames, actualWinPct, actualThrowCount, actualWinCount, actualNoHoleCount, predictedWinPct, predictedThrowCount: predictedThrowCount || null, predictedWinCount: predictedThrowCount ? predictedWinCount : null, profitGap, winGap, combinedGap, consistency, honestScore, samples };
+function renderCoverageHeatmap(){
+  const el = document.getElementById('hpsCoverageHeatmap');
+  const meta = document.getElementById('hpsHeatmapMeta');
+  const foot = document.getElementById('hpsHeatmapFoot');
+  if (!el || !meta || !foot) return;
+  const heatmap = buildCoverageHeatmapModel();
+  if (!heatmap.artifactCount) {
+    meta.textContent = 'Waiting for loaded reveal artifacts with tracked throw forecasts.';
+    el.className = '';
+    el.innerHTML = `<div class="analytics-chart-note">The heatmap lights up once settled reveal artifacts are loaded. It measures whether each layer was actually forecast, bucketed by throw age, so selective prediction gaps are visible immediately.</div>`;
+    foot.innerHTML = '<span>Coverage uses logged forecast presence, not forecast accuracy.</span><span>Game coverage is a board-level row.</span>';
+    return;
+  }
+  meta.textContent = `Latest ${heatmap.artifactCount} reveal artifacts | ${heatmap.trackedThrowCount} tracked throw forecasts loaded.`;
+  el.className = 'heatmap-grid';
+  const headerHtml = ['<div></div>', ...heatmap.columns.map(col => `<div class="heatmap-head" title="${escAttr(col.description)}">${esc(col.label)}</div>`)].join('');
+  const rowsHtml = heatmap.rows.map((row) => {
+    const cells = heatmap.columns.map((col) => {
+      const cell = row.cells[col.id];
+      const pct = cell?.pct;
+      const structural = cell?.supported === false;
+      const muted = !structural && (pct == null || cell.possible === 0);
+      const alpha = muted ? 0.06 : 0.12 + (Math.max(0, Math.min(100, pct ?? 0)) / 100) * 0.28;
+      const style = (muted || structural) ? '' : ` style="background:linear-gradient(180deg, ${rgbaFromHex(row.color, alpha)}, rgba(7,17,31,.84));border-color:${rgbaFromHex(row.color, 0.28)}"`;
+      const valueText = structural ? 'N/A' : (muted ? '--' : `${formatDisplayNumber(pct)}%`);
+      const detailText = structural ? 'N/A' : (muted ? 'no tracked rows' : `${cell.covered}/${cell.possible}`);
+      const infoTitle = `${row.label} Coverage | ${col.label}`;
+      const infoBody = structural
+        ? `<p><strong>${esc(row.label)}</strong> does not use the <strong>${esc(col.label)}</strong> bucket in the current prediction schema.</p><p>${esc(cell.note || 'This cell is structurally outside the current modeled surface.')}</p>`
+        : muted
+          ? `<p><strong>${esc(row.label)}</strong> supports the <strong>${esc(col.label)}</strong> bucket, but none of the loaded reveal artifacts contributed tracked rows here yet.</p><p>Possible rows: <strong>${esc(String(cell.possible || 0))}</strong>. Covered rows: <strong>${esc(String(cell.covered || 0))}</strong>.</p><p>${esc(col.description)}</p>`
+          : `<p><strong>${esc(row.label)}</strong> coverage for the <strong>${esc(col.label)}</strong> bucket is <strong>${esc(formatDisplayNumber(pct))}%</strong>.</p><p>Covered rows: <strong>${esc(String(cell.covered))}</strong> of <strong>${esc(String(cell.possible))}</strong>.</p><p>${esc(col.description)}</p>`;
+      const titleText = structural ? `${row.label} | ${col.label} | ${cell.note || 'not modeled in this schema'}` : `${row.label} | ${col.label} | ${detailText}`;
+      return `<button class="heatmap-cell${structural ? ' structural' : ''}${muted ? ' muted' : ''}" type="button"${style} title="${escAttr(titleText)}" data-info-title="${escAttr(infoTitle)}" data-info-body="${escAttr(infoBody)}"><strong>${esc(valueText)}</strong><span>${esc(detailText)}</span></button>`;
+    }).join('');
+    return `<div class="heatmap-side">${esc(row.label)}</div>${cells}`;
+  }).join('');
+  el.innerHTML = headerHtml + rowsHtml;
+  foot.innerHTML = `<span>Next = candidate / immediate next-slot forecast.</span><span>Board = full-game totals forecast.</span><span>N/A cells are structurally outside the current prediction schema.</span>`;
 }
 
 function renderHonestPerformance(games, metaMap){
   const model = computeHonestPerformance(games, metaMap);
   const scoreEl = document.getElementById('honestScoreValue');
   const summaryEl = document.getElementById('honestScoreSummary');
+  const formatPct = (value, pending = 'Pending') => value == null ? pending : `${formatDisplayNumber(value)}%`;
+  const formatUsd = (value, pending = '-') => value == null ? pending : `$${formatDisplayNumber(value)}`;
+  const layerTone = (value) => value == null ? 'warn' : value >= 75 ? 'ok' : value >= 55 ? 'warn' : 'pink';
 
   if (hpsTrendChart) { try { hpsTrendChart.destroy(); } catch {} hpsTrendChart = null; }
 
   if (model.honestScore == null) {
     scoreEl.textContent = 'Pending';
     scoreEl.className = 'hps-big warn';
-    summaryEl.textContent = 'Exact benchmark data is incomplete. The monitor is now strict: if prediction or actual hole fields are missing in the logs, this score stays pending and the diagnostics are surfaced instead of guessed.';
+    summaryEl.textContent = 'Waiting for settled reveal artifacts. HPS v2 only scores from prediction commit + reveal pairs, so BCE, RPS, and the temporal layer stay exact instead of being guessed in the monitor.';
   } else {
     scoreEl.textContent = `${formatDisplayNumber(model.honestScore)}%`;
-    scoreEl.className = `hps-big ${model.honestScore >= 70 ? 'ok' : model.honestScore >= 45 ? 'warn' : 'pink'}`;
-    summaryEl.textContent = `Profit is judged per game. Win quality is judged per throw, but the headline win % is value-weighted into Winner holes. This window is ${scoreScopeState.label.toLowerCase()}.`;
+    scoreEl.className = `hps-big ${layerTone(model.honestScore)}`;
+    const coverageText = model.coveragePct == null ? 'Coverage pending' : `Coverage ${formatDisplayNumber(model.coveragePct)}%`;
+    const sharpnessText = model.overallSharpnessPct == null
+      ? 'Sharpness pending'
+      : `Sharpness ${formatDisplayNumber(model.overallSharpnessPct)}% overall${model.focalSharpnessPct == null ? '' : ` / ${formatDisplayNumber(model.focalSharpnessPct)}% focal`}`;
+    summaryEl.textContent = `Headline formula: BCE + RPS + TemporalError. ${coverageText}. ${sharpnessText}. This window is ${scoreScopeState.label.toLowerCase()}.`;
   }
 
-  const predictedProfitText = model.totalPredictedProfit == null ? 'Waiting' : `$${formatDisplayNumber(model.totalPredictedProfit)}`;
-  document.getElementById('hpsPredictedProfit').textContent = predictedProfitText;
+  renderHpsLens(model);
+  renderCoverageHeatmap();
+
+  document.getElementById('hpsPredictedProfit').textContent = model.totalPredictedProfit == null ? 'Waiting' : formatUsd(model.totalPredictedProfit);
+  document.getElementById('hpsPredictedProfit').className = 'hps-value';
   document.getElementById('hpsPredictedProfitMeta').textContent = model.totalPredictedProfit == null
-    ? errorText('missing run.prediction.pnlUsd rows in runs log')
-    : `${model.predictedProfitGames} games / $${formatDisplayNumber(model.totalPredictedProfit / Math.max(model.predictedProfitGames, 1))} per game`;
+    ? errorText('missing layer_game.predictedBotPnlUsd and fallback run.prediction.pnlUsd rows')
+    : `${model.predictedProfitGames} games / ${formatUsd(model.totalPredictedProfit / Math.max(model.predictedProfitGames, 1))} per game`;
 
-  document.getElementById('hpsActualProfit').textContent = `$${formatDisplayNumber(model.totalActualProfit)}`;
-  document.getElementById('hpsActualProfitMeta').textContent = `${model.actualProfitGames} games / $${formatDisplayNumber(model.totalActualProfit / Math.max(model.actualProfitGames, 1))} per game`;
+  document.getElementById('hpsActualProfit').textContent = formatUsd(model.totalActualProfit, '$0');
+  document.getElementById('hpsActualProfit').className = 'hps-value';
+  document.getElementById('hpsActualProfitMeta').textContent = `${model.actualProfitGames} games / ${formatUsd(model.totalActualProfit / Math.max(model.actualProfitGames, 1), '$0')} per game`;
 
-  document.getElementById('hpsPredictedWinPct').textContent = model.predictedWinPct == null ? 'Waiting' : `${formatDisplayNumber(model.predictedWinPct)}%`;
-  document.getElementById('hpsPredictedWinPctMeta').textContent = model.predictedWinPct == null
-    ? errorText('missing throw.prediction.winnerValuePct / holeType rows in throws log')
-    : `${model.predictedThrowCount} throws / ${model.predictedWinCount} predicted wins`;
+  document.getElementById('hpsPredictedWinPct').textContent = formatPct(model.layers.outcome.score);
+  document.getElementById('hpsPredictedWinPct').className = `hps-value ${layerTone(model.layers.outcome.score)}`;
+  document.getElementById('hpsPredictedWinPctMeta').textContent = model.layers.outcome.score == null
+    ? errorText('missing outcome-layer reveal rows')
+    : `RPS err ${formatPct(model.layers.outcome.error, '-')} | ${model.layers.outcome.evaluatedThrows}/${model.layers.outcome.predictedThrows || 0} throw forecasts evaluated`;
 
-  document.getElementById('hpsActualWinPct').textContent = model.actualWinPct == null ? 'Pending' : `${formatDisplayNumber(model.actualWinPct)}%`; 
-  document.getElementById('hpsActualWinPctMeta').textContent = model.actualWinPct == null
-    ? 'Need resolved throw value rows in results log'
-    : `${model.actualThrowCount} resolved throws / ${model.actualWinCount} winner holes${model.actualNoHoleCount ? ` / ${model.actualNoHoleCount} no-hole` : ''} | % is USD into Winner`;
+  document.getElementById('hpsActualWinPct').textContent = formatPct(model.layers.value.score);
+  document.getElementById('hpsActualWinPct').className = `hps-value ${layerTone(model.layers.value.score)}`;
+  document.getElementById('hpsActualWinPctMeta').textContent = model.layers.value.score == null
+    ? errorText('missing value-layer reveal rows')
+    : `BCE err ${formatPct(model.layers.value.error, '-')} | ${model.layers.value.evaluatedThrows}/${model.layers.value.predictedThrows || 0} throw forecasts evaluated`;
 
-  document.getElementById('hpsCalibrationGap').textContent = model.combinedGap == null ? 'Waiting' : `${formatDisplayNumber(model.combinedGap)}%`;
-  document.getElementById('hpsCalibrationGapMeta').textContent = model.combinedGap == null
-    ? errorText('missing prediction fields needed for calibration gap')
-    : `Profit gap ${model.profitGap == null ? '-' : `${formatDisplayNumber(model.profitGap)}%`}  |  Win gap ${model.winGap == null ? '-' : `${formatDisplayNumber(model.winGap)}%`}`;
+  document.getElementById('hpsCalibrationGap').textContent = formatPct(model.layers.game.score);
+  document.getElementById('hpsCalibrationGap').className = `hps-value ${layerTone(model.layers.game.score)}`;
+  document.getElementById('hpsCalibrationGapMeta').textContent = model.layers.game.score == null
+    ? errorText('missing game-layer reveal rows')
+    : `Err ${formatPct(model.layers.game.error, '-')} | Bot PnL ${formatUsd(model.layers.game.actualBotPnlUsd)} actual vs ${formatUsd(model.layers.game.predictedBotPnlUsd)} predicted`;
 
-  document.getElementById('hpsConsistency').textContent = model.consistency == null ? 'Waiting' : `${formatDisplayNumber(model.consistency)}%`;
-  document.getElementById('hpsConsistencyMeta').textContent = model.consistency == null
-    ? 'Need more resolved data in scope'
-    : 'Higher means calibration is tightening while actual performance is building';
+  document.getElementById('hpsConsistency').textContent = formatPct(model.layers.temporal.score);
+  document.getElementById('hpsConsistency').className = `hps-value ${layerTone(model.layers.temporal.score)}`;
+  document.getElementById('hpsConsistencyMeta').textContent = model.layers.temporal.score == null
+    ? errorText('missing temporal-layer reveal rows')
+    : `MAE ${formatPct(model.layers.temporal.endFrameMae, '-')} | Shift ${formatPct(model.layers.temporal.dynamicShiftError, '-')} | Horizon ${formatPct(model.layers.temporal.horizonAccuracy, '-')}`;
 
   const scopedSubmittedThrows = scopeFilter(throwsRows).filter(t => t?.submitted).length;
   const progressText = scoreScopeState.targetThrows
@@ -1601,40 +2134,45 @@ function renderHonestPerformance(games, metaMap){
     : `${scopedSubmittedThrows} throws in scope`;
   document.getElementById('scoreScopeBadge').textContent = `Scope: ${scoreScopeState.label}`;
   document.getElementById('scoreProgressBadge').textContent = `Progress: ${progressText}`;
-  document.getElementById('hpsTrendGames').textContent = `${model.actualProfitGames} games`;
-  document.getElementById('hpsTrendThrows').textContent = `${model.actualThrowCount} resolved throws`;
-  document.getElementById('hpsTrendPredictions').textContent = `${model.predictedProfitGames} game predictions`;
-  document.getElementById('hpsTrendMeta').textContent = scoreScopeState.mode === 'all_data'
-    ? 'Using all available log data.'
-    : `Using records from ${new Date(scoreScopeState.startTs).toLocaleString()} onward.`;
+  document.getElementById('hpsTrendGames').textContent = `${model.scoredGameCount} scored games`;
+  document.getElementById('hpsTrendThrows').textContent = `${model.totalForecastEvaluations} throw evals`;
+  document.getElementById('hpsTrendPredictions').textContent = `${model.revealCount} reveals`;
+  document.getElementById('hpsTrendMeta').textContent = model.revealCount
+    ? `Coverage ${formatPct(model.coveragePct, '-')} | Sharpness ${formatPct(model.overallSharpnessPct, '-')} | Max history depth ${model.snapshotCount} snapshots`
+    : (scoreScopeState.mode === 'all_data'
+      ? 'Waiting for settled reveal artifacts in the current log set.'
+      : `Waiting for settled reveal artifacts from ${new Date(scoreScopeState.startTs).toLocaleString()} onward.`);
 
-  const labels = model.samples.map((s, i) => `${i + 1}`);
+  const labels = model.samples.map((sample, index) => sample.label || `${index + 1}`);
   const datasets = [];
-  if (model.samples.some(s => s.honestScore != null)) datasets.push({ label: 'Honest Score %', data: model.samples.map(s => s.honestScore), borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension: .22, yAxisID:'yPct' });
-  datasets.push({ label: 'Actual Win %', data: model.samples.map(s => s.actualWinPct), borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.12)', tension: .22, yAxisID:'yPct' });
-  datasets.push({ label: 'Actual Profit $', data: model.samples.map(s => s.actualProfit), borderColor: '#ff4fd8', backgroundColor: 'rgba(255,79,216,.10)', tension: .22, yAxisID:'yUsd' });
+  if (model.samples.some(sample => sample.honestScore != null)) datasets.push({ label: 'Honest Score %', data: model.samples.map(sample => sample.honestScore), borderColor: '#65ffb0', backgroundColor: 'rgba(101,255,176,.12)', tension: .22, yAxisID: 'yPct' });
+  if (model.samples.some(sample => sample.outcomeLayer != null)) datasets.push({ label: 'Outcome Layer %', data: model.samples.map(sample => sample.outcomeLayer), borderColor: '#52e6ff', backgroundColor: 'rgba(82,230,255,.08)', tension: .22, yAxisID: 'yPct' });
+  if (model.samples.some(sample => sample.valueLayer != null)) datasets.push({ label: 'Value Layer %', data: model.samples.map(sample => sample.valueLayer), borderColor: '#ffe66d', backgroundColor: 'rgba(255,230,109,.08)', tension: .22, yAxisID: 'yPct' });
+  if (model.samples.some(sample => sample.gameLayer != null)) datasets.push({ label: 'Game Layer %', data: model.samples.map(sample => sample.gameLayer), borderColor: '#ff9f40', backgroundColor: 'rgba(255,159,64,.08)', tension: .22, yAxisID: 'yPct' });
+  if (model.samples.some(sample => sample.temporalLayer != null)) datasets.push({ label: 'Temporal Layer %', data: model.samples.map(sample => sample.temporalLayer), borderColor: '#5e9cff', backgroundColor: 'rgba(94,156,255,.08)', tension: .22, yAxisID: 'yPct' });
+  if (model.samples.some(sample => sample.coverage != null)) datasets.push({ label: 'Coverage %', data: model.samples.map(sample => sample.coverage), borderColor: '#9fb6d6', backgroundColor: 'rgba(159,182,214,.06)', tension: .18, borderDash: [6, 4], yAxisID: 'yPct' });
 
   hpsTrendChart = new Chart(document.getElementById('hpsTrendChart'), {
-    type:'line',
-    data:{ labels, datasets },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ labels:{ color:'#d9ecff' } } },
-      scales:{
-        x:{ ticks:{ color:'#88a4c6' }, grid:{ color:'rgba(82,230,255,.08)' } },
-        yPct:{ position:'left', min:0, max:100, ticks:{ color:'#88a4c6', callback:(v)=>`${v}%` }, grid:{ color:'rgba(82,230,255,.08)' } },
-        yUsd:{ position:'right', ticks:{ color:'#88a4c6', callback:(v)=>`$${formatDisplayNumber(v)}` }, grid:{ drawOnChartArea:false } }
-      }
-    }
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: { legend: { labels: { color: '#d9ecff' } } },
+      scales: {
+        x: { ticks: { color: '#88a4c6' }, grid: { color: 'rgba(82,230,255,.08)' } },
+        yPct: { position: 'left', min: 0, max: 100, ticks: { color: '#88a4c6', callback: (value) => `${value}%` }, grid: { color: 'rgba(82,230,255,.08)' } },
+      },
+    },
   });
 
-  renderMiniLineChart('miniHonestScoreChart', labels, model.samples.map(s => s.honestScore), '#65ffb0');
-  renderMiniLineChart('miniPredictedProfitChart', labels, model.samples.map(s => s.predictedProfit), '#ffe66d');
-  renderMiniLineChart('miniActualProfitChart', labels, model.samples.map(s => s.actualProfit), '#ff4fd8');
-  renderMiniLineChart('miniPredictedWinChart', labels, model.samples.map(s => s.predictedWinPct), '#ffe66d');
-  renderMiniLineChart('miniActualWinChart', labels, model.samples.map(s => s.actualWinPct), '#52e6ff');
-  renderMiniLineChart('miniGapChart', labels, model.samples.map(s => s.combinedGap ?? s.profitGap), '#ff9f40');
-  renderMiniLineChart('miniConsistencyChart', labels, model.samples.map(s => s.honestScore == null ? null : model.consistency), '#5e9cff');
+  renderMiniLineChart('miniHonestScoreChart', labels, model.samples.map(sample => sample.honestScore), '#65ffb0');
+  renderMiniLineChart('miniPredictedProfitChart', labels, model.samples.map(sample => sample.predictedProfit), '#ffe66d');
+  renderMiniLineChart('miniActualProfitChart', labels, model.samples.map(sample => sample.actualProfit), '#ff4fd8');
+  renderMiniLineChart('miniPredictedWinChart', labels, model.samples.map(sample => sample.outcomeLayer), '#52e6ff');
+  renderMiniLineChart('miniActualWinChart', labels, model.samples.map(sample => sample.valueLayer), '#ffe66d');
+  renderMiniLineChart('miniGapChart', labels, model.samples.map(sample => sample.gameLayer), '#ff9f40');
+  renderMiniLineChart('miniConsistencyChart', labels, model.samples.map(sample => sample.temporalLayer), '#5e9cff');
 
   const messages = buildAgentMessages(metaMap);
   const first = messages[0];
@@ -1952,6 +2490,67 @@ function displayUnitsToBaseUnitsString(value, asset, metaMap){
   const frac = fracRaw.replace(/\D/g, '').slice(0, decimals).padEnd(decimals, '0');
   const digits = (whole + frac).replace(/^0+(?=\d)/, '') || '0';
   return negative && digits !== '0' ? '-' + digits : digits;
+}
+function randomHexId(byteLength = 32){
+  const count = Math.max(1, Number(byteLength) || 32);
+  const bytes = new Uint8Array(count);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function resolveMirrorDepositAsset(metaMap, games){
+  const currentAssets = Object.entries(vmBalances || {})
+    .map(([asset, amount]) => ({ asset: cleanHex(asset), amount: String(amount || '0') }))
+    .filter(item => item.asset && BigInt(item.amount || '0') > 0n);
+  const pricedCurrent = currentAssets
+    .map(item => ({ ...item, price: lookupAssetUsdPrice(item.asset, metaMap, { games }) }))
+    .filter(item => Number.isFinite(item.price) && item.price > 0);
+  if (!pricedCurrent.length) return null;
+  return pricedCurrent[Math.floor(Math.random() * pricedCurrent.length)];
+}
+async function requestMirrorTestTokens(){
+  const btn = document.getElementById('bankOpenSettingsBtn');
+  const hint = document.getElementById('bankStrategyHint');
+  const metaMap = buildAssetMetaMap();
+  const games = buildGamesIndex(metaMap);
+  const chosen = resolveMirrorDepositAsset(metaMap, games);
+  if (!chosen?.asset || !Number.isFinite(chosen.price) || chosen.price <= 0) {
+    if (hint) hint.textContent = 'Request Test Tokens failed: no currently-held asset has a precise internal USD price yet.';
+    return;
+  }
+  const user = with0x(settings?.user || '');
+  const rpc = settings?.rpc || '';
+  if (!user || !rpc) {
+    if (hint) hint.textContent = 'Request Test Tokens failed: RPC URL or user ID is missing from settings.';
+    return;
+  }
+  const amountDisplay = 1000 / Number(chosen.price);
+  const amountBase = displayUnitsToBaseUnitsString(amountDisplay, chosen.asset, metaMap);
+  if (!amountBase || amountBase === '0') {
+    if (hint) hint.textContent = 'Request Test Tokens failed: unable to convert the chosen asset amount into base units.';
+    return;
+  }
+  const originalText = btn?.textContent || 'Request Test Tokens';
+  const noticeId = randomHexId(32);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Requesting...';
+  }
+  try {
+    await rpcCall(rpc, 'colliderV2.mirrorDeposit', [with0x(chosen.asset), user, amountBase, with0x(noticeId)]);
+    const symbol = symbolForAsset(chosen.asset, metaMap);
+    const approxUnits = formatDisplayNumber(parseBaseUnitsToDisplayNumber(amountBase, chosen.asset, metaMap));
+    if (hint) hint.textContent = `Requested test tokens: about ${approxUnits} ${symbol} (~$1000) via mirrorDeposit.`;
+    await maybeRefreshVmBalances();
+    renderAll();
+  } catch (err) {
+    console.error('mirrorDeposit failed', err);
+    if (hint) hint.textContent = `Request Test Tokens failed: ${String(err?.message || err)}`;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
 }
 
 function reserveAssetId(metaMap){
@@ -2412,7 +3011,7 @@ const eligibilityReasonMeta = {
   'WAIT/CD': { code:'WAIT/CD', tone:'tone-warn', title:'Cooldown Active', summary:'The live-throw cooldown is still active, so the agent must wait before submitting again.' },
   'CAP/G': { code:'CAP/G', tone:'tone-warn', title:'Per-Game Cap Reached', summary:'The per-game throw cap stopped another live throw in this game.' },
   'CAP/S': { code:'CAP/S', tone:'tone-warn', title:'Session Cap Reached', summary:'The session-wide throw cap stopped another live throw.' },
-  'NO-CAND/PX': { code:'NO-CAND/PX', tone:'tone-info', title:'Missing Price Basis', summary:'The agent could not derive a precise USD price basis for this game, so it could not score candidates honestly.' },
+  'NO-CAND/PX': { code:'NO-CAND/PX', tone:'tone-info', title:'Missing Price Basis', summary:'The cycle could not derive a precise USD price basis for this game, so honest value scoring never started.' },
   'NO-CAND/ALW': { code:'NO-CAND/ALW', tone:'tone-neutral', title:'Asset Not Allowed', summary:'This game only produced candidate assets that are outside the current allow-list.' },
   'NO-CAND/BLK': { code:'NO-CAND/BLK', tone:'tone-neutral', title:'Asset Blocked', summary:'This game only produced candidate assets that are currently blocked.' },
   'NO-CAND/RSV': { code:'NO-CAND/RSV', tone:'tone-pink', title:'Reserve Balance Gate', summary:'Reserve balance protection removed this game because usable balance would have dropped below the configured reserve.' },
@@ -2424,9 +3023,9 @@ const eligibilityReasonMeta = {
   'NO-CAND/GEXP': { code:'NO-CAND/GEXP', tone:'tone-pink', title:'Above Game Exposure', summary:'This game was blocked by the max game exposure USD limit.' },
   'NO-CAND/TPRF': { code:'NO-CAND/TPRF', tone:'tone-pink', title:'Target Profit Reached', summary:'The current target-profit stop prevented another throw here.' },
   'NO-CAND/TBAL': { code:'NO-CAND/TBAL', tone:'tone-pink', title:'Target Balance Reached', summary:'The current target-balance stop prevented another throw here.' },
-  'NO-CAND/FLT': { code:'NO-CAND/FLT', tone:'tone-neutral', title:'Filtered Out', summary:'Candidates were generated or considered, but none survived the final filtering stage.' },
+  'NO-CAND/FLT': { code:'NO-CAND/FLT', tone:'tone-neutral', title:'Filtered Out', summary:'This cycle ended before a playable candidate survived filtering. If all search counters are zero, the stop happened before raw search even opened.' },
   'NO-CAND/SRCH': { code:'NO-CAND/SRCH', tone:'tone-info', title:'Search Budget Stop', summary:'Search stopped before a playable candidate survived ranking.' },
-  'NO-CAND/BAL': { code:'NO-CAND/BAL', tone:'tone-pink', title:'Balance Gate', summary:'A bankroll or reserve balance gate removed this game before a throw could be chosen.' },
+  'NO-CAND/BAL': { code:'NO-CAND/BAL', tone:'tone-pink', title:'Balance Gate', summary:'A bankroll or reserve gate stopped this game before raw candidate search could choose an amount.' },
   'NO-CAND/MIN': { code:'NO-CAND/MIN', tone:'tone-warn', title:'Minimum Gate', summary:'A minimum-throw rule removed this game before a throw could be chosen.' },
   'NO-CAND/RISK': { code:'NO-CAND/RISK', tone:'tone-pink', title:'Risk Gate', summary:'Risk controls removed this game after amount shaping and candidate filtering.' },
   CHECK: { code:'CHECK', tone:'tone-info', title:'Awaiting Detail', summary:'The game is live, but the latest cycle did not publish a more specific stop reason for it yet.' }
@@ -2498,8 +3097,18 @@ function buildEligibilityInfo(reasonKey, ctx = {}){
   if (ctx.eligibleCandidates != null) searchBits.push(`eligible=${ctx.eligibleCandidates}`);
   if (ctx.plannedCandidates != null) searchBits.push(`planned=${ctx.plannedCandidates}`);
   if (ctx.examinedCandidates != null) searchBits.push(`examined=${ctx.examinedCandidates}`);
+  const searchIsZero = [ctx.rawCandidates, ctx.eligibleCandidates, ctx.plannedCandidates, ctx.examinedCandidates]
+    .filter(value => value != null)
+    .every(value => Number(value) === 0);
+  const combinedReasons = [...perGameReasons, ...filterKeys, ...globalReasons, ctx.stopReason ? String(ctx.stopReason) : '']
+    .filter(Boolean)
+    .map(value => String(value));
 
   const sections = [meta.summary];
+  if (searchIsZero) sections.push('Planner note: this cycle stopped before raw candidate search opened for this game, so nothing was simulated or ranked yet.');
+  if (combinedReasons.includes('missing_price_basis')) sections.push('Price basis note: the cycle could not derive a precise USD basis from this game\'s current throws or the recent internal price cache, so honest candidate value scoring could not start.');
+  if (combinedReasons.includes('no_balance_for_amounts')) sections.push('Balance note: after reserve protection and amount shaping, no legal throw amount remained for this game.');
+  if (searchIsZero && combinedReasons.includes('no_candidates_after_filter')) sections.push('Filter note: `no_candidates_after_filter` is acting as a cycle summary here. Because every search counter is zero, the cycle never reached a real candidate-ranking pass for this game.');
   if (perGameReasons.length) sections.push(`Per-game reasons: <code>${esc(perGameReasons.join(' | '))}</code>.`);
   if (filterKeys.length) sections.push(`Candidate filter counts: <code>${esc(filterKeys.map(key => `${key}:${filterReasonCounts[key] ?? 0}`).join(' | '))}</code>.`);
   if (globalReasons.length) sections.push(`Cycle-wide reasons: <code>${esc(globalReasons.join(' | '))}</code>.`);
@@ -2592,7 +3201,7 @@ function renderGames(games, metaMap){
     const predDisplay = g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${formatDisplayNumber(g.predictedPnlUsd)}`);
 
     tr.innerHTML = `
-      <td>${gameRefHtml(g.gameId)}</td>
+<td>${gameRefHtml(g.gameId)}</td>
       <td>${statusChipHtml(g)}</td>
       <td>${g.scans}</td>
       <td>${g.candidateObservedSum}</td>
@@ -2609,7 +3218,30 @@ function renderGames(games, metaMap){
   });
 
   document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages}`;
+  updateTargetSelectedGameButton(games);
 }
+function updateTargetSelectedGameButton(games){
+  const btn = document.getElementById('targetSelectedGameBtn');
+  if (!btn) return;
+  const selected = selectedGameId ? games.find(g => g.gameId === selectedGameId) : null;
+  if (!selected) {
+    btn.classList.add('is-hidden');
+    btn.classList.remove('active');
+    btn.removeAttribute('data-target-game');
+    btn.textContent = 'Urgent Throw';
+    btn.title = 'Select a game first to target it.';
+    return;
+  }
+  const active = cleanHex(controlState?.targetGameId || '') === cleanHex(selected.gameId);
+  btn.classList.remove('is-hidden');
+  btn.classList.toggle('active', active);
+  btn.setAttribute('data-target-game', selected.gameId);
+  btn.textContent = active ? 'Targeting Selected' : 'Urgent Throw';
+  btn.title = active
+    ? 'Priority targeting is active for the selected game.'
+    : 'Calculate and throw in the currently selected game urgently.';
+}
+
 function renderBankStrategySummary(metaMap){
   const summary = document.getElementById('bankStrategySummary');
   if (!summary) return;
@@ -2620,14 +3252,14 @@ function renderBankStrategySummary(metaMap){
   summary.innerHTML = `
     <div class="strategy-simple">
       ${row('Min Game Value USD', `<div class="strategy-simple-inline"><input data-bank-target="s_minGameStakeUsd" type="number" step="0.01" value="${esc(getSettingString('minGameStakeUsd'))}"></div>`)}
-      ${row('Throw Range USD', `<div class="strategy-simple-inline"><input data-bank-target="s_minThrowUsd" type="number" step="0.01" value="${esc(getSettingString('minThrowUsd'))}" placeholder="Min"><span class="muted">to</span><input data-bank-target="s_maxThrowUsd" type="number" step="0.01" value="${esc(getSettingString('maxThrowUsd'))}" placeholder="Max"></div>`)}
+      ${row('Throw Range USD', `<div class="strategy-simple-inline range"><input data-bank-target="s_minThrowUsd" type="number" step="0.01" value="${esc(getSettingString('minThrowUsd'))}" placeholder="Min"><span class="muted strategy-inline-bridge">to</span><input data-bank-target="s_maxThrowUsd" type="number" step="0.01" value="${esc(getSettingString('maxThrowUsd'))}" placeholder="Max"></div>`)}
       ${row('Max Single Throw USD', `<div class="strategy-simple-inline"><input data-bank-target="s_maxSingleThrowUsd" type="number" step="0.01" value="${esc(getSettingString('maxSingleThrowUsd'))}"></div>`)}
       ${row('Max Game Exposure USD', `<div class="strategy-simple-inline"><input data-bank-target="s_maxGameExposureUsd" type="number" step="0.01" value="${esc(getSettingString('maxGameExposureUsd'))}"></div>`)}
       ${row('Reserve Balance Base', `<div class="strategy-simple-inline"><input data-bank-target="s_reserveBalanceBase_display" data-bank-display-asset="${esc(reserve.asset)}" type="number" step="0.001" value="${esc(reserveDisplay)}" placeholder="0"><span class="muted">${esc(reserve.symbol)}</span></div><input class="strategy-slider" data-bank-slider="reserve" data-bank-display-asset="${esc(reserve.asset)}" data-bank-total-display="${esc(String(reserve.balanceDisplay || 0))}" type="range" min="0" max="100" value="${reservePct}">`, reserve.asset ? `Current ${formatDisplayNumber(reserve.balanceDisplay)} ${esc(reserve.symbol)} | <span id="bankReserveSliderMeta">${reservePct}% of current ${esc(reserve.symbol)} balance</span>` : '<span id="bankReserveSliderMeta">Set a configured asset to enable the reserve slider.</span>')}
       ${row('Target Balance USD', `<div class="strategy-simple-inline"><input data-bank-target="s_targetBalanceUsd" type="number" step="0.01" value="${esc(getSettingString('targetBalanceUsd'))}"></div>`)}
       ${row('Target Profit USD', `<div class="strategy-simple-inline"><input data-bank-target="s_targetProfitUsd" type="number" step="0.01" value="${esc(getSettingString('targetProfitUsd'))}"></div>`)}
       ${row('Risk Mode', `<div class="strategy-simple-inline"><select data-bank-target="s_riskMode"><option value="balanced" ${String(getSettingString('riskMode') || 'balanced') === 'balanced' ? 'selected' : ''}>balanced</option><option value="aggressive" ${String(getSettingString('riskMode')) === 'aggressive' ? 'selected' : ''}>aggressive</option><option value="conservative" ${String(getSettingString('riskMode')) === 'conservative' ? 'selected' : ''}>conservative</option></select></div>`)}
-      ${row('Copy Slammers', `<div class="strategy-simple-inline"><select data-bank-target="s_copySlammerWhenSameHoleType"><option value="false" ${settingsBoolish('copySlammerWhenSameHoleType') ? '' : 'selected'}>no</option><option value="true" ${settingsBoolish('copySlammerWhenSameHoleType') ? 'selected' : ''}>yes</option></select></div>`)}
+      ${row('Custom Strategy', `<div class="strategy-simple-inline"><input data-bank-target="s_customStrategy" type="text" value="${esc(getSettingString('customStrategy'))}" placeholder="copy_slammers"></div>`, 'Built-in example: copy_slammers. New manager strategies can be persisted here.')}
       ${row('Allowed Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.allowedAssets, metaMap)}</div>`, 'Use Open Settings to change the asset lists.')}
       ${row('Blocked Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.blockedAssets, metaMap)}</div>`)}
       ${row('Keep Assets', `<div class="strategy-simple-list">${formatAssetListHtml(settings.keepAssets, metaMap)}</div>`)}
@@ -2771,19 +3403,22 @@ function renderBank(games, metaMap){
 function renderScoreboard(games, metaMap){
   const panel = document.getElementById('scoreboardPanel');
   const g = selectedGameId ? games.find(x => x.gameId === selectedGameId) : null;
+  const analytics = document.getElementById('analyticsCards');
+  const analyticsPanel = document.getElementById('gamesReviewAnalyticsPanel');
+  destroyAnalyticsCharts();
 
   if (!g) {
-    panel.innerHTML = `
-      <div class="muted">Mode</div><div>All Games</div>
-      <div class="muted">Tracked Games</div><div>${games.length}</div>
-      <div class="muted">Resolved Games</div><div>${games.filter(g=>g.resolvedCount>0).length}</div>
-      <div class="muted">Total PnL</div><div>${fmtNum(games.reduce((s,g)=>s+(Number.isFinite(Number(g.pnlUsd))?Number(g.pnlUsd):0),0),2)}</div>
-      <div class="muted">Pending USD</div><div>${fmtNum(games.reduce((s,g)=>s+Number(g.pendingUsd||0),0),2)}</div>
-      <div class="muted">Pending Throws</div><div>${games.reduce((s,g)=>s+Number(g.agentPendingThrows||0),0)}</div>
-      <div class="muted">Configured Asset</div><div>${settings.asset ? assetInline(settings.amount || '0', settings.asset, metaMap) : '-'}</div>
-    `;
+    document.getElementById('selGameId').textContent = 'Game: All Games';
+    document.getElementById('selGameStatus').textContent = 'Status: -';
+    document.getElementById('selGamePnl').textContent = 'PnL: -';
+    document.getElementById('selGamePending').textContent = 'Pending: -';
+    document.getElementById('selGamePoints').textContent = 'Points: -';
+    document.getElementById('selectedThrowsBody').innerHTML = '';
+    if (analyticsPanel) analyticsPanel.classList.add('view-hidden');
+    if (analytics) analytics.innerHTML = '';
     return;
   }
+  if (analyticsPanel) analyticsPanel.classList.remove('view-hidden');
 
   panel.innerHTML = `
     <div class="muted">Game</div><div>${gameRefHtml(g.gameId)}</div>
@@ -2892,7 +3527,7 @@ function renderSelectedDetail(games, metaMap){
   document.getElementById('selGamePending').textContent = `Pending: ${g.agentPendingThrows}`;
   document.getElementById('selGamePoints').textContent = settlingSnapshot && !g.bonusTimeline.length ? 'Points: Settling' : `Points: ${g.points}`;
 
-  const resultByDecision = latestByKey(g.rowsResults, r => r?.decisionId);
+  const resultByDecision = new Map(buildLatestResultsByDecision().filter(r => cleanHex(r?.gameId || '') === g.gameId).map(r => [r.decisionId, r]));
   const openLike = Number(g.latestStatus ?? -1) < 2 || Number(g.agentPendingThrows || 0) > 0;
   patchTableBody('selectedThrowsBody', g.rowsThrows.slice().reverse(), t => t.decisionId || t.ts, (tr, t) => {
     const p = t.payload || {};
@@ -2932,7 +3567,7 @@ function renderSelectedDetail(games, metaMap){
     return { ...r, user, points };
   }).sort((a,b) => Number(b.pnl_usd || 0) - Number(a.pnl_usd || 0)).slice(0, 24);
 
-  const userExactRows = buildResolvedDeltaRows(g.rowsResults).filter(entry => entry.actualHole.kind === 'hole');
+  const userExactRows = buildResolvedDeltaRows(buildLatestResultsByDecision().filter(r => cleanHex(r?.gameId || '') === g.gameId)).filter(entry => entry.actualHole.kind === 'hole');
   const holeUserCountTotals = {};
   const holeUserValueTotals = {};
   for (const entry of userExactRows) {
@@ -3000,7 +3635,7 @@ function renderSelectedDetail(games, metaMap){
   const payoutKeyPieEntries = payoutAssetEntries.length ? payoutAssetEntries : payoutKindEntries;
   const payoutKeyTotalUsd = payoutKeyRows.reduce((sum, item) => sum + Number(item.usd || 0), 0);
   const payoutKeyTableHtml = payoutKeyRows.length
-    ? `<table class="analytics-cross-table">
+    ? `<table class="analytics-cross-table compact payout-key-table">
         <thead>
           <tr><th>Kind</th><th>Asset</th><th>Amount</th><th>USD</th></tr>
         </thead>
@@ -3009,12 +3644,12 @@ function renderSelectedDetail(games, metaMap){
             const asset = cleanHex(item.asset || '');
             const symbol = asset ? symbolForAsset(asset, metaMap) : '-';
             const displayAmount = asset ? formatDisplayNumber(parseBaseUnitsToDisplayNumber(item.amount, asset, metaMap)) : formatDisplayNumber(item.amount);
-            const usdText = Number(item.usd || 0) > 0 ? `$${formatDisplayNumber(item.usd)}` : '-';
-            return `<tr><td>${esc(item.kind)}</td><td>${asset ? `<span class="asset-inline">${assetIcon(symbol)}<span>${esc(symbol)}</span></span>` : '-'}</td><td>${esc(displayAmount)}</td><td>${esc(usdText)}</td></tr>`;
+            const usdText = Number(item.usd || 0) > 0 ? `\$${formatDisplayNumber(item.usd)}` : '-';
+            return `<tr><td>${esc(item.kind)}</td><td><span class="payout-key-asset">${esc(symbol)}</span></td><td>${esc(displayAmount)}</td><td>${esc(usdText)}</td></tr>`;
           }).join('')}
         </tbody>
         <tfoot>
-          <tr><td colspan="3">Total USD</td><td>${esc(payoutKeyTotalUsd > 0 ? `$${formatDisplayNumber(payoutKeyTotalUsd)}` : '-')}</td></tr>
+          <tr><td colspan="3">Total USD</td><td>${esc(payoutKeyTotalUsd > 0 ? `\$${formatDisplayNumber(payoutKeyTotalUsd)}` : '-')}</td></tr>
         </tfoot>
       </table>`
     : `<div class="analytics-chart-note">${esc(payoutValueNote)}</div>`;
@@ -3205,6 +3840,205 @@ function renderResolvedBottom(metaMap){
 }
 
 
+function latestRevealArtifactForGame(game){
+  const rows = buildLatestResultsByDecision()
+    .filter(row => cleanHex(row?.gameId || '') === cleanHex(game?.gameId || ''))
+    .sort((a,b) => freshTimestamp(b?.ts) - freshTimestamp(a?.ts));
+  for (const row of rows) {
+    const reveal = getPredictionRevealArtifact(row);
+    if (reveal?.evaluations?.temporalHistory) return { row, reveal };
+  }
+  return null;
+}
+
+function buildForecastRibbonModel(game){
+  const latest = latestRevealArtifactForGame(game);
+  if (!latest?.reveal) return null;
+  const reveal = latest.reveal;
+  const historyRoot = reveal?.evaluations?.temporalHistory || {};
+  const gameHistory = Array.isArray(historyRoot.game) ? historyRoot.game.slice().sort((a,b) => Number(a?.referenceFrame ?? 0) - Number(b?.referenceFrame ?? 0)) : [];
+  const throwHistories = Array.isArray(historyRoot.throws) ? historyRoot.throws.slice() : [];
+  const throwSummaryByKey = new Map();
+  for (const throwRow of Array.isArray(reveal?.throws) ? reveal.throws : []) {
+    const throwId = cleanHex(throwRow?.actualThrowId || '');
+    const subjectKey = String(throwRow?.subjectKey || '');
+    if (throwId) throwSummaryByKey.set(throwId, throwRow);
+    if (subjectKey) throwSummaryByKey.set(subjectKey, throwRow);
+  }
+  const datasets = [];
+  if (gameHistory.length) {
+    datasets.push({
+      type:'line',
+      label:'Game total forecast',
+      data: gameHistory.map(point => ({
+        x:Number(point?.referenceFrame ?? 0),
+        y:Number(point?.predictedReturnedUsdSum ?? 0),
+        meta:{
+          kind:'game',
+          predictedBotPnlUsd:Number(point?.predictedBotPnlUsd ?? 0),
+          predictedFinalFrame:Number(point?.predictedFinalFrame ?? 0),
+          decisionId:point?.decisionId || '',
+          createdAt:point?.createdAt || ''
+        }
+      })).filter(point => Number.isFinite(point.x) && Number.isFinite(point.y)),
+      parsing:false,
+      borderColor:'#65ffb0',
+      backgroundColor:'rgba(101,255,176,.12)',
+      borderWidth:3,
+      pointRadius:3,
+      pointHoverRadius:5,
+      tension:.18,
+      fill:false,
+      order:0
+    });
+  }
+  const trackedRows = throwHistories
+    .filter(row => Array.isArray(row?.points) && row.points.length)
+    .sort((a,b) => Number(b?.enterFrame ?? 0) - Number(a?.enterFrame ?? 0))
+    .slice(0, 12);
+  const colors = chartColors(Math.max(1, trackedRows.length));
+  trackedRows.forEach((history, index) => {
+    const summaryKey = cleanHex(history?.actualThrowId || '') || String(history?.subjectKey || '');
+    const summary = throwSummaryByKey.get(summaryKey) || null;
+    const isCandidate = String(history?.source || '') === 'candidate';
+    const isBot = cleanHex(history?.user || '') === cleanHex(settings?.user || '');
+    const label = isCandidate
+      ? 'Candidate ribbon'
+      : `${isBot ? 'Bot' : 'Tracked'} ${shortHex(cleanHex(history?.actualThrowId || '') || String(history?.subjectKey || ''), 8)}`;
+    const color = isCandidate ? '#ff4fd8' : colors[index % colors.length];
+    const data = history.points
+      .slice()
+      .sort((a,b) => Number(a?.referenceFrame ?? 0) - Number(b?.referenceFrame ?? 0))
+      .map(point => ({
+        x:Number(point?.referenceFrame ?? 0),
+        y:Number.isFinite(Number(point?.predictedReturnedUsd)) ? Number(point.predictedReturnedUsd) : Number(point?.predictedPnlUsd ?? 0),
+        meta:{
+          kind:'throw',
+          source:history?.source || 'existing',
+          user:cleanHex(history?.user || ''),
+          actualThrowId:cleanHex(history?.actualThrowId || ''),
+          predictedHoleType:point?.predictedHoleType,
+          probabilityOfMode:Number(point?.probabilityOfMode ?? NaN),
+          predictedPnlUsd:Number(point?.predictedPnlUsd ?? 0),
+          predictedReturnedUsd:Number(point?.predictedReturnedUsd ?? 0),
+          predictedEndFrame:Number(point?.predictedEndFrame ?? NaN),
+          actualReturnedUsd:Number(summary?.actualReturnedUsd ?? NaN),
+          actualHoleType:summary?.actualHoleType,
+          decisionId:point?.decisionId || '',
+          createdAt:point?.createdAt || ''
+        }
+      }))
+      .filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
+    if (!data.length) return;
+    datasets.push({
+      type:'line',
+      label,
+      data,
+      parsing:false,
+      borderColor:color,
+      backgroundColor:rgbaFromHex(color, 0.12),
+      borderWidth:isCandidate ? 2.8 : 1.8,
+      borderDash:isCandidate ? [8,4] : [],
+      pointRadius:isCandidate ? 3 : 2,
+      pointHoverRadius:5,
+      tension:.14,
+      fill:false,
+      order:1
+    });
+  });
+  const actualReturnedTotal = Number(reveal?.layers?.game?.actualReturnedUsdSum ?? NaN);
+  if (Number.isFinite(actualReturnedTotal) && actualReturnedTotal > 0 && gameHistory.length) {
+    const maxReferenceFrame = Math.max(...gameHistory.map(point => Number(point?.referenceFrame ?? 0)).filter(value => Number.isFinite(value)), 0);
+    datasets.push({
+      type:'line',
+      label:'Actual returned total',
+      data:[{ x:0, y:actualReturnedTotal }, { x:maxReferenceFrame, y:actualReturnedTotal }],
+      parsing:false,
+      borderColor:'#ff9f40',
+      borderDash:[6,6],
+      pointRadius:0,
+      pointHoverRadius:0,
+      tension:0,
+      fill:false,
+      order:2
+    });
+  }
+  return {
+    reveal,
+    row:latest.row,
+    datasets,
+    snapshotCount:gameHistory.length,
+    trackedThrowCount:throwHistories.length,
+    maxReferenceFrame:Math.max(1, ...datasets.flatMap(dataset => dataset.data || []).map(point => Number(point?.x ?? 0)).filter(value => Number.isFinite(value))),
+  };
+}
+
+function renderForecastRibbonChart(profitCanvas, game){
+  const metaEl = document.getElementById('selectedGameChartMeta');
+  const model = buildForecastRibbonModel(game);
+  if (!model || !model.datasets.length) {
+    if (metaEl) metaEl.textContent = 'Forecast ribbon is waiting for a loaded reveal artifact with temporal history for this game.';
+    profitChart = new Chart(profitCanvas, {
+      type:'line',
+      data:{ datasets:[] },
+      options:{
+        animation:false,
+        responsive:true,
+        maintainAspectRatio:false,
+        normalized:true,
+        resizeDelay:120,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ type:'linear', min:0, max:1, title:{ display:true, text:'Forecast Reference Frame', color:'#88a4c6' }, ticks:{ color:'#88a4c6' }, grid:{ color:'rgba(82,230,255,.08)' } },
+          y:{ beginAtZero:true, title:{ display:true, text:'Predicted Returned USD', color:'#88a4c6' }, ticks:{ color:'#88a4c6' }, grid:{ color:'rgba(82,230,255,.08)' } }
+        }
+      }
+    });
+    return;
+  }
+  if (metaEl) metaEl.textContent = `Forecast ribbon from the latest reveal artifact | ${model.snapshotCount} game snapshots | ${model.trackedThrowCount} tracked throw ribbons.`;
+  profitChart = new Chart(profitCanvas, {
+    type:'line',
+    data:{ datasets:model.datasets },
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      normalized:true,
+      resizeDelay:120,
+      interaction:{ mode:'nearest', intersect:false, axis:'x' },
+      plugins:{
+        legend:{ labels:{ color:'#d9ecff', boxWidth:16, usePointStyle:true } },
+        tooltip:{
+          callbacks:{
+            title:(items) => items?.length ? `Ref frame ${fmtNum(items[0]?.parsed?.x,0)}` : '',
+            label:(ctx) => `${ctx.dataset.label}: $${formatDisplayNumber(ctx.parsed?.y)}`,
+            afterLabel:(ctx) => {
+              const meta = ctx.raw?.meta || {};
+              const lines = [];
+              if (meta.kind === 'game') {
+                if (Number.isFinite(meta.predictedBotPnlUsd)) lines.push(`Predicted bot PnL ${meta.predictedBotPnlUsd >= 0 ? '+' : ''}$${formatDisplayNumber(meta.predictedBotPnlUsd)}`);
+                if (Number.isFinite(meta.predictedFinalFrame) && meta.predictedFinalFrame > 0) lines.push(`Predicted final frame ${fmtNum(meta.predictedFinalFrame,0)}`);
+              } else {
+                if (meta.user) lines.push(`User ${shortHex(meta.user)}`);
+                if (meta.predictedHoleType != null) lines.push(`Hole ${holeTypeLabel(Number(meta.predictedHoleType))}`);
+                if (Number.isFinite(meta.probabilityOfMode)) lines.push(`Mode prob ${formatDisplayNumber(meta.probabilityOfMode * 100)}%`);
+                if (Number.isFinite(meta.predictedEndFrame)) lines.push(`Predicted end ${fmtNum(meta.predictedEndFrame,0)}`);
+                if (Number.isFinite(meta.actualReturnedUsd)) lines.push(`Actual returned $${formatDisplayNumber(meta.actualReturnedUsd)}`);
+              }
+              return lines;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ type:'linear', min:0, max:model.maxReferenceFrame, title:{ display:true, text:'Forecast Reference Frame', color:'#88a4c6' }, ticks:{ color:'#88a4c6', maxTicksLimit:10, callback:(value) => compactTickLabel(Number(value)) }, grid:{ color:'rgba(82,230,255,.08)' } },
+        y:{ beginAtZero:true, title:{ display:true, text:'Predicted Returned USD', color:'#88a4c6' }, ticks:{ color:'#88a4c6', callback:(value) => `$${compactTickLabel(Number(value))}` }, grid:{ color:'rgba(82,230,255,.08)' } }
+      }
+    }
+  });
+}
+
 function renderCharts(games, metaMap){
   if (profitChart) profitChart.destroy();
   if (positionChart) positionChart.destroy();
@@ -3219,7 +4053,7 @@ function renderCharts(games, metaMap){
   if (profitPanel) profitPanel.classList.remove('view-hidden');
   if (positionPanel) positionPanel.classList.remove('view-hidden');
   if (profitCanvas) {
-    const profitHeight = selectedGameId ? '288px' : '96px';
+    const profitHeight = selectedGameId ? '380px' : '360px';
     profitCanvas.style.height = profitHeight;
     profitCanvas.style.minHeight = profitHeight;
     profitCanvas.style.maxHeight = profitHeight;
@@ -3228,8 +4062,16 @@ function renderCharts(games, metaMap){
     positionCanvas.style.height = '180px';
     positionCanvas.style.maxHeight = '180px';
   }
+  const chartModeToggle = document.getElementById('selectedGameChartModeToggle');
+  const returnBtn = document.getElementById('chartModeReturnBtn');
+  const ribbonBtn = document.getElementById('chartModeRibbonBtn');
+  const chartMetaEl = document.getElementById('selectedGameChartMeta');
+  if (chartModeToggle) chartModeToggle.style.visibility = selectedGameId ? 'visible' : 'hidden';
+  if (returnBtn) returnBtn.classList.toggle('active', selectedGameChartMode === 'return_flow');
+  if (ribbonBtn) ribbonBtn.classList.toggle('active', selectedGameChartMode === 'forecast_ribbon');
 
   if (!selectedGameId) {
+    if (chartMetaEl) chartMetaEl.textContent = 'Cross-game summary of recent PnL, open stake, predicted PnL, and HPS context.';
     const rows = games.slice(0,20).reverse();
     const labels = rows.map(g => shortHex(g.gameId));
     const pnlSeries = rows.map(g => Number.isFinite(Number(g.pnlUsd)) ? Number(g.pnlUsd) : null);
@@ -3284,20 +4126,27 @@ function renderCharts(games, metaMap){
 
   const settledLike = Number(g.latestStatus ?? -1) >= 2 || !!g.canonicalResult || Number(g.resolvedCount || 0) > 0;
   if (!settledLike) {
+    if (chartMetaEl) chartMetaEl.textContent = 'Return flow and forecast ribbon unlock once this game has resolved throw outcomes or a loaded reveal artifact.';
     if (profitPanel) profitPanel.classList.add('view-hidden');
     return;
   }
 
-  const resolvedEntries = buildResolvedDeltaRows(g.rowsResults)
+  if (selectedGameChartMode === 'forecast_ribbon') {
+    renderForecastRibbonChart(profitCanvas, g);
+    return;
+  }
+
+  if (chartMetaEl) chartMetaEl.textContent = 'Selected-game return flow by resolved outcome frame. Break-even marks the user stake line.';
+
+  const resolvedRows = buildLatestResultsByDecision().filter(row => cleanHex(row?.gameId || '') === g.gameId);
+  const resolvedEntries = buildResolvedDeltaRows(resolvedRows)
     .filter(entry => Number.isFinite(Number(entry?.row?.actual?.throwMatch?.endFrame ?? NaN)))
     .slice()
     .sort((a,b) => Number(a.row?.actual?.throwMatch?.endFrame ?? 0) - Number(b.row?.actual?.throwMatch?.endFrame ?? 0) || freshTimestamp(a.row?.ts) - freshTimestamp(b.row?.ts));
 
   const priceSnapshot = buildGameAssetPriceSnapshot(g, metaMap, 'user');
-  const cumulativeByAsset = {};
-  const assetOrder = [];
-  const assetSeen = new Set();
-  const eventPoints = [];
+  let cumulativeReturnedUsd = 0;
+  const eventSeries = [];
 
   for (const entry of resolvedEntries) {
     const frame = Number(entry?.row?.actual?.throwMatch?.endFrame ?? NaN);
@@ -3316,55 +4165,44 @@ function renderCharts(games, metaMap){
     const deltaReturnedUsd = Number(entry?.deltaReturnedUsd ?? NaN);
     const positiveReturnedUsd = Number.isFinite(deltaReturnedUsd) && deltaReturnedUsd > 0 ? deltaReturnedUsd : 0;
     const matchAsset = cleanHex(entry?.row?.actual?.throwMatch?.asset || settings?.asset || '');
+    if (!totalPositiveUsd && positiveReturnedUsd > 0 && matchAsset) perAssetUsd[matchAsset] = positiveReturnedUsd;
 
-    if (!totalPositiveUsd && positiveReturnedUsd > 0 && matchAsset) {
-      perAssetUsd[matchAsset] = (perAssetUsd[matchAsset] || 0) + positiveReturnedUsd;
-      totalPositiveUsd = positiveReturnedUsd;
-    } else if (positiveReturnedUsd > 0 && totalPositiveUsd > 0 && Math.abs(totalPositiveUsd - positiveReturnedUsd) > 0.000001) {
-      const scale = positiveReturnedUsd / totalPositiveUsd;
-      for (const asset of Object.keys(perAssetUsd)) perAssetUsd[asset] = Number((perAssetUsd[asset] * scale).toFixed(6));
-      totalPositiveUsd = positiveReturnedUsd;
-    }
-
-    if (!(totalPositiveUsd > 0)) continue;
-
-    for (const [asset, usd] of Object.entries(perAssetUsd)) {
-      cumulativeByAsset[asset] = (cumulativeByAsset[asset] || 0) + Number(usd);
-      if (!assetSeen.has(asset)) {
-        assetSeen.add(asset);
-        assetOrder.push(asset);
+    cumulativeReturnedUsd += positiveReturnedUsd;
+    eventSeries.push({
+      x: frame,
+      y: Number(cumulativeReturnedUsd.toFixed(6)),
+      meta: {
+        returnedUsd: Number(positiveReturnedUsd.toFixed(6)),
+        assetBreakdown: Object.keys(perAssetUsd).length
+          ? Object.entries(perAssetUsd).sort((a,b) => Number(b[1]) - Number(a[1])).map(([asset, usd]) => `${symbolForAsset(asset, metaMap)} $${formatDisplayNumber(usd)}`).join(' | ')
+          : 'No returned value on this throw.'
       }
-    }
-
-    const snapshot = {};
-    for (const asset of assetOrder) snapshot[asset] = Number((cumulativeByAsset[asset] || 0).toFixed(6));
-    const lastPoint = eventPoints.length ? eventPoints[eventPoints.length - 1] : null;
-    if (lastPoint && Number(lastPoint.frame) === frame) {
-      lastPoint.cumulativeByAsset = snapshot;
-      lastPoint.returnedUsd = Number(((lastPoint.returnedUsd || 0) + totalPositiveUsd).toFixed(6));
-    } else {
-      eventPoints.push({ frame, cumulativeByAsset: snapshot, returnedUsd: Number(totalPositiveUsd.toFixed(6)) });
-    }
+    });
   }
 
   const maxFrame = Math.max(1, ...resolvedEntries.map(entry => Number(entry?.row?.actual?.throwMatch?.endFrame ?? 0)).filter(v => Number.isFinite(v)));
-  const colors = chartColors(Math.max(assetOrder.length, 1));
-  const returnedDatasets = assetOrder.map((asset, idx) => ({
-    type:'bar',
-    label:`${symbolForAsset(asset, metaMap)} Returned USD`,
-    data: eventPoints.map(point => ({ x: point.frame, y: Number(point.cumulativeByAsset[asset] || 0) })),
-    parsing:false,
-    backgroundColor: colors[idx] + 'a8',
-    borderColor: colors[idx],
-    borderWidth:0,
-    borderSkipped:false,
-    stack:'returned',
-    barThickness:16,
-    maxBarThickness:18
-  })).filter(dataset => dataset.data.some(point => Number(point.y) > 0));
-
+  const colors = chartColors(2);
   const breakEvenUsd = Number(g.stakeUsd ?? 0);
-  const datasets = [...returnedDatasets];
+  const datasets = [];
+  if (eventSeries.length) {
+    datasets.push({
+      type:'line',
+      label:'Cumulative Returned USD',
+      data:eventSeries,
+      parsing:false,
+      borderColor:colors[0],
+      backgroundColor:colors[0] + '30',
+      borderWidth:3,
+      pointRadius:4,
+      pointHoverRadius:6,
+      pointBackgroundColor:colors[0],
+      pointBorderColor:'#d9ecff',
+      pointBorderWidth:1,
+      fill:false,
+      tension:0.1,
+      yAxisID:'y'
+    });
+  }
   if (Number.isFinite(breakEvenUsd) && breakEvenUsd > 0) {
     datasets.push({
       type:'line',
@@ -3382,7 +4220,7 @@ function renderCharts(games, metaMap){
   }
 
   profitChart = new Chart(profitCanvas, {
-    type:'bar',
+    type:'line',
     data:{ datasets },
     options:{
       animation:false,
@@ -3396,9 +4234,10 @@ function renderCharts(games, metaMap){
         tooltip:{
           callbacks:{
             title:(items) => items?.length ? `Frame ${fmtNum(items[0]?.parsed?.x,0)}` : '',
-            label:(ctx) => ctx.dataset?.type === 'line'
+            label:(ctx) => ctx.dataset?.label === 'Break-even stake'
               ? `Break-even: $${formatDisplayNumber(ctx.parsed?.y)}`
-              : `${ctx.dataset.label}: $${formatDisplayNumber(ctx.parsed?.y)}`
+              : `${ctx.dataset.label}: $${formatDisplayNumber(ctx.parsed?.y)}`,
+            afterLabel:(ctx) => ctx.raw?.meta?.assetBreakdown || ''
           }
         }
       },
@@ -3407,13 +4246,11 @@ function renderCharts(games, metaMap){
           type:'linear',
           min:0,
           max:maxFrame,
-          stacked:true,
           title:{ display:true, text:'Replay Frame', color:'#88a4c6' },
           ticks:{ color:'#88a4c6', maxTicksLimit:10, callback:(value) => compactTickLabel(Number(value)) },
           grid:{ color:'rgba(82,230,255,.08)' }
         },
         y:{
-          stacked:true,
           beginAtZero:true,
           title:{ display:true, text:'Cumulative Returned USD', color:'#88a4c6' },
           ticks:{ color:'#88a4c6', callback:(value) => `$${compactTickLabel(Number(value))}` },
@@ -3460,7 +4297,8 @@ async function saveSettings(){
     minThrowUsd: parseNumberInput("s_minThrowUsd"),
     maxThrowUsd: parseNumberInput("s_maxThrowUsd"),
     riskMode: document.getElementById("s_riskMode").value || "balanced",
-    copySlammerWhenSameHoleType: document.getElementById("s_copySlammerWhenSameHoleType").value === "true",
+    customStrategy: document.getElementById("s_customStrategy").value.trim() || null,
+    copySlammerWhenSameHoleType: document.getElementById("s_customStrategy").value.trim().toLowerCase() === "copy_slammers",
     allowedAssets: getSelectValues("s_allowedAssets"),
     blockedAssets: getSelectValues("s_blockedAssets"),
     reserveBalanceBase: document.getElementById("s_reserveBalanceBase").value.trim(),
@@ -3511,7 +4349,7 @@ async function loadSettings(){
   set("s_minThrowUsd", settings.minThrowUsd ?? "");
   set("s_maxThrowUsd", settings.maxThrowUsd ?? "");
   set("s_riskMode", settings.riskMode ?? "balanced");
-  set("s_copySlammerWhenSameHoleType", String(!!settings.copySlammerWhenSameHoleType));
+  set("s_customStrategy", settings.customStrategy ?? (settings.copySlammerWhenSameHoleType ? "copy_slammers" : ""));
   setSelectValues("s_allowedAssets", settings.allowedAssets ?? []);
   setSelectValues("s_blockedAssets", settings.blockedAssets ?? []);
   set("s_reserveBalanceBase", settings.reserveBalanceBase ?? "");
@@ -3647,6 +4485,7 @@ async function refresh(){
     }
     monitorInitialDataReady = true;
     setMonitorLoading(false);
+    void warmPredictionArtifacts();
   }catch(err){
     console.error(err);
     if (!monitorInitialDataReady) setMonitorLoading(true, 'Failed to load recent logs. Retrying...');
@@ -3725,7 +4564,13 @@ function syncInlineBankTarget(sourceEl){
     settings[key] = values;
   } else {
     target.value = sourceEl.value;
-    settings[key] = targetId === 's_copySlammerWhenSameHoleType' ? (String(sourceEl.value) === 'true') : sourceEl.value;
+    if (targetId === 's_customStrategy') {
+      const nextValue = String(sourceEl.value || '').trim();
+      settings[key] = nextValue;
+      settings.copySlammerWhenSameHoleType = nextValue.toLowerCase() === 'copy_slammers';
+    } else {
+      settings[key] = sourceEl.value;
+    }
   }
   const hint = document.getElementById('bankStrategyHint');
   if (hint) hint.textContent = 'Bank strategy edited inline. Changes auto-save to the live agent and sync the full settings panel.';
@@ -3763,6 +4608,7 @@ async function copyTextToClipboard(raw, btn){
 document.getElementById('navHonestBtn').addEventListener('click', () => setMainView('honest'));
 document.getElementById('navGamesBtn').addEventListener('click', () => setMainView('games'));
 document.getElementById('navBankBtn').addEventListener('click', () => setMainView('bank'));
+document.getElementById('bankOpenSettingsBtn').addEventListener('click', () => { requestMirrorTestTokens().catch(console.error); });
 document.getElementById('bankQuickSettingsBtn').addEventListener('click', openSettingsModal);
 document.getElementById('navResolvedBtn').addEventListener('click', () => setMainView('resolved'));
 const navSettingsBtn = document.getElementById('navSettingsBtn');
@@ -3798,7 +4644,7 @@ document.getElementById("ctlSnapshot").addEventListener("click", () => { setScor
 document.getElementById("ctlCalibrate").addEventListener("click", () => { setScoreScope('calibrate_100', { startTs:new Date().toISOString(), targetThrows:100, label:'Calibrate (100)' }); controlState.lastMessage = 'Calibrate requested. The honest score now uses the next 100 throws.'; postControlAction("calibrate", { throwsTarget:100, exclusive:false }).catch?.(console.error); renderAll(); });
 document.getElementById("ctlFullClean").addEventListener("click", () => { setScoreScope('cleanse_1000', { startTs:new Date().toISOString(), targetThrows:1000, exclusive:true, label:'Cleanse (1000)' }); controlState.lastMessage = 'Cleanse requested. The honest score now uses the next 1000 throws only until the run completes.'; postControlAction("full_clean", { throwsTarget:1000, exclusive:true }).catch?.(console.error); renderAll(); });
 document.getElementById("ctlUseAllData").addEventListener("click", () => { setScoreScope('all_data', { label:'All Data' }); controlState.lastMessage = 'Using all historical data for performance scoring.'; renderAll(); });
-document.addEventListener("click", (e) => { const copyBtn = e.target.closest("[data-copy-text]"); if (copyBtn) { e.preventDefault(); e.stopPropagation(); copyTextToClipboard(copyBtn.getAttribute("data-copy-text"), copyBtn); return; } const infoBtn = e.target.closest("[data-info-title]"); if (infoBtn) { e.preventDefault(); e.stopPropagation(); openInfoModal(infoBtn.getAttribute("data-info-title") || "Info", infoBtn.getAttribute("data-info-body") || ""); } });
+document.addEventListener("click", (e) => { const targetBtn = e.target.closest("[data-target-game]"); if (targetBtn) { e.preventDefault(); e.stopPropagation(); postManagerTargetGame(targetBtn.getAttribute("data-target-game")).catch(console.error); return; } const copyBtn = e.target.closest("[data-copy-text]"); if (copyBtn) { e.preventDefault(); e.stopPropagation(); copyTextToClipboard(copyBtn.getAttribute("data-copy-text"), copyBtn); return; } const infoBtn = e.target.closest("[data-info-title]"); if (infoBtn) { e.preventDefault(); e.stopPropagation(); openInfoModal(infoBtn.getAttribute("data-info-title") || "Info", infoBtn.getAttribute("data-info-body") || ""); } });
 document.addEventListener("input", (e) => { const el = e.target; if (el?.dataset?.bankTarget) syncInlineBankTarget(el); if (el?.dataset?.bankSlider === "reserve") syncInlineReserveSlider(el); });
 document.addEventListener("change", (e) => { const el = e.target; if (el?.dataset?.bankTarget) syncInlineBankTarget(el); if (el?.dataset?.bankSlider === "reserve") syncInlineReserveSlider(el); });
 document.getElementById("ctlResetScores").addEventListener("click", () => { setScoreScope('reset_window', { startTs:new Date().toISOString(), label:'Since Reset' }); controlState.lastMessage = 'Scores reset. Honest-performance metrics now rebuild from this point forward.'; renderAll(); });
@@ -3806,7 +4652,7 @@ document.getElementById("ctlResetScores").addEventListener("click", () => { setS
 [
   "s_rpc","s_wasm","s_user","s_asset","s_amount",
   "s_maxCandidates","s_maxMs","s_pollMs",
-  "s_maxThrowsPerGame","s_maxThrowsPerSession","s_minMillisBetweenLiveThrows","s_minGameStakeUsd","s_maxSingleThrowUsd","s_maxGameExposureUsd","s_minThrowUsd","s_maxThrowUsd","s_riskMode","s_copySlammerWhenSameHoleType","s_allowedAssets","s_blockedAssets","s_reserveBalanceBase","s_targetBalanceUsd","s_targetProfitUsd","s_keepAssets","s_disposeAssets"
+  "s_maxThrowsPerGame","s_maxThrowsPerSession","s_minMillisBetweenLiveThrows","s_minGameStakeUsd","s_maxSingleThrowUsd","s_maxGameExposureUsd","s_minThrowUsd","s_maxThrowUsd","s_riskMode","s_customStrategy","s_allowedAssets","s_blockedAssets","s_reserveBalanceBase","s_targetBalanceUsd","s_targetProfitUsd","s_keepAssets","s_disposeAssets"
 ].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -3822,6 +4668,21 @@ setInterval(refresh, 2000);
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

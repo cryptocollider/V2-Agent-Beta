@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Collider Agent Manager"
+  short_description: "Operate the local Collider manager API."
+  default_prompt: "Use $collider-agent-manager to inspect Collider manager state, explain exact eligibility diagnostics, and manage overlays or candidate sets safely."

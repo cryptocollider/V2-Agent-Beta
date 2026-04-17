@@ -1,4 +1,4 @@
-export type Hex32 = string;
+﻿export type Hex32 = string;
 
 export type Vec2 = {
   x: number;
@@ -83,8 +83,7 @@ export type ThrowRecord = {
   init_pose: Pose;
   init_linvel: Vec2;
   init_angvel: number;
-  rec_commit: Hex32 | null;
-  rec_len: number | null;
+  data_commit: Hex32 | null;
   accepted_at_height: number;
 };
 
@@ -122,8 +121,7 @@ export type PlaceThrowArgs = {
   init_pose: Pose;
   init_linvel: Vec2;
   init_angvel: number;
-  rec_commit: Hex32 | null;
-  rec_len: number | null;
+  data_commit: Hex32 | null;
 };
 
 export type AgentControlThrow = {

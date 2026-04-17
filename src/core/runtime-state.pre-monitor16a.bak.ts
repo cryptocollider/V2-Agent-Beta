@@ -8,12 +8,10 @@ export type AgentControlState = {
     ts: string;
     throwsTarget?: number | null;
     exclusive?: boolean;
-    gameId?: string | null;
   } | null;
   lastMessage: string | null;
   throwsTarget: number | null;
   exclusive: boolean;
-  targetGameId: string | null;
 };
 
 let runtimeSettings: AgentSettings | null = null;
@@ -24,7 +22,6 @@ let controlState: AgentControlState = {
   lastMessage: null,
   throwsTarget: null,
   exclusive: false,
-  targetGameId: null,
 };
 
 export function initRuntimeSettings(settings: AgentSettings): AgentSettings {
@@ -66,7 +63,6 @@ export function applyControlAction(action: string, payload: Record<string, unkno
   const ts = new Date().toISOString();
   const throwsTarget = Number.isFinite(Number(payload.throwsTarget)) ? Number(payload.throwsTarget) : null;
   const exclusive = !!payload.exclusive;
-  const gameId = typeof payload.gameId === "string" && payload.gameId.trim() ? payload.gameId.trim() : null;
 
   switch (action) {
     case "start":
@@ -75,14 +71,14 @@ export function applyControlAction(action: string, payload: Record<string, unkno
         mode: "regular",
         throwsTarget: null,
         exclusive: false,
-        lastAction: { action, ts, throwsTarget: null, exclusive: false, gameId: null },
+        lastAction: { action, ts, throwsTarget: null, exclusive: false },
         lastMessage: "Agent resumed.",
       });
     case "stop":
       return updateControlState({
         state: "paused",
         mode: "regular",
-        lastAction: { action, ts, throwsTarget: null, exclusive: false, gameId: null },
+        lastAction: { action, ts, throwsTarget: null, exclusive: false },
         lastMessage: "Agent paused by operator.",
       });
     case "calibrate":
@@ -91,7 +87,7 @@ export function applyControlAction(action: string, payload: Record<string, unkno
         mode: "calibrate-50",
         throwsTarget,
         exclusive,
-        lastAction: { action, ts, throwsTarget, exclusive, gameId: null },
+        lastAction: { action, ts, throwsTarget, exclusive },
         lastMessage: `Calibration run requested${throwsTarget ? ` (${throwsTarget} throws)` : ""}.`,
       });
     case "full_clean":
@@ -100,25 +96,12 @@ export function applyControlAction(action: string, payload: Record<string, unkno
         mode: "full-clean-2000",
         throwsTarget,
         exclusive: true,
-        lastAction: { action, ts, throwsTarget, exclusive: true, gameId: null },
+        lastAction: { action, ts, throwsTarget, exclusive: true },
         lastMessage: `Full clean requested${throwsTarget ? ` (${throwsTarget} throws)` : ""}.`,
-      });
-    case "target_game":
-      return updateControlState({
-        state: "live",
-        targetGameId: gameId,
-        lastAction: { action, ts, throwsTarget: null, exclusive: false, gameId },
-        lastMessage: gameId ? `Priority target set: ${gameId}.` : "Priority target request missing gameId.",
-      });
-    case "clear_target_game":
-      return updateControlState({
-        targetGameId: null,
-        lastAction: { action, ts, throwsTarget: null, exclusive: false, gameId: null },
-        lastMessage: "Priority target cleared.",
       });
     default:
       return updateControlState({
-        lastAction: { action, ts, throwsTarget, exclusive, gameId },
+        lastAction: { action, ts, throwsTarget, exclusive },
         lastMessage: `Unknown control action: ${action}`,
       });
   }

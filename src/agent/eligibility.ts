@@ -121,23 +121,52 @@ function findBalanceBase(balances: Record<string, string> | undefined, assetHex:
   return parseBaseAmount(raw);
 }
 
-export function estimateAssetUsdPerBaseUnit(simInput: SimRunInput, assetHex: string): number | null {
-  const target = cleanHex(assetHex);
-  const match = (simInput.throws || []).find((t) => {
-    const hex = Array.isArray(t.asset)
-      ? t.asset.map((b) => Number(b).toString(16).padStart(2, "0")).join("")
-      : cleanHex(String(t.asset || ""));
-    return hex === target;
-  });
-  if (!match) return null;
-  const amount = Number(match.amount || 0);
-  const value = Number(match.value_usd_e8 || 0) / 1e8;
-  if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(value) || value <= 0) return null;
-  return value / amount;
+function normalizeAssetHex(value: unknown): string {
+  return Array.isArray(value)
+    ? value.map((b) => Number(b).toString(16).padStart(2, "0")).join("")
+    : cleanHex(String(value || ""));
 }
 
-export function estimateCandidateUsd(amountBase: string, assetHex: string, simInput: SimRunInput): number | null {
-  const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex);
+function hintedUsdPerBase(priceHintsUsdPerBase: Record<string, number> | undefined, assetHex: string): number | null {
+  const hinted = Number(priceHintsUsdPerBase?.[cleanHex(assetHex)]);
+  return Number.isFinite(hinted) && hinted > 0 ? hinted : null;
+}
+
+export function estimateAssetUsdPerBaseUnit(
+  simInput: SimRunInput,
+  assetHex: string,
+  priceHintsUsdPerBase?: Record<string, number>,
+): number | null {
+  const target = cleanHex(assetHex);
+  let bestEpoch = -1;
+  let bestPerBase: number | null = null;
+
+  for (const throwRecord of simInput.throws || []) {
+    if (normalizeAssetHex((throwRecord as { asset?: unknown }).asset) !== target) continue;
+    const epoch = Number((throwRecord as { price_epoch?: unknown }).price_epoch ?? 0);
+    const amountBase = Number((throwRecord as { amount?: unknown }).amount ?? 0);
+    const valueUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0) / 1e8;
+    if (!(amountBase > 0) || !Number.isFinite(valueUsd) || valueUsd <= 0) continue;
+    if (epoch >= bestEpoch) {
+      bestEpoch = epoch;
+      bestPerBase = valueUsd / amountBase;
+    }
+  }
+
+  if (bestPerBase != null && Number.isFinite(bestPerBase) && bestPerBase > 0) {
+    return bestPerBase;
+  }
+
+  return hintedUsdPerBase(priceHintsUsdPerBase, target);
+}
+
+export function estimateCandidateUsd(
+  amountBase: string,
+  assetHex: string,
+  simInput: SimRunInput,
+  priceHintsUsdPerBase?: Record<string, number>,
+): number | null {
+  const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex, priceHintsUsdPerBase);
   const amount = Number(amountBase || 0);
   if (perBase == null || !Number.isFinite(amount)) return null;
   return amount * perBase;
@@ -147,8 +176,9 @@ export function estimateBaseAmountForUsd(
   simInput: SimRunInput,
   assetHex: string,
   usd: number,
+  priceHintsUsdPerBase?: Record<string, number>,
 ): string | null {
-  const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex);
+  const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex, priceHintsUsdPerBase);
   if (perBase == null || perBase <= 0 || !Number.isFinite(usd) || usd <= 0) return null;
   const out = Math.max(1, Math.round(usd / perBase));
   return String(out);
@@ -253,15 +283,16 @@ export function buildAssetPlanningResult(params: {
   simInput: SimRunInput;
   defaultAsset: string;
   defaultAmount: string;
+  priceHintsUsdPerBase?: Record<string, number>;
 }): AssetPlanningResult {
-  const { policy, balances, simInput, defaultAsset, defaultAmount } = params;
+  const { policy, balances, simInput, defaultAsset, defaultAmount, priceHintsUsdPerBase } = params;
   const allowedAssets = normalizeAssetList(policy.allowedAssets);
   const blockedAssets = new Set(normalizeAssetList(policy.blockedAssets));
   const keepAssets = new Set(normalizeAssetList(policy.keepAssets));
   const disposeAssets = new Set(normalizeAssetList(policy.disposeAssets));
 
   const reserveBase = parseBaseAmount(policy.reserveBalanceBase || "0");
-  const fallbackUsd = estimateCandidateUsd(defaultAmount, defaultAsset, simInput);
+  const fallbackUsd = estimateCandidateUsd(defaultAmount, defaultAsset, simInput, priceHintsUsdPerBase);
   const { targets: requestedUsdTargets, reasons: targetReasons } = buildUsdTargets(policy, fallbackUsd);
 
   const candidateUniverse = new Set<string>([cleanHex(defaultAsset)]);
@@ -281,7 +312,7 @@ export function buildAssetPlanningResult(params: {
     if (balanceBase <= reserveBase) reasons.push("reserve_balance");
     const usableBalanceBase = balanceBase > reserveBase ? balanceBase - reserveBase : 0n;
 
-    const priceBasisUsdPerBase = estimateAssetUsdPerBaseUnit(simInput, asset);
+    const priceBasisUsdPerBase = estimateAssetUsdPerBaseUnit(simInput, asset, priceHintsUsdPerBase);
     if (requestedUsdTargets.length > 0 && priceBasisUsdPerBase == null) {
       reasons.push("missing_price_basis");
     }
@@ -290,7 +321,7 @@ export function buildAssetPlanningResult(params: {
     }
 
     const generatedAmounts = requestedUsdTargets
-      .map((usd) => estimateBaseAmountForUsd(simInput, asset, usd))
+      .map((usd) => estimateBaseAmountForUsd(simInput, asset, usd, priceHintsUsdPerBase))
       .filter((value): value is string => !!value)
       .filter((value, index, arr) => arr.indexOf(value) === index);
 
@@ -330,8 +361,8 @@ export function buildAssetPlanningResult(params: {
     const aScore = (keepAssets.has(a.asset) ? 1 : 0) - (disposeAssets.has(a.asset) ? 1 : 0);
     const bScore = (keepAssets.has(b.asset) ? 1 : 0) - (disposeAssets.has(b.asset) ? 1 : 0);
     if (aScore !== bScore) return bScore - aScore;
-    const aUsd = estimateCandidateUsd(a.amount, a.asset, simInput) ?? -1;
-    const bUsd = estimateCandidateUsd(b.amount, b.asset, simInput) ?? -1;
+    const aUsd = estimateCandidateUsd(a.amount, a.asset, simInput, priceHintsUsdPerBase) ?? -1;
+    const bUsd = estimateCandidateUsd(b.amount, b.asset, simInput, priceHintsUsdPerBase) ?? -1;
     return bUsd - aUsd;
   });
 
@@ -366,8 +397,9 @@ export function getCandidateFilterReasons(params: {
   policy: AgentPolicy;
   simInput: SimRunInput;
   balances?: Record<string, string>;
+  priceHintsUsdPerBase?: Record<string, number>;
 }): EligibilityReasonCode[] {
-  const { candidate, chosenGame, policy, simInput, balances } = params;
+  const { candidate, chosenGame, policy, simInput, balances, priceHintsUsdPerBase } = params;
   const reasons: EligibilityReasonCode[] = [];
   const allowedAssets = normalizeAssetList(policy.allowedAssets);
   const blockedAssets = new Set(normalizeAssetList(policy.blockedAssets));
@@ -387,7 +419,7 @@ export function getCandidateFilterReasons(params: {
     reasons.push("below_game_min_throw");
   }
 
-  const candidateUsd = estimateCandidateUsd(candidate.amount, candidate.asset, simInput);
+  const candidateUsd = estimateCandidateUsd(candidate.amount, candidate.asset, simInput, priceHintsUsdPerBase);
   if (candidateUsd == null) {
     reasons.push("missing_price_basis");
     return reasons.filter((value, index, arr) => arr.indexOf(value) === index);

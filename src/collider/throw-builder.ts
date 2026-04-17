@@ -106,8 +106,7 @@ import type {
       },
       init_linvel: { x: vx, y: vy },
       init_angvel: angVel,
-      rec_commit: null,
-      rec_len: null,
+      data_commit: null,
     };
   }
   
@@ -164,8 +163,7 @@ import type {
       },
       mass_usd: 4.356,
       price_epoch: 1,
-      rec_commit: null,
-      rec_len: null,
+      data_commit: null,
       user: [
         68, 47, 27, 132, 64, 92, 162, 43,
         177, 7, 137, 108, 25, 88, 173, 229,
@@ -274,3 +272,4 @@ import type {
       throws: [...deepClone(simInput.throws), synthetic],
     };
   }
+

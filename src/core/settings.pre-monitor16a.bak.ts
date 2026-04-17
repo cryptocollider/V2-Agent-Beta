@@ -20,7 +20,6 @@ export type AgentSettings = {
   minThrowUsd?: number | null;
   maxThrowUsd?: number | null;
   riskMode?: "defensive" | "balanced" | "aggressive";
-  customStrategy?: string | null;
   copySlammerWhenSameHoleType?: boolean;
   allowedAssets?: string[];
   blockedAssets?: string[];
@@ -50,7 +49,6 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   minThrowUsd: null,
   maxThrowUsd: null,
   riskMode: "balanced",
-  customStrategy: null,
   copySlammerWhenSameHoleType: false,
   allowedAssets: [],
   blockedAssets: [],
@@ -80,4 +78,3 @@ export async function saveSettings(settings: AgentSettings, dataDir = "./data"):
   const file = path.join(dataDir, "settings.json");
   await writeFile(file, JSON.stringify(settings, null, 2), "utf8");
 }
-

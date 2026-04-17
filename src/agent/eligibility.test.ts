@@ -61,8 +61,7 @@ function makeSimInput(): SimRunInput {
         init_pose: { pos: { x: 1, y: 1 }, angle_rad: 0 },
         init_linvel: { x: 1, y: 1 },
         init_angvel: 0,
-        rec_commit: null,
-        rec_len: null,
+        data_commit: null,
         accepted_at_height: 1,
       },
       {
@@ -77,8 +76,7 @@ function makeSimInput(): SimRunInput {
         init_pose: { pos: { x: 2, y: 2 }, angle_rad: 0 },
         init_linvel: { x: 1, y: 1 },
         init_angvel: 0,
-        rec_commit: null,
-        rec_len: null,
+        data_commit: null,
         accepted_at_height: 2,
       },
     ],
@@ -125,6 +123,27 @@ test("candidate filters enforce max throw usd and balance diagnostics", () => {
 
   assert.ok(reasons.includes("above_max_throw_usd"));
   assert.ok(reasons.includes("no_balance_for_amounts"));
+});
+
+test("asset planning can use fallback internal price hints for first-throw sizing", () => {
+  const simInput = makeSimInput();
+  simInput.throws = [simInput.throws[1]];
+  const planning = buildAssetPlanningResult({
+    policy: {
+      enabled: true,
+      minThrowUsd: 5,
+      maxThrowUsd: 5,
+      reserveBalanceBase: "0",
+    },
+    balances: { [assetA]: "1000" },
+    simInput,
+    defaultAsset: assetA,
+    defaultAmount: "100",
+    priceHintsUsdPerBase: { [assetA]: 0.05 },
+  });
+
+  assert.equal(planning.assetAmountPairs[0]?.asset, assetA);
+  assert.ok(!planning.globalReasons.includes("missing_price_basis"));
 });
 
 test("asset planning prefers keep assets and demotes dispose assets", () => {
@@ -203,3 +222,4 @@ test("eligible game selection rotates toward least recently touched games", () =
 
   assert.equal(selectedGame?.game_id, games[1].game_id);
 });
+

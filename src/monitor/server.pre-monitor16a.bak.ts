@@ -1,4 +1,4 @@
-import http from "node:http";
+﻿import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
@@ -289,23 +289,6 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
-    if (url.pathname === "/api/manager/target-game" && req.method === "POST") {
-      try {
-        const json = await readJsonBody(req);
-        const gameId = cleanHex(json?.gameId || "");
-        const clear = !!json?.clear || !gameId;
-        const state = await fromBridgeWithArg(
-          bridge.applyControlAction,
-          { action: clear ? "clear_target_game" : "target_game", payload: clear ? {} : { gameId } },
-          ({ action: nextAction, payload }) => applyControlAction(nextAction, payload),
-        );
-        sendJson(res, 200, { ok: true, control: state, targetGameId: clear ? null : gameId });
-      } catch (err) {
-        sendJson(res, 400, { ok: false, error: String(err) });
-      }
-      return;
-    }
-
     if (url.pathname === "/api/manager/state" && req.method === "GET") {
       const settings = await loadSettings(dataDir);
       const latestEligibility = await fromBridge(
@@ -492,6 +475,5 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
   console.log(`monitor server: http://localhost:${displayPort}`);
   return server;
 }
-
 
 

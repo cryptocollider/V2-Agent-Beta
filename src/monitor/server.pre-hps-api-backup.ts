@@ -1,4 +1,4 @@
-import http from "node:http";
+﻿import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
@@ -57,113 +57,6 @@ function parseJsonl(text: string): any[] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => JSON.parse(line));
-}
-
-async function safeReadJson(file: string | null | undefined): Promise<any | null> {
-  if (!file) return null;
-  try {
-    return JSON.parse(await readFile(file, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function cleanHex(value: unknown): string {
-  return String(value ?? "").toLowerCase().replace(/^0x/, "");
-}
-
-function resultRowCompletenessScore(row: any): number {
-  let score = 0;
-  if (row?.actual?.throwMatch) score += 4;
-  if (row?.actual?.throwMatch?.hole_type != null) score += 8;
-  if (row?.actual?.throwMatch?.value_usd_e8 != null) score += 4;
-  if (row?.actual?.throwMatch?.matched) score += 2;
-  if (Array.isArray(row?.actual?.wholeGame?.per_user_scoreboard)) score += 1;
-  if (row?.actual?.expectationVsActual?.actual_hole_type != null) score += 2;
-  return score;
-}
-
-function buildLatestResultsByDecision(rows: any[]): any[] {
-  const map = new Map<string, any>();
-  for (const row of rows) {
-    const key = String(row?.decisionId || "").trim();
-    if (!key) continue;
-    const prev = map.get(key);
-    if (!prev) {
-      map.set(key, row);
-      continue;
-    }
-    const prevScore = resultRowCompletenessScore(prev);
-    const nextScore = resultRowCompletenessScore(row);
-    const prevTs = new Date(prev?.ts || 0).getTime();
-    const nextTs = new Date(row?.ts || 0).getTime();
-    if (nextScore > prevScore || (nextScore === prevScore && nextTs >= prevTs)) {
-      map.set(key, row);
-    }
-  }
-  return [...map.values()].sort((a, b) => new Date(b?.ts || 0).getTime() - new Date(a?.ts || 0).getTime());
-}
-
-function parseLimit(url: URL, fallback = 10, max = 100): number {
-  const raw = Number(url.searchParams.get("limit"));
-  if (!Number.isFinite(raw) || raw <= 0) return fallback;
-  return Math.max(1, Math.min(max, Math.floor(raw)));
-}
-
-function queryFlag(url: URL, key: string): boolean {
-  const raw = String(url.searchParams.get(key) ?? "").trim().toLowerCase();
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
-}
-
-function summarizeHonestPerformanceRow(row: any): Record<string, unknown> {
-  return {
-    ts: row?.ts ?? null,
-    sessionId: row?.sessionId ?? null,
-    decisionId: row?.decisionId ?? null,
-    gameId: row?.gameId ?? null,
-    botUser: row?.botUser ?? null,
-    honestScore: row?.honestScore ?? null,
-    predictionCommit: row?.predictionCommit ?? null,
-    predictionReveal: row?.predictionReveal ?? null,
-  };
-}
-
-async function expandHonestPerformanceRow(row: any, includeArtifacts: boolean): Promise<Record<string, unknown>> {
-  return {
-    ...summarizeHonestPerformanceRow(row),
-    actual: row?.actual ?? null,
-    expected: row?.expected ?? null,
-    commitPayload: includeArtifacts ? await safeReadJson(row?.predictionCommit?.localPath) : undefined,
-    revealPayload: includeArtifacts ? await safeReadJson(row?.predictionReveal?.localPath) : undefined,
-  };
-}
-
-function buildHonestPerformanceSnapshot(rows: any[]): {
-  revealRows: any[];
-  scoredRows: any[];
-  counts: {
-    revealRows: number;
-    scoredRows: number;
-    uniqueGames: number;
-  };
-} {
-  const revealRows = buildLatestResultsByDecision(rows)
-    .filter((row) => row?.predictionReveal?.localPath || row?.honestScore);
-  const scoredRows = revealRows.filter((row) => row?.honestScore?.honestScore != null);
-  const uniqueGames = new Set(
-    revealRows
-      .map((row) => cleanHex(row?.gameId || ""))
-      .filter(Boolean),
-  );
-  return {
-    revealRows,
-    scoredRows,
-    counts: {
-      revealRows: revealRows.length,
-      scoredRows: scoredRows.length,
-      uniqueGames: uniqueGames.size,
-    },
-  };
 }
 
 function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
@@ -289,31 +182,12 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
-    if (url.pathname === "/api/manager/target-game" && req.method === "POST") {
-      try {
-        const json = await readJsonBody(req);
-        const gameId = cleanHex(json?.gameId || "");
-        const clear = !!json?.clear || !gameId;
-        const state = await fromBridgeWithArg(
-          bridge.applyControlAction,
-          { action: clear ? "clear_target_game" : "target_game", payload: clear ? {} : { gameId } },
-          ({ action: nextAction, payload }) => applyControlAction(nextAction, payload),
-        );
-        sendJson(res, 200, { ok: true, control: state, targetGameId: clear ? null : gameId });
-      } catch (err) {
-        sendJson(res, 400, { ok: false, error: String(err) });
-      }
-      return;
-    }
-
     if (url.pathname === "/api/manager/state" && req.method === "GET") {
       const settings = await loadSettings(dataDir);
       const latestEligibility = await fromBridge(
         bridge.getLatestEligibilitySnapshot,
         () => getLatestEligibilitySnapshot(),
       );
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
       sendJson(res, 200, {
         settings,
         runtime: await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings()),
@@ -324,11 +198,6 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         latestEligibility,
         eligibilityCode: buildEligibilityCompactCode(latestEligibility as any),
         latestCandidates: await fromBridge(bridge.getLatestCandidateContext, () => getLatestCandidateContext()),
-        honestPerformance: {
-          counts: honestPerformance.counts,
-          latest: honestPerformance.revealRows[0] ? summarizeHonestPerformanceRow(honestPerformance.revealRows[0]) : null,
-          latestScored: honestPerformance.scoredRows[0] ? summarizeHonestPerformanceRow(honestPerformance.scoredRows[0]) : null,
-        },
       });
       return;
     }
@@ -357,42 +226,6 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     if (url.pathname === "/api/manager/candidates" && req.method === "GET") {
       sendJson(res, 200, {
         latest: await fromBridge(bridge.getLatestCandidateContext, () => getLatestCandidateContext()),
-      });
-      return;
-    }
-
-    if (url.pathname === "/api/manager/honest-score" && req.method === "GET") {
-      const limit = parseLimit(url, 12, 100);
-      const includeArtifacts = queryFlag(url, "includeArtifacts");
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
-      const recentRows = honestPerformance.revealRows.slice(0, limit);
-      sendJson(res, 200, {
-        counts: honestPerformance.counts,
-        latest: honestPerformance.revealRows[0] ? await expandHonestPerformanceRow(honestPerformance.revealRows[0], includeArtifacts) : null,
-        latestScored: honestPerformance.scoredRows[0] ? await expandHonestPerformanceRow(honestPerformance.scoredRows[0], includeArtifacts) : null,
-        recent: await Promise.all(recentRows.map((row) => expandHonestPerformanceRow(row, includeArtifacts))),
-      });
-      return;
-    }
-
-    if (url.pathname === "/api/manager/reveals" && req.method === "GET") {
-      const limit = parseLimit(url, 10, 100);
-      const includeArtifacts = queryFlag(url, "includeArtifacts");
-      const gameId = cleanHex(url.searchParams.get("gameId") || "");
-      const decisionId = cleanHex(url.searchParams.get("decisionId") || "");
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
-      const filtered = honestPerformance.revealRows.filter((row) => {
-        if (gameId && cleanHex(row?.gameId || "") !== gameId) return false;
-        if (decisionId && cleanHex(row?.decisionId || "") !== decisionId) return false;
-        return true;
-      });
-      const selected = filtered.slice(0, limit);
-      sendJson(res, 200, {
-        count: filtered.length,
-        returned: selected.length,
-        rows: await Promise.all(selected.map((row) => expandHonestPerformanceRow(row, includeArtifacts))),
       });
       return;
     }
@@ -492,6 +325,4 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
   console.log(`monitor server: http://localhost:${displayPort}`);
   return server;
 }
-
-
 
