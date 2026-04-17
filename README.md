@@ -1,7 +1,6 @@
+<img width="565" height="992" alt="image" src="https://github.com/user-attachments/assets/ea6961a2-dada-41d3-927b-678d83ca4a2c" />
 
 # Collider Agent 1 - For V2 Beta
-
-<img width="565" height="992" alt="image" src="https://github.com/user-attachments/assets/ea6961a2-dada-41d3-927b-678d83ca4a2c" />
 
 Local Node-based agent player, monitor, and manager API for Collider V2.
 
