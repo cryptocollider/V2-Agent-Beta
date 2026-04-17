@@ -1,8 +1,17 @@
-# Collider Agent 1 - Beta
+
+# Collider Agent 1 - For V2 Beta
+
+<img width="565" height="992" alt="image" src="https://github.com/user-attachments/assets/ea6961a2-dada-41d3-927b-678d83ca4a2c" />
 
 Local Node-based agent player, monitor, and manager API for Collider V2.
 
-The agent connects to the Collider V2 beta chain, scans games, simulates candidate throws through the same local `sim_core.wasm` path used for planning, submits the best live throw, and logs exact audit data for later review. The manager surfaces add a precise settings audit, exact eligibility diagnostics, tactical overlays, and manager candidate programs without bypassing the deterministic sim core.
+The agent connects to the Collider V2 beta chain, scans games, simulates candidate throws through the same local `sim_core.wasm` (as used for Collider's on-chain results caltulation) to use for planning, submits the best live throw discovered, and logs exact audit data for later review. 
+
+It is designed for a human and/or AI 'manager' to monitor and adjust its settings and create new strategies to maximise win rates, profitability and self-awareness.
+
+It creates the Honest Performance Score (HPS) which works to measure, refine and calibrate the Agent's 'broad predictive sense' or 'intution' - based on the actions of the agent's manager - and rewarding only honest performance as in Collider V2 that is the only way to perform.
+
+The manager API surfaces add a precise settings audit, exact eligibility diagnostics, tactical overlays, and manager candidate programs without bypassing the deterministic sim core.
 
 ## What it does
 
