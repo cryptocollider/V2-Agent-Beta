@@ -84,6 +84,7 @@ test("manager API exposes state, overlay, and candidate-set controls", async (t)
 
   const state = await fetchJson(`${baseUrl}/api/manager/state`);
   assert.equal(state.eligibilityCode, "NO-CAND/BAL");
+  assert.equal(state.profile.doctrinePack, "baseline");
   assert.equal(state.overlay.id, "overlay-a");
   assert.equal(state.managerCandidateSet.id, "candidate-set-a");
   assert.equal(state.audit.matrix.some((entry: any) => entry.key === "riskMode"), true);
@@ -281,7 +282,7 @@ test("manager API exposes honest-score summaries and reveal artifacts", async (t
         outcome: { score: 70, error: 30, evaluatedThrows: 2, predictedThrows: 2 },
         value: { score: 60, error: 40, evaluatedThrows: 2, predictedThrows: 2 },
         game: { score: 50, error: 50, actualFinalFrame: 200, predictedFinalFrame: 188 },
-        temporal: { score: 55, endFrameMae: 20, dynamicShiftError: 10, horizonAccuracy: 65, evaluatedThrows: 2, predictedThrows: 2, historyPoints: 3, dynamicUpdates: 1 },
+        temporal: { score: 55, endFrameMae: 20, dynamicShiftError: 10, horizonAccuracy: 65, certaintyBreach: 12, evaluatedThrows: 2, predictedThrows: 2, historyPoints: 3, dynamicUpdates: 1 },
       },
     },
   });
@@ -298,9 +299,16 @@ test("manager API exposes honest-score summaries and reveal artifacts", async (t
   const state = await fetchJson(`${baseUrl}/api/manager/state`);
   assert.equal(state.honestPerformance.counts.scoredRows, 1);
   assert.equal(state.honestPerformance.latestScored.gameId, gameId);
+  assert.equal(state.honestPerformance.baseline.method, "agent_local_bootstrap_v2");
+  assert.equal(state.honestPerformance.baseline.calibration.status, "insufficient_rows");
+  assert.equal(state.honestPerformance.baseline.calibration.rowsConsumed, 1);
+  assert.equal(state.honestPerformance.baseline.headline.currentScorePct, 44.5);
+  assert.equal(state.honestPerformance.baseline.headline.liftPct, 0);
 
   const honestScore = await fetchJson(`${baseUrl}/api/manager/honest-score?includeArtifacts=1`);
   assert.equal(honestScore.counts.revealRows, 1);
+  assert.equal(honestScore.profile.doctrinePack, "baseline");
+  assert.equal(honestScore.baseline.headline.baselineScorePct, 44.5);
   assert.equal(honestScore.latestScored.revealPayload.schema, "collider.prediction.reveal.v1");
   assert.equal(honestScore.latestScored.commitPayload.schema, "collider.prediction.commit.v1");
 

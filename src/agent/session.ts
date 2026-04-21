@@ -7,6 +7,7 @@ import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { ArtifactLogRef, HonestScoreLogView, StoragePaths } from "../core/storage.js";
 import { appendResultLog, appendRunLog, writeArtifactJson } from "../core/storage.js";
 import { getRuntimeSettings, getControlState, updateControlState } from "../core/runtime-state.js";
+import { resolveAgentProfile } from "../core/agent-profile.js";
 import { getManagerCandidateSet, getManagerOverlay, setLatestCandidateContext, setLatestEligibilitySnapshot } from "../core/manager-state.js";
 import { buildEligibilityCompactCode, evaluateGamesForEligibility, type LatestEligibilitySnapshot, type SessionEligibilityContext } from "./eligibility.js";
 import { matchReportToSubmittedThrow, type ExpectedThrowSummary } from "./report-match.js";
@@ -142,6 +143,81 @@ async function loadPredictionHistoryForGame(params: {
   }
 
   return history;
+}
+
+async function loadPredictionCommitPayload(
+  storage: StoragePaths,
+  commitRef: ArtifactLogRef | null | undefined,
+): Promise<PredictionCommitPayload | undefined> {
+  if (!commitRef) return undefined;
+  const localPath = commitRef.localPath || (commitRef.cid ? path.join(storage.predictionCommitsDir, `${commitRef.cid}.json`) : "");
+  if (!localPath) return undefined;
+  try {
+    const commitText = await readFile(localPath, "utf8");
+    const commit = JSON.parse(commitText) as PredictionCommitPayload;
+    return commit && commit.schema === "collider.prediction.commit.v1" ? commit : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function loadPendingSubmittedDecisions(params: {
+  storage: StoragePaths;
+  botUser: string;
+}): Promise<SubmittedDecision[]> {
+  const { storage, botUser } = params;
+  const targetBotUser = cleanHex(botUser);
+  const resolvedByDecision = new Set<string>();
+
+  try {
+    const resultText = await readFile(storage.resultsFile, "utf8");
+    for (const row of parseJsonLines(resultText)) {
+      if (cleanHex(row?.botUser) !== targetBotUser) continue;
+      const decisionKey = cleanHex(row?.decisionId);
+      if (!decisionKey) continue;
+      resolvedByDecision.add(decisionKey);
+    }
+  } catch {
+    // no settled rows yet
+  }
+
+  const latestSubmittedByDecision = new Map<string, any>();
+  try {
+    const throwText = await readFile(storage.throwsFile, "utf8");
+    for (const row of parseJsonLines(throwText)) {
+      if (cleanHex(row?.botUser) !== targetBotUser) continue;
+      if (row?.submitted === false) continue;
+      const decisionKey = cleanHex(row?.decisionId);
+      if (!decisionKey || !row?.gameId) continue;
+      const rowTs = new Date(row?.ts || 0).getTime();
+      const prev = latestSubmittedByDecision.get(decisionKey);
+      const prevTs = new Date(prev?.ts || 0).getTime();
+      if (!prev || rowTs >= prevTs) latestSubmittedByDecision.set(decisionKey, row);
+    }
+  } catch {
+    return [];
+  }
+
+  const out: SubmittedDecision[] = [];
+  const orderedRows = [...latestSubmittedByDecision.values()]
+    .filter((row) => !resolvedByDecision.has(cleanHex(row?.decisionId)))
+    .sort((a, b) => new Date(a?.ts || 0).getTime() - new Date(b?.ts || 0).getTime());
+
+  for (const row of orderedRows) {
+    const predictionCommitRef = row?.predictionCommit as ArtifactLogRef | undefined;
+    out.push({
+      decisionId: String(row.decisionId),
+      gameId: String(row.gameId) as Hex32,
+      submittedAt: new Date(row?.ts || 0).getTime() || 0,
+      expected: payloadToExpectedSummary(row?.payload),
+      predictionCommitPayload: predictionCommitRef
+        ? await loadPredictionCommitPayload(storage, predictionCommitRef)
+        : undefined,
+      predictionCommitRef: predictionCommitRef ?? undefined,
+    });
+  }
+
+  return out;
 }
 
 function hasPreciseSettledOutcome(matched: {
@@ -339,6 +415,16 @@ export async function runAgentSession(
   const recentGameTouches = new Map<string, number>();
   const sessionThrowCounts = new Map<string, number>();
   const pendingSubmitted: SubmittedDecision[] = [];
+  if (baseLoopCfg.storage) {
+    const recoveredPending = await loadPendingSubmittedDecisions({
+      storage: baseLoopCfg.storage,
+      botUser: baseLoopCfg.botUser,
+    });
+    pendingSubmitted.push(...recoveredPending);
+    if (recoveredPending.length) {
+      console.log(`[session] recovered ${recoveredPending.length} unresolved submitted decisions from storage`);
+    }
+  }
   const recentShots: RecentShot[] = [];
 
   let totalLiveThrows = 0;
@@ -357,9 +443,20 @@ export async function runAgentSession(
         continue;
       }
 
-      const customStrategy = String(rt.customStrategy || "").trim();
-      const copySlammersEnabled = parseBool(rt.copySlammerWhenSameHoleType)
-        || customStrategy.toLowerCase() === "copy_slammers";
+      const baselineResetActive = String(ctl.mode || "").startsWith("baseline-reset-")
+        && (ctl.throwsTarget == null || ctl.throwsTarget > 0);
+      const baselineProfile = baselineResetActive
+        ? resolveAgentProfile({
+            ...rt,
+            doctrinePack: "baseline",
+            riskMode: "balanced",
+            customStrategy: null,
+            copySlammerWhenSameHoleType: false,
+          })
+        : null;
+      const profile = baselineProfile ?? resolveAgentProfile(rt);
+      const customStrategy = String(profile.effective.customStrategy || "").trim();
+      const copySlammersEnabled = profile.effective.copySlammerWhenSameHoleType;
 
       const effectivePolicy: AgentPolicy = {
         ...basePolicy,
@@ -373,7 +470,7 @@ export async function runAgentSession(
         maxGameExposureUsd: parseOptionalNumber(rt.maxGameExposureUsd),
         minThrowUsd: parseOptionalNumber(rt.minThrowUsd),
         maxThrowUsd: parseOptionalNumber(rt.maxThrowUsd),
-        riskMode: String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
+        riskMode: profile.effective.riskMode ?? String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
         customStrategy: customStrategy || undefined,
         copySlammerWhenSameHoleType: copySlammersEnabled,
         allowedAssets: parseStringArray(rt.allowedAssets),
@@ -384,6 +481,18 @@ export async function runAgentSession(
         targetBalanceUsd: parseOptionalNumber(rt.targetBalanceUsd),
         targetProfitUsd: parseOptionalNumber(rt.targetProfitUsd),
       };
+
+      if (baselineResetActive) {
+        const baselineMinUsd = effectivePolicy.minThrowUsd ?? parseOptionalNumber(basePolicy.minThrowUsd);
+        effectivePolicy.riskMode = "balanced";
+        effectivePolicy.customStrategy = undefined;
+        effectivePolicy.copySlammerWhenSameHoleType = false;
+        if (baselineMinUsd != null) {
+          effectivePolicy.minThrowUsd = baselineMinUsd;
+          effectivePolicy.maxThrowUsd = baselineMinUsd;
+          effectivePolicy.maxSingleThrowUsd = baselineMinUsd;
+        }
+      }
 
       const effectiveLoopCfg: LoopConfig = {
         ...baseLoopCfg,
@@ -399,6 +508,8 @@ export async function runAgentSession(
           recentShots,
         },
         preferredGameId: ctl.targetGameId || undefined,
+        selectionMode: baselineResetActive ? "random" : "best",
+        agentProfile: profile,
       };
 
       for (let i = pendingSubmitted.length - 1; i >= 0; i--) {
@@ -592,12 +703,29 @@ export async function runAgentSession(
           while (recentShots.length > 20) recentShots.shift();
         }
 
+        if (baselineResetActive && ctl.throwsTarget != null) {
+          const remainingBaselineThrows = Math.max(0, ctl.throwsTarget - 1);
+          if (remainingBaselineThrows === 0) {
+            updateControlState({
+              mode: "regular",
+              throwsTarget: null,
+              exclusive: false,
+              lastMessage: "Baseline reset complete. Raw HPS stays canonical; local baseline lift now references the new reset window.",
+            });
+          } else {
+            updateControlState({
+              throwsTarget: remainingBaselineThrows,
+              lastMessage: `Baseline reset in progress (${remainingBaselineThrows} throws remaining).`,
+            });
+          }
+        }
+
         if (ctl.targetGameId && result.gameId === ctl.targetGameId) {
           updateControlState({
             targetGameId: null,
             lastMessage: `Submitted priority throw into ${result.gameId.slice(0, 10)}...`,
           });
-        } else {
+        } else if (!baselineResetActive) {
           updateControlState({
             lastMessage: `Submitted throw into ${result.gameId.slice(0, 10)}...`,
           });

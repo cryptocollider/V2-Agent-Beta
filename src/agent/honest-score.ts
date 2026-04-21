@@ -55,6 +55,8 @@ type TemporalHistoryPoint = {
   aggregateError: number | null;
   horizonWeight: number | null;
   horizonHit: number | null;
+  certaintyWeight: number | null;
+  certaintyBreach: number | null;
 };
 
 type ThrowTemporalHistory = {
@@ -92,7 +94,7 @@ export type PredictionRevealPayload = {
     settledHeight: number | null;
   };
   headline: {
-    formulaVersion: "hps-v1-equal-bce-rps-temporal";
+    formulaVersion: "hps-v2_1-equal-bce-rps-temporal-certainty";
     honestScore: number | null;
     bce: number | null;
     rps: number | null;
@@ -126,6 +128,7 @@ export type PredictionRevealPayload = {
       endFrameMae: number | null;
       dynamicShiftError: number | null;
       horizonAccuracy: number | null;
+      certaintyBreach: number | null;
       evaluatedThrows: number;
       predictedThrows: number;
       historyPoints: number;
@@ -174,6 +177,25 @@ function normalizeValueError(predicted: number | null, actual: number | null, sc
   if (predicted == null || actual == null) return null;
   const scale = Math.max(1, Math.abs(scaleHint), Math.abs(predicted), Math.abs(actual));
   return clamp01(Math.abs(predicted - actual) / scale);
+}
+
+export function computeTemporalCertaintyWeight(referenceFrame: number, actualEndFrame: number | null): number {
+  if (actualEndFrame == null || !Number.isFinite(actualEndFrame) || actualEndFrame <= 0) return 0;
+  const remainingFrames = Math.max(0, actualEndFrame - referenceFrame);
+  return clamp01(1 - (remainingFrames / Math.max(1, actualEndFrame)));
+}
+
+export function computeTemporalCertaintyBreach(params: {
+  referenceFrame: number;
+  actualEndFrame: number | null;
+  outcomeError: number | null;
+  valueError: number | null;
+  endFrameError: number | null;
+}): number | null {
+  const certaintyWeight = computeTemporalCertaintyWeight(params.referenceFrame, params.actualEndFrame);
+  const baseError = avg([params.outcomeError, params.valueError, params.endFrameError]);
+  if (baseError == null) return null;
+  return clamp01(baseError * certaintyWeight);
 }
 
 function buildActualThrowMap(params: {
@@ -292,6 +314,7 @@ function buildTemporalHistory(params: {
     endFrameMae: number | null;
     dynamicShiftError: number | null;
     horizonAccuracy: number | null;
+    certaintyBreach: number | null;
     historyPoints: number;
     dynamicUpdates: number;
   };
@@ -397,8 +420,17 @@ function buildTemporalHistory(params: {
         horizonHit: actualThrow.holeType != null && forecast.outcome.modeHoleType != null
           ? (forecast.outcome.modeHoleType === actualThrow.holeType ? 1 : 0)
           : null,
+        certaintyWeight: computeTemporalCertaintyWeight(snapshot.referenceFrame, actualThrow.endFrame ?? null),
+        certaintyBreach: null,
       };
       point.aggregateError = pointAggregateError(point);
+      point.certaintyBreach = computeTemporalCertaintyBreach({
+        referenceFrame: snapshot.referenceFrame,
+        actualEndFrame: actualThrow.endFrame ?? null,
+        outcomeError,
+        valueError,
+        endFrameError,
+      });
 
       const tracked = trackedThrows.get(resolvedActualThrowId);
       if (!tracked) continue;
@@ -437,6 +469,7 @@ function buildTemporalHistory(params: {
     }
   }
   const dynamicShiftError = avg(dynamicPenalties);
+  const certaintyBreach = avg(allPoints.map((point) => point.certaintyBreach));
 
   return {
     throws: throwHistories,
@@ -445,6 +478,7 @@ function buildTemporalHistory(params: {
       endFrameMae,
       dynamicShiftError: dynamicShiftError ?? 0,
       horizonAccuracy,
+      certaintyBreach,
       historyPoints: allPoints.length,
       dynamicUpdates: dynamicPenalties.length,
     },
@@ -541,9 +575,13 @@ export function buildPredictionRevealBundle(params: {
   const endFrameMae = temporalHistory.metrics.endFrameMae;
   const dynamicShiftError = temporalHistory.metrics.dynamicShiftError ?? 0;
   const horizonAccuracy = temporalHistory.metrics.horizonAccuracy;
-  const temporalError = (endFrameMae != null && horizonAccuracy != null)
-    ? (endFrameMae + dynamicShiftError + (1 - horizonAccuracy)) / 3
-    : null;
+  const certaintyBreach = temporalHistory.metrics.certaintyBreach;
+  const temporalError = avg([
+    endFrameMae,
+    dynamicShiftError,
+    horizonAccuracy == null ? null : (1 - horizonAccuracy),
+    certaintyBreach,
+  ]);
 
   const honestScore = (bce != null && rps != null && temporalError != null)
     ? Math.max(0, Math.min(100, 100 * (1 - ((bce + rps + temporalError) / 3))))
@@ -609,7 +647,7 @@ export function buildPredictionRevealBundle(params: {
       settledHeight: actual.settledHeight,
     },
     headline: {
-      formulaVersion: "hps-v1-equal-bce-rps-temporal",
+      formulaVersion: "hps-v2_1-equal-bce-rps-temporal-certainty",
       honestScore,
       bce,
       rps,
@@ -643,6 +681,7 @@ export function buildPredictionRevealBundle(params: {
         endFrameMae,
         dynamicShiftError,
         horizonAccuracy,
+        certaintyBreach,
         evaluatedThrows: evaluatedTemporalThrows.length,
         predictedThrows: snapshot.throws.length,
         historyPoints: temporalHistory.metrics.historyPoints,
@@ -658,7 +697,8 @@ export function buildPredictionRevealBundle(params: {
       },
       notes: [
         "Diagnostic layer_game is stored separately from the locked public headline HPS formula.",
-        "DynamicShiftError is now evaluated from successive prediction commits in the same game when that history exists.",
+        "DynamicShiftError is evaluated from successive prediction commits in the same game when that history exists.",
+        "CertaintyBreach punishes late, near-obvious misses harder than early exploratory misses inside the temporal layer.",
         "Unknown future external throws remain explicitly out of scope for this first commit format; game forecasts are current-known-board-only.",
       ],
     },
@@ -702,6 +742,7 @@ export function buildPredictionRevealBundle(params: {
           endFrameMae,
           dynamicShiftError,
           horizonAccuracy,
+          certaintyBreach,
           evaluatedThrows: evaluatedTemporalThrows.length,
           predictedThrows: snapshot.throws.length,
           historyPoints: temporalHistory.metrics.historyPoints,

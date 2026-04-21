@@ -25,6 +25,21 @@ Current HPS v2 behavior in this repo:
 
 The monitor and manager should keep these concepts separate instead of flattening them into one number.
 
+## Raw score vs baseline lift
+
+Agent 1 now tracks two different views deliberately:
+
+- raw HPS headline and raw layer scores
+- empirical baseline lift
+
+Use them differently:
+
+- raw HPS tells you the exact measured prediction quality on the modeled surface
+- baseline lift tells you whether the current run is outperforming or underperforming this agent's own calibrated start state
+- the baseline object also tells you whether calibration is still bootstrapping or already stabilized
+
+That means baseline lift is not a replacement for HPS. It is a second lens on top of the raw truth. A manager should improve both, but never hide the raw score behind the lift.
+
 ## The four layers
 
 ### 1. Outcome layer
@@ -77,6 +92,7 @@ Current metric family:
 - end-frame MAE
 - dynamic shift error
 - horizon accuracy
+- certainty breach (late near-obvious misses are punished harder than early exploratory misses)
 
 This layer measures self-correction, not just a single snapshot guess.
 

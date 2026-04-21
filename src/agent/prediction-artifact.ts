@@ -1,5 +1,6 @@
 import type { SimRunInput, ThrowRecord } from "../collider/types.js";
 import type { CandidatePlanRun } from "../sim/planner.js";
+import type { ResolvedAgentProfile } from "../core/agent-profile.js";
 import { makeCommitSaltHex } from "../core/content-address.js";
 import {
   buildPriceLookupFromSimInput,
@@ -13,7 +14,7 @@ export const PREDICTION_COMMIT_SCHEMA = "collider.prediction.commit.v1";
 
 export type PredictionWeights = {
   headline: {
-    version: "hps-v1-equal-bce-rps-temporal";
+    version: "hps-v2_1-equal-bce-rps-temporal-certainty";
     bce: number;
     rps: number;
     temporal: number;
@@ -139,6 +140,21 @@ export type PredictionSnapshot = {
 };
 
 export type PredictionCommitPayload = {
+  agentProfile?: {
+    doctrinePack: string;
+    doctrineLabel: string;
+    goalWeights: {
+      profitMaxing: number;
+      ladderMaxing: number;
+      selfAwarenessMaxing: number;
+      discoveryMapping: number;
+    };
+    effective: {
+      riskMode: string;
+      customStrategy: string | null;
+      copySlammerWhenSameHoleType: boolean;
+    };
+  };
   schema: typeof PREDICTION_COMMIT_SCHEMA;
   version: 1;
   createdAt: string;
@@ -398,8 +414,9 @@ export function buildPredictionCommitBundle(params: {
   candidateHash: string | null;
   plan: CandidatePlanRun;
   simInput: SimRunInput;
+  agentProfile?: ResolvedAgentProfile | null;
 }): PredictionCommitBundle {
-  const { createdAt, sessionId, decisionId, gameId, botUser, candidateHash, plan, simInput } = params;
+  const { createdAt, sessionId, decisionId, gameId, botUser, candidateHash, plan, simInput, agentProfile } = params;
   const priceLookup = buildPriceLookupFromSimInput(simInput);
   const weightedSettlements: WeightedScenarioSettlement[] = plan.perScenario.map((scenarioRun) => ({
     weight: Number(scenarioRun.scenario.weight ?? 1),
@@ -507,7 +524,7 @@ export function buildPredictionCommitBundle(params: {
 
   const weights: PredictionWeights = {
     headline: {
-      version: "hps-v1-equal-bce-rps-temporal",
+      version: "hps-v2_1-equal-bce-rps-temporal-certainty",
       bce: 1 / 3,
       rps: 1 / 3,
       temporal: 1 / 3,
@@ -524,6 +541,16 @@ export function buildPredictionCommitBundle(params: {
   const payload: PredictionCommitPayload = {
     schema: PREDICTION_COMMIT_SCHEMA,
     version: 1,
+    agentProfile: agentProfile ? {
+      doctrinePack: agentProfile.doctrinePack,
+      doctrineLabel: agentProfile.doctrineLabel,
+      goalWeights: { ...agentProfile.goalWeights },
+      effective: {
+        riskMode: agentProfile.effective.riskMode,
+        customStrategy: agentProfile.effective.customStrategy,
+        copySlammerWhenSameHoleType: agentProfile.effective.copySlammerWhenSameHoleType,
+      },
+    } : undefined,
     createdAt,
     sessionId,
     decisionId,

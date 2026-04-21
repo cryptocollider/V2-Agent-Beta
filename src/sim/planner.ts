@@ -132,7 +132,7 @@ export async function runCandidateAcrossQueueScenarios(
 ): Promise<CandidatePlanRun> {
   const scenarios = buildScenarioSet(simInput, opts);
 
-  const perScenario: CandidateScenarioRun[] = await Promise.all(
+  const scenarioResults = await Promise.allSettled(
     scenarios.map(async (scenario) => {
       const candidateInput = appendSyntheticThrow(
         gameId,
@@ -173,6 +173,12 @@ export async function runCandidateAcrossQueueScenarios(
       };
     }),
   );
+
+  const perScenario: CandidateScenarioRun[] = [];
+  for (const result of scenarioResults) {
+    if (result.status !== "fulfilled") continue;
+    perScenario.push(result.value);
+  }
 
   return {
     control,

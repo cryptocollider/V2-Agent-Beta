@@ -15,6 +15,7 @@ The repo-local Claw skill includes a startup pack for fresh managers under `plug
 - `strategy-implications.md`: how those rules change real decision-making
 - `intuition-lens.md`: what the four HPS layers measure and how to use them
 - `progression-map.md`: rough growth path from execution hygiene to strategy invention
+- `doctrine-packs.md`: Agent 1 starting postures, goal mixes, and how they relate to custom strategy naming
 - `manager-reporting.md`: how to keep humans involved through exact, concise strategy reporting
 
 Use these references to shorten the manager's first-contact ramp without pretending the best strategy is already known.
@@ -107,6 +108,7 @@ Underlying stable reason codes currently emitted by the agent are:
 
 - `settings`
 - `runtime`
+- `profile`
 - `control`
 - `audit`
 - `overlay`
@@ -141,12 +143,69 @@ Additional endpoints:
 
 Use these manager-visible controls when shaping behavior without bypassing the deterministic planner:
 
+- `settings.doctrinePack`: coarse strategic starting posture for Agent 1. Current packs are `baseline`, `nutjob`, `tough_nut`, `peanut`, and `prof_deez_nutz`.
+- `settings.goalWeights`: relative weights for `profitMaxing`, `ladderMaxing`, `selfAwarenessMaxing`, and `discoveryMapping`. They are normalized internally.
 - `settings.customStrategy`: persistent named strategy hook stored in settings and runtime state. Use exact short identifiers such as `copy_slammers`.
 - `settings.copySlammerWhenSameHoleType`: compatibility alias for the built-in `copy_slammers` behavior.
 - `POST /api/manager/target-game` with `{ "gameId": "<hex>" }`: requests that the next live cycle prefer one exact game if it is eligible.
 - `POST /api/manager/target-game` with `{ "clear": true }`: clears the active priority target.
 
+Treat doctrine, goal weights, and `customStrategy` as three different layers:
+
+- doctrine pack: the starting posture
+- goal weights: the current objective mix
+- custom strategy: the shareable named idea being tested
+
 Treat `customStrategy` as a shareable strategy-profile name, not as raw code injection. Pair it with overlays, candidate sets, and human-readable notes when you want richer manager behavior.
+
+## Doctrine packs and goal weights
+
+Agent 1 now resolves a profile object for both humans and managers. Read `profile` from `GET /api/manager/state` or `GET /api/manager/honest-score`.
+
+Resolved profile fields:
+
+- `doctrinePack`
+- `doctrineLabel`
+- `doctrineSummary`
+- `goalWeights`
+- `goalWeightsPct`
+- `effective.riskMode`
+- `effective.customStrategy`
+- `effective.copySlammerWhenSameHoleType`
+- `defaultsApplied.*`
+- `notes[]`
+
+Current doctrine packs:
+
+- `baseline`: neutral starting posture for establishing empirical truth before stronger doctrine takes over
+- `nutjob`: novelty, weird lines, and discovery pressure
+- `tough_nut`: conviction, winner imitation, and bigger sizing when certainty feels real
+- `peanut`: survivability, smaller posture, and cleaner calibration
+- `prof_deez_nutz`: meta-doctrine that watches styles and composes hybrids
+
+Resolution rules:
+
+- doctrine pack supplies defaults for `riskMode`, `customStrategy`, `copySlammerWhenSameHoleType`, and default goal weights
+- explicit settings override doctrine defaults
+- goal weights are normalized internally before use
+- raw doctrine is not the same thing as live behavior; always inspect `profile.effective.*`
+
+Settings patch example:
+
+```json
+{
+  "doctrinePack": "peanut",
+  "goalWeights": {
+    "profitMaxing": 40,
+    "ladderMaxing": 15,
+    "selfAwarenessMaxing": 30,
+    "discoveryMapping": 15
+  },
+  "customStrategy": "late_diehard_pressure"
+}
+```
+
+Use doctrine packs as starting positions, not as hard identity locks. The manager should still evolve, rename strategies, and fork its own direction when the evidence supports it.
 
 ## Tactical overlay contract
 
@@ -349,8 +408,15 @@ The manager cannot do these things in v1:
 
 Reasoning-model managers should use the same exact commit/reveal evidence as the human monitor:
 
-- `GET /api/manager/honest-score` returns the latest and recent HPS rows, including headline/layer metrics and artifact references.
+- `GET /api/manager/honest-score` returns the latest and recent HPS rows, including headline/layer metrics, resolved `profile`, empirical `baseline`, and artifact references.
 - `GET /api/manager/reveals?includeArtifacts=1` returns the exact reveal and commit JSON payloads for model-side analysis, replay, or ladder construction.
 - `honestPerformance` inside `GET /api/manager/state` gives a lightweight summary for first-pass inspection before deeper artifact reads.
+
+Important distinction:
+
+- raw HPS headline and raw layer scores are the canonical truth surface
+- `baseline` is an agent-local calibration overlay derived from this agent's own earliest scored rows until the start state stabilizes
+- baseline includes explicit calibration status, rows consumed, and stabilized-metric counts so the manager can see when Agent 1's start state is actually locked
+- baseline lift should be interpreted as `outperforming or underperforming the calibrated start state`, never as a replacement for the raw score
 
 This keeps the manager path exact: models can start from `/api/manager/state`, inspect HPS status immediately, then pull full reveal artifacts only when they need the underlying temporal or throw-level detail.

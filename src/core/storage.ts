@@ -95,6 +95,7 @@ export type HonestScoreLogView = {
       endFrameMae?: number | null;
       dynamicShiftError?: number | null;
       horizonAccuracy?: number | null;
+      certaintyBreach?: number | null;
       evaluatedThrows?: number;
       predictedThrows?: number;
       historyPoints?: number;

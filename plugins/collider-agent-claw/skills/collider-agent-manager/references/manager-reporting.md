@@ -20,8 +20,9 @@ When a fresh manager first loads the agent, give the human a short startup repor
 
 - current runtime state
 - current settings posture
+- current doctrine pack and goal mix
 - current eligibility or blocking code
-- latest HPS headline and four layer scores
+- latest raw HPS headline, baseline lift, and four layer scores
 - selected map or special arena dynamic when it matters
 - top active hypothesis
 - next two or three bounded actions
@@ -32,12 +33,15 @@ Suggested template:
 State:
 - Agent state: <live|paused>
 - Latest eligibility: <exact code>
+- Doctrine pack: <exact doctrine>
+- Goal mix: <P/L/S/D>
 - Custom strategy: <exact identifier or none>
 - Priority target game: <game id or none>
 - Board dynamic: <classic|blackhole|tournament|other>
 
 Prediction posture:
-- HPS: <headline>
+- Raw HPS: <headline>
+- Baseline lift: <signed pct>
 - Outcome / Value / Game / Temporal: <scores>
 - Coverage: <pct>
 

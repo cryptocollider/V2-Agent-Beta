@@ -20,6 +20,7 @@ import {
 } from "../core/storage.js";
 import { buildContentAddressRefFromJson } from "../core/content-address.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
+import type { ResolvedAgentProfile } from "../core/agent-profile.js";
 import { generateGridCandidates, shuffleCandidates, type Candidate } from "../strategy/candidate-gen.js";
 import { chooseBestRanked, rankPlannedCandidates, type RankedCandidate, type SearchBudget } from "../strategy/choose.js";
 import {
@@ -100,8 +101,10 @@ export type LoopConfig = {
   prefetchedGames?: GameListItem[];
   sessionEligibility?: SessionEligibilityContext;
   preferredGameId?: Hex32 | string;
+  selectionMode?: "best" | "random";
   sessionId: string;
   storage?: StoragePaths;
+  agentProfile?: ResolvedAgentProfile;
 };
 
 export type TopCandidateView = {
@@ -637,6 +640,15 @@ function buildBaseCandidateContext(
   };
 }
 
+function shuffleRankedRows<T>(rows: T[]): T[] {
+  const out = [...rows];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export async function runAgentOnce(
   client: ColliderClientLike,
   wasm: WasmVizRuntime,
@@ -840,7 +852,7 @@ export async function runAgentOnce(
   const limited = shuffled.slice(0, maxCandidates);
   const nextAcceptedHeight = nextAcceptedHeightFromGame(game);
 
-  const planned = await Promise.all(
+  const plannedSettled = await Promise.allSettled(
     limited.map((control) => {
       const candidateHash = hashCandidate(control);
       const managerSpec = managerCandidateSpecs.get(candidateHash);
@@ -863,6 +875,20 @@ export async function runAgentOnce(
       );
     }),
   );
+
+  const planned: Awaited<ReturnType<typeof runCandidateAcrossQueueScenarios>>[] = [];
+  let plannerFailureCount = 0;
+  for (const result of plannedSettled) {
+    if (result.status !== "fulfilled") {
+      plannerFailureCount += 1;
+      continue;
+    }
+    if (!Array.isArray(result.value?.perScenario) || result.value.perScenario.length === 0) {
+      plannerFailureCount += 1;
+      continue;
+    }
+    planned.push(result.value);
+  }
 
   const overlay = getManagerOverlay();
   const baseRanked = rankPlannedCandidates(planned, cfg.scoreConfig);
@@ -903,7 +929,16 @@ export async function runAgentOnce(
     };
   }).sort((a, b) => b.score.final - a.score.final);
 
-  const chosen = chooseBestRanked(contextualRanked, cfg.candidateBudget);
+  const rankedForSelection = cfg.selectionMode === "random"
+    ? shuffleRankedRows(contextualRanked)
+    : contextualRanked;
+  let chosen = chooseBestRanked(rankedForSelection, cfg.candidateBudget);
+  if (cfg.selectionMode === "random" && chosen.ranked.length > 0) {
+    chosen = {
+      ...chosen,
+      winner: chosen.ranked[Math.floor(Math.random() * chosen.ranked.length)] ?? chosen.winner,
+    };
+  }
   const candidateFilterSummary: CandidateFilterSummary = {
     reasonCounts,
     totalRawCandidates: rawCandidates.length,
@@ -920,6 +955,7 @@ export async function runAgentOnce(
   if (reasonCounts.asset_blocked) globalReasons.push("asset_blocked");
   if (filtered.length === 0) globalReasons.push("no_candidates_after_filter");
   if (chosen.stoppedBy === "budget_time" || chosen.stoppedBy === "budget_candidates") globalReasons.push("search_budget_stop");
+  if (limited.length > 0 && planned.length === 0) globalReasons.push("search_budget_stop");
 
   const eligibilitySnapshot: LatestEligibilitySnapshot = {
     ts: nowIso,
@@ -928,7 +964,10 @@ export async function runAgentOnce(
     perGame,
     assetPlanning: assetPlanning.entries,
     candidateFilterSummary,
-    notes: buildManagerNotes(managerCandidateSet, managerCandidates),
+    notes: [
+      ...buildManagerNotes(managerCandidateSet, managerCandidates),
+      ...(plannerFailureCount > 0 ? [`plannerFailedCandidates=${plannerFailureCount}/${limited.length || 0}`] : []),
+    ],
   };
   const eligibilityCode = buildEligibilityCompactCode(eligibilitySnapshot);
 
@@ -1027,6 +1066,7 @@ export async function runAgentOnce(
     candidateHash: winnerMeta?.candidateHash ?? null,
     plan: winnerPlan,
     simInput,
+    agentProfile: cfg.agentProfile ?? null,
   });
   const predictionCoverage = toPredictionCoverageLogView(predictionCommitBundle.payload);
   const predictionCommit = cfg.storage

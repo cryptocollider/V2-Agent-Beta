@@ -1,4 +1,4 @@
-﻿export type ExpectedThrowSummary = {
+export type ExpectedThrowSummary = {
   payload?: {
     asset?: string;
     amount?: string;
@@ -43,6 +43,7 @@ export type MatchedResultSummary = {
     enter_frame?: number;
     asset?: string;
     amount?: string;
+    returned_by_asset?: Record<string, string>;
     value_usd_e8?: string;
     mass_usd?: number;
     hole_type?: number;
@@ -282,6 +283,14 @@ export function matchReportToSubmittedThrow(
 
   const userPayouts = payoutsRaw.filter((p) => sameHexish(p.user, userHex));
 
+  const matchedOutputsByAsset: Record<string, string> = {};
+  for (const p of userPayouts) {
+    if (!matchedThrowIdHex || !sameHexish(p.throw_id, matchedThrowIdHex)) continue;
+    const assetHex = assetHexFromUnknown(p.asset);
+    const amount = BigInt(String(p.amount ?? "0"));
+    matchedOutputsByAsset[assetHex] = (BigInt(matchedOutputsByAsset[assetHex] ?? "0") + amount).toString();
+  }
+
   const payoutsByKind: Record<string, string> = {};
   const payoutsByAsset: Record<string, string> = {};
 
@@ -356,6 +365,7 @@ export function matchReportToSubmittedThrow(
       enter_frame: num(matchedThrow.enter_frame),
       asset: assetHexFromUnknown(matchedThrow.asset) || undefined,
       amount: str(matchedThrow.amount),
+      returned_by_asset: matchedOutputsByAsset,
       value_usd_e8: str(matchedThrow.value_usd_e8),
       mass_usd: num(matchedThrow.mass_usd),
       hole_type: matchedOutcome ? num(matchedOutcome.hole_type) : undefined,

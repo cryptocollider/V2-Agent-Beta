@@ -7,6 +7,8 @@ Use this reference when choosing settings, overlays, target games, or manager ca
 The manager does not control raw execution directly. In v1 it can shape:
 
 - settings
+- doctrine pack
+- goal weights
 - tactical overlay
 - `customStrategy`
 - exact manager candidate sets
@@ -65,6 +67,8 @@ That is why blackhole boards reward more than raw aggression. They reward struct
 
 ## What settings actually mean in play
 
+- `doctrinePack` sets the broad starting posture for Agent 1.
+- `goalWeights` tilt the objective mix across profit, ladder, self-awareness, and discovery.
 - `riskMode` currently shapes amount targets, not deep planning intelligence.
 - `maxThrowUsd`, `maxSingleThrowUsd`, and `maxGameExposureUsd` change which plans can legally exist.
 - `minThrowUsd`, `minGameStakeUsd`, and reserve settings determine whether the agent can even open search.
@@ -78,10 +82,11 @@ Use exact settings names when proposing changes so those changes can be diffed a
 Use these in roughly this order:
 
 1. Fix exact gating or eligibility problems first.
-2. Prefer bounded overlay bias over global setting churn when testing a short-lived hypothesis.
-3. Use `customStrategy` to name a repeatable strategic profile.
-4. Use manager candidate sets when the hypothesis depends on exact throws or exact future branches.
-5. Use `target-game` when one board is unusually attractive and the human or manager wants immediate focus.
+2. Choose or update doctrine pack and goal weights when the whole posture is wrong, not just one ranking preference.
+3. Prefer bounded overlay bias over global setting churn when testing a short-lived hypothesis.
+4. Use `customStrategy` to name a repeatable strategic profile inside that posture.
+5. Use manager candidate sets when the hypothesis depends on exact throws or exact future branches.
+6. Use `target-game` when one board is unusually attractive and the human or manager wants immediate focus.
 
 ## Custom strategy guidance
 

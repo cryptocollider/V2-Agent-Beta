@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
 import { buildSettingsAuditReport } from "../agent/settings-audit.js";
+import { resolveAgentProfile } from "../core/agent-profile.js";
+import { buildHonestPerformanceBaseline } from "../core/hps-baseline.js";
 import {
   getControlState,
   getRuntimeSettings,
@@ -146,6 +148,7 @@ function buildHonestPerformanceSnapshot(rows: any[]): {
     scoredRows: number;
     uniqueGames: number;
   };
+  baseline: ReturnType<typeof buildHonestPerformanceBaseline>;
 } {
   const revealRows = buildLatestResultsByDecision(rows)
     .filter((row) => row?.predictionReveal?.localPath || row?.honestScore);
@@ -163,6 +166,7 @@ function buildHonestPerformanceSnapshot(rows: any[]): {
       scoredRows: scoredRows.length,
       uniqueGames: uniqueGames.size,
     },
+    baseline: buildHonestPerformanceBaseline(scoredRows),
   };
 }
 
@@ -314,9 +318,12 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       );
       const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
       const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
+      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+      const profile = resolveAgentProfile((runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : settings);
       sendJson(res, 200, {
         settings,
-        runtime: await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings()),
+        runtime,
+        profile,
         control: await fromBridge(bridge.getControlState, () => getControlState()),
         audit: buildSettingsAuditReport(settings),
         overlay: await fromBridge(bridge.getManagerOverlay, () => getManagerOverlay()),
@@ -326,6 +333,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         latestCandidates: await fromBridge(bridge.getLatestCandidateContext, () => getLatestCandidateContext()),
         honestPerformance: {
           counts: honestPerformance.counts,
+          baseline: honestPerformance.baseline,
           latest: honestPerformance.revealRows[0] ? summarizeHonestPerformanceRow(honestPerformance.revealRows[0]) : null,
           latestScored: honestPerformance.scoredRows[0] ? summarizeHonestPerformanceRow(honestPerformance.scoredRows[0]) : null,
         },
@@ -367,8 +375,12 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
       const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
       const recentRows = honestPerformance.revealRows.slice(0, limit);
+      const settings = await loadSettings(dataDir);
+      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
       sendJson(res, 200, {
         counts: honestPerformance.counts,
+        baseline: honestPerformance.baseline,
+        profile: resolveAgentProfile((runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : settings),
         latest: honestPerformance.revealRows[0] ? await expandHonestPerformanceRow(honestPerformance.revealRows[0], includeArtifacts) : null,
         latestScored: honestPerformance.scoredRows[0] ? await expandHonestPerformanceRow(honestPerformance.scoredRows[0], includeArtifacts) : null,
         recent: await Promise.all(recentRows.map((row) => expandHonestPerformanceRow(row, includeArtifacts))),

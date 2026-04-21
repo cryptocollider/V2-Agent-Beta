@@ -8,6 +8,7 @@ Start with `GET /api/manager/state`. It returns the full manager snapshot:
 
 - `settings`: persisted settings from `data/settings.json`
 - `runtime`: live runtime settings snapshot
+- `profile`: resolved doctrine, goal mix, and effective strategy posture
 - `control`: live control state
 - `audit`: settings audit report with `counts` and `matrix`
 - `overlay`: active `ManagerTacticalOverlay` or `null`
@@ -120,13 +121,54 @@ Use these controls when the manager wants to shape execution without bypassing t
 
 Treat `customStrategy` as a shareable strategy-profile name, not as raw code injection. Pair it with overlays, candidate sets, and notes when you need richer manager behavior.
 
+## Doctrine packs and goal weights
+
+Use these exact settings fields when shaping Agent 1 posture:
+
+- `settings.doctrinePack`
+- `settings.goalWeights.profitMaxing`
+- `settings.goalWeights.ladderMaxing`
+- `settings.goalWeights.selfAwarenessMaxing`
+- `settings.goalWeights.discoveryMapping`
+
+Use `profile` when you want the resolved answer after defaults and overrides are applied.
+
+Current doctrine ids:
+
+- `baseline`
+- `nutjob`
+- `tough_nut`
+- `peanut`
+- `prof_deez_nutz`
+
+Interpretation:
+
+- doctrine pack = coarse strategic posture
+- goal weights = objective vector
+- custom strategy = shareable named idea
+
+Persist settings changes through `POST /api/settings`. Example:
+
+```json
+{
+  "doctrinePack": "tough_nut",
+  "goalWeights": {
+    "profitMaxing": 55,
+    "ladderMaxing": 15,
+    "selfAwarenessMaxing": 20,
+    "discoveryMapping": 10
+  },
+  "customStrategy": "copy_slammers"
+}
+```
+
 ## Honest-performance and reveal endpoints
 
 Use these when supervising the HPS commit/reveal system directly:
 
-- `GET /api/manager/honest-score`: latest and recent HPS rows with headline score, layer metrics, and artifact references.
+- `GET /api/manager/honest-score`: latest and recent HPS rows with headline score, layer metrics, resolved `profile`, empirical `baseline`, and artifact references.
 - `GET /api/manager/honest-score?includeArtifacts=1`: also includes the exact `revealPayload` and `commitPayload` JSON bodies for the latest and recent rows.
 - `GET /api/manager/reveals?gameId=<hex>&includeArtifacts=1`: filters to one game and returns the exact reveal/commit JSON payloads for model-side replay or ladder construction.
 - `GET /api/manager/reveals?decisionId=<hex>&includeArtifacts=1`: isolates one decision and its associated reveal artifacts.
 
-Treat these endpoints as the canonical model-facing supervision path for HPS. They expose the same evidence the monitor uses, but in API form rather than UI form.
+Treat these endpoints as the canonical model-facing supervision path for HPS. Keep raw HPS separate from empirical baseline lift: raw scores are the canonical truth surface, while baseline lift only answers whether this agent is outperforming or underperforming its own calibrated start state. The returned baseline object now also exposes calibration status, rows consumed, and stabilized-metric counts so the manager can tell whether Agent 1 is still bootstrapping or already locked. They expose the same evidence the monitor uses, but in API form rather than UI form.

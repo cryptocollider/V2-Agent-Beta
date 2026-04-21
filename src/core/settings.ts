@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { DoctrinePackId, GoalWeights } from "./agent-profile.js";
 
 export type AgentSettings = {
   rpc: string;
@@ -20,6 +21,8 @@ export type AgentSettings = {
   minThrowUsd?: number | null;
   maxThrowUsd?: number | null;
   riskMode?: "defensive" | "balanced" | "aggressive";
+  doctrinePack?: DoctrinePackId | null;
+  goalWeights?: GoalWeights | null;
   customStrategy?: string | null;
   copySlammerWhenSameHoleType?: boolean;
   allowedAssets?: string[];
@@ -29,6 +32,7 @@ export type AgentSettings = {
   targetProfitUsd?: number | null;
   keepAssets?: string[];
   disposeAssets?: string[];
+  baselineResetThrows?: number | null;
 };
 
 export const DEFAULT_SETTINGS: AgentSettings = {
@@ -50,6 +54,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   minThrowUsd: null,
   maxThrowUsd: null,
   riskMode: "balanced",
+  doctrinePack: "baseline",
+  goalWeights: null,
   customStrategy: null,
   copySlammerWhenSameHoleType: false,
   allowedAssets: [],
@@ -59,6 +65,7 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   targetProfitUsd: null,
   keepAssets: [],
   disposeAssets: [],
+  baselineResetThrows: 24,
 };
 
 export async function loadSettings(dataDir = "./data"): Promise<AgentSettings> {

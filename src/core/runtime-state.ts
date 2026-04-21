@@ -103,6 +103,15 @@ export function applyControlAction(action: string, payload: Record<string, unkno
         lastAction: { action, ts, throwsTarget, exclusive: true, gameId: null },
         lastMessage: `Full clean requested${throwsTarget ? ` (${throwsTarget} throws)` : ""}.`,
       });
+    case "baseline_reset":
+      return updateControlState({
+        state: "live",
+        mode: `baseline-reset-${throwsTarget || 24}`,
+        throwsTarget,
+        exclusive: false,
+        lastAction: { action, ts, throwsTarget, exclusive: false, gameId: null },
+        lastMessage: `Baseline reset requested${throwsTarget ? ` (${throwsTarget} throws)` : ""}. Raw HPS stays canonical while local lift re-calibrates from this point.`,
+      });
     case "target_game":
       return updateControlState({
         state: "live",
