@@ -8,6 +8,7 @@ Start with `GET /api/manager/state`. It returns the full manager snapshot:
 
 - `settings`: persisted settings from `data/settings.json`
 - `runtime`: live runtime settings snapshot
+- `onboarding`: bootstrap summary for zero-flag beta startup, test-token request state, and manual-learning defaults
 - `profile`: resolved doctrine, goal mix, and effective strategy posture
 - `control`: live control state
 - `audit`: settings audit report with `counts` and `matrix`
@@ -114,12 +115,24 @@ Manager candidates are tagged with `source: "manager"` and hashed from exact can
 
 Use these controls when the manager wants to shape execution without bypassing the deterministic planner:
 
-- `settings.customStrategy`: persistent named strategy hook stored in settings/runtime state. Use exact short identifiers such as `copy_slammers`.
+- `settings.customStrategy`: persistent named strategy hook stored in settings/runtime state. Use exact short identifiers such as `copy_slammers`, `toughnut_never_lose`, `nutjob_discovery`, `peanut_safe_flow`, or `prof_meta_rotator`.
 - `settings.copySlammerWhenSameHoleType`: compatibility alias for the built-in `copy_slammers` behavior.
+- `settings.humanLearning.enabled`: turns manual-example learning on or off.
+- `settings.humanLearning.learnOwnManualThrows`: lets the agent mine its own manual throws with missing `data_commit` as example seeds.
+- `settings.humanLearning.addresses`: additional addresses to watch for manual-example seeds.
+- `settings.humanLearning.maxSeedsPerCycle`: cap on injected manual-example seeds per planning cycle.
 - `POST /api/manager/target-game` with `{ gameId: <hex> }`: requests that the next live cycle prefer one exact game if it is eligible.
 - `POST /api/manager/target-game` with `{ clear: true }`: clears the active priority target.
 
 Treat `customStrategy` as a shareable strategy-profile name, not as raw code injection. Pair it with overlays, candidate sets, and notes when you need richer manager behavior.
+
+Built-in starter-pack strategy ids:
+
+- `tough_nut` -> `toughnut_never_lose`
+- `nutjob` -> `nutjob_discovery`
+- `peanut` -> `peanut_safe_flow`
+- `prof_deez_nutz` -> `prof_meta_rotator`
+- compatibility hook -> `copy_slammers`
 
 ## Doctrine packs and goal weights
 
@@ -158,7 +171,7 @@ Persist settings changes through `POST /api/settings`. Example:
     "selfAwarenessMaxing": 20,
     "discoveryMapping": 10
   },
-  "customStrategy": "copy_slammers"
+  "customStrategy": "toughnut_never_lose"
 }
 ```
 
@@ -170,5 +183,24 @@ Use these when supervising the HPS commit/reveal system directly:
 - `GET /api/manager/honest-score?includeArtifacts=1`: also includes the exact `revealPayload` and `commitPayload` JSON bodies for the latest and recent rows.
 - `GET /api/manager/reveals?gameId=<hex>&includeArtifacts=1`: filters to one game and returns the exact reveal/commit JSON payloads for model-side replay or ladder construction.
 - `GET /api/manager/reveals?decisionId=<hex>&includeArtifacts=1`: isolates one decision and its associated reveal artifacts.
+- `POST /api/manager/replay-svg` with `{ "gameId": "<hex>", "frames": [0, 240, 960] }`: explicit on-demand storyboard SVG export for selected replay frames only. It returns inline SVG strings and never runs during normal scan or throw-selection cycles. The response includes `mode: "forecast_storyboard_v1"`, `exactPhysics: false`, `finalFrame`, `selectedFrames`, and a `frames[]` array of inline SVG payloads for exactly the requested frames.
 
 Treat these endpoints as the canonical model-facing supervision path for HPS. Keep raw HPS separate from empirical baseline lift: raw scores are the canonical truth surface, while baseline lift only answers whether this agent is outperforming or underperforming its own calibrated start state. The returned baseline object now also exposes calibration status, rows consumed, and stabilized-metric counts so the manager can tell whether Agent 1 is still bootstrapping or already locked. They expose the same evidence the monitor uses, but in API form rather than UI form.
+## Zero-flag startup and manual-example learning
+
+For fresh beta operators, start by reading `onboarding` from `GET /api/manager/state`. That object tells you:
+
+- whether Agent 1 auto-generated the beta user
+- which zero-flag startup mode is active
+- the default human launch command
+- which asset and amount became the startup default
+- whether test tokens were already requested
+- the exact token-request state: pending, requested, or failed
+- whether the welcome guide is still pending in the monitor
+- the starter question for baseline/careful/stubborn/exploratory/hybrid posture selection
+- the exact doctrine mapping for those starter styles
+- whether manual-example learning is enabled and which addresses are being watched
+
+If onboarding says the token request failed, report that plainly and guide the human to the Bank page `Request Test Tokens` button.
+
+If human/manual-example learning is enabled, recent throws with missing `data_commit` can be treated as bounded candidate seeds rather than ignored noise. This is the simplest human + AI co-play surface in Agent 1: the human can demonstrate, the manager can inspect, and the deterministic planner can decide whether that example survives simulation. The manager should describe this as supervised learning from examples, not as copy-the-human mode.

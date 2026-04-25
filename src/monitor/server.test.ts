@@ -139,6 +139,67 @@ test("manager API exposes state, overlay, and candidate-set controls", async (t)
   assert.equal(candidateSetPost.managerCandidateSet.candidates[0].futureScenarios.length, 1);
 });
 
+test("manager API exposes explicit replay svg export through the bridge", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-manager-svg-"));
+  t.after(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  await initManagerState(tempDir);
+  initRuntimeSettings({
+    ...DEFAULT_SETTINGS,
+    user: "aa".repeat(32),
+    asset: "01".repeat(32),
+    amount: "100",
+  });
+  await saveSettings({
+    ...DEFAULT_SETTINGS,
+    user: "aa".repeat(32),
+    asset: "01".repeat(32),
+    amount: "100",
+  }, tempDir);
+
+  const server = await startMonitorServer({
+    port: 0,
+    dataDir: tempDir,
+    staticDir: process.cwd(),
+    bridge: {
+      buildReplaySvgExport: async (request) => ({
+        mode: "forecast_storyboard_v1",
+        exactPhysics: false,
+        gameId: (request as any).gameId,
+        generatedAt: new Date().toISOString(),
+        finalFrame: 321,
+        selectedFrames: (request as any).frames,
+        notes: ["explicit export only"],
+        frames: [{ frame: 12, visibleThrows: 2, resolvedThrows: 1, svg: "<svg/>" }],
+      }),
+    },
+  });
+  t.after(async () => {
+    await new Promise((resolve) => server.close(() => resolve(undefined)));
+  });
+
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const replay = await fetchJson(`${baseUrl}/api/manager/replay-svg`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      gameId: "11".repeat(32),
+      frames: [12, 44, 44],
+    }),
+  });
+
+  assert.equal(replay.ok, true);
+  assert.equal(replay.replay.mode, "forecast_storyboard_v1");
+  assert.equal(replay.replay.exactPhysics, false);
+  assert.deepEqual(replay.replay.selectedFrames, [12, 44]);
+  assert.equal(replay.replay.frames[0].svg, "<svg/>");
+});
+
 test("manager API exposes honest-score summaries and reveal artifacts", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "collider-manager-hps-"));
   t.after(async () => {

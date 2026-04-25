@@ -93,6 +93,10 @@ Use these in roughly this order:
 Treat `customStrategy` as a shared strategy-profile label:
 
 - good: `copy_slammers`
+- good: `toughnut_never_lose`
+- good: `nutjob_discovery`
+- good: `peanut_safe_flow`
+- good: `prof_meta_rotator`
 - good: `low_fee_tiers`
 - good: `late_diehard_pressure`
 - good: `bh_anchor_pressure`
@@ -122,3 +126,5 @@ The manager should eventually go beyond slider tuning into:
 - adaptive bankroll posture
 
 But the first versions should still stay exact and auditable. Novelty is strongest when it leaves a clean trail.
+
+Starter packs are examples, not cages. A strong manager should use them to move faster, then fork them into sharper names once the board proves something real.

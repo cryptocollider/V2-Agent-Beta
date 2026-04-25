@@ -4,6 +4,8 @@ import path from "node:path";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
 import { buildSettingsAuditReport } from "../agent/settings-audit.js";
 import { resolveAgentProfile } from "../core/agent-profile.js";
+import { buildBootstrapSummary } from "../core/bootstrap.js";
+import { normalizeReplaySvgRequest, type ReplaySvgRequest } from "./replay-svg.js";
 import { buildHonestPerformanceBaseline } from "../core/hps-baseline.js";
 import {
   getControlState,
@@ -11,7 +13,7 @@ import {
   applyControlAction,
   updateRuntimeSettings,
 } from "../core/runtime-state.js";
-import { loadSettings, saveSettings } from "../core/settings.js";
+import { loadSettings, normalizeSettings, saveSettings } from "../core/settings.js";
 import {
   getLatestCandidateContext,
   getLatestEligibilitySnapshot,
@@ -36,6 +38,7 @@ export type MonitorBridge = {
   saveManagerOverlay?: (overlay: unknown) => unknown | Promise<unknown>;
   getManagerCandidateSet?: () => unknown | Promise<unknown>;
   saveManagerCandidateSet?: (candidateSet: unknown) => unknown | Promise<unknown>;
+  buildReplaySvgExport?: (request: ReplaySvgRequest) => unknown | Promise<unknown>;
 };
 
 export type ServerConfig = {
@@ -193,6 +196,15 @@ function safeRuntimeSettings(): Record<string, unknown> | null {
   }
 }
 
+function mergeEffectiveSettings(
+  settings: Awaited<ReturnType<typeof loadSettings>>,
+  runtime: Record<string, unknown> | null | undefined,
+): ReturnType<typeof normalizeSettings> {
+  return (runtime && typeof runtime === "object")
+    ? normalizeSettings({ ...settings, ...runtime })
+    : settings;
+}
+
 async function fromBridge<T>(bridgeCall: (() => T | Promise<T>) | undefined, fallback: () => T | Promise<T>): Promise<T> {
   if (bridgeCall) return await bridgeCall();
   return await fallback();
@@ -236,7 +248,12 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
 
     if (url.pathname === "/api/settings" && req.method === "GET") {
       const settings = await loadSettings(dataDir);
-      sendJson(res, 200, settings);
+      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+      sendJson(
+        res,
+        200,
+        mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null),
+      );
       return;
     }
 
@@ -244,7 +261,22 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       try {
         const json = await readJsonBody(req);
         const current = await loadSettings(dataDir);
-        const merged = { ...current, ...json };
+        const merged = normalizeSettings({
+          ...current,
+          ...json,
+          goalWeights: {
+            ...(current.goalWeights ?? {}),
+            ...((json?.goalWeights && typeof json.goalWeights === "object") ? json.goalWeights : {}),
+          },
+          onboarding: {
+            ...(current.onboarding ?? {}),
+            ...((json?.onboarding && typeof json.onboarding === "object") ? json.onboarding : {}),
+          },
+          humanLearning: {
+            ...(current.humanLearning ?? {}),
+            ...((json?.humanLearning && typeof json.humanLearning === "object") ? json.humanLearning : {}),
+          },
+        });
 
         await saveSettings(merged, dataDir);
         const runtime = await fromBridgeWithArg(
@@ -253,7 +285,14 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
           (patch) => updateRuntimeSettings(patch),
         );
 
-        sendJson(res, 200, { ok: true, settings: merged, runtime });
+        sendJson(res, 200, {
+          ok: true,
+          settings: mergeEffectiveSettings(
+            merged,
+            (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null,
+          ),
+          runtime,
+        });
       } catch (err) {
         sendJson(res, 400, { ok: false, error: String(err) });
       }
@@ -319,10 +358,14 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
       const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
       const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
-      const profile = resolveAgentProfile((runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : settings);
+      const settingsSource = (runtime && typeof runtime === "object")
+        ? normalizeSettings({ ...settings, ...(runtime as Record<string, unknown>) })
+        : settings;
+      const profile = resolveAgentProfile(settingsSource);
       sendJson(res, 200, {
         settings,
         runtime,
+        onboarding: buildBootstrapSummary(settingsSource),
         profile,
         control: await fromBridge(bridge.getControlState, () => getControlState()),
         audit: buildSettingsAuditReport(settings),
@@ -472,6 +515,28 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         () => saveManagerCandidateSet(null),
       );
       sendJson(res, 200, { ok: true, managerCandidateSet });
+      return;
+    }
+
+    if (url.pathname === "/api/manager/replay-svg" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        const replayRequest = normalizeReplaySvgRequest(json);
+        if (!bridge.buildReplaySvgExport) {
+          sendJson(res, 501, { ok: false, error: "replay svg export requires the live runtime bridge" });
+          return;
+        }
+        const replay = await fromBridgeWithArg(
+          bridge.buildReplaySvgExport,
+          replayRequest,
+          async () => {
+            throw new Error("replay svg export requires the live runtime bridge");
+          },
+        );
+        sendJson(res, 200, { ok: true, replay });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: String(err) });
+      }
       return;
     }
 

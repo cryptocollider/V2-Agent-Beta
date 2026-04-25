@@ -11,7 +11,7 @@ test("resolveAgentProfile applies doctrine defaults", () => {
 
   const toughNut = resolveAgentProfile({ doctrinePack: "tough_nut" as any });
   assert.equal(toughNut.doctrineLabel, "ToughNut");
-  assert.equal(toughNut.effective.customStrategy, "copy_slammers");
+  assert.equal(toughNut.effective.customStrategy, "toughnut_never_lose");
   assert.equal(toughNut.effective.copySlammerWhenSameHoleType, true);
 });
 

@@ -21,6 +21,10 @@ export type AgentPolicy = {
 
   customStrategy?: string;
   copySlammerWhenSameHoleType?: boolean;
+  learnFromManualThrows?: boolean;
+  learnOwnManualThrows?: boolean;
+  humanLearningAddresses?: string[];
+  humanLearningMaxSeeds?: number;
 
   allowedAssets?: string[];
   blockedAssets?: string[];

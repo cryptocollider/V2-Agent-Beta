@@ -457,6 +457,9 @@ export async function runAgentSession(
       const profile = baselineProfile ?? resolveAgentProfile(rt);
       const customStrategy = String(profile.effective.customStrategy || "").trim();
       const copySlammersEnabled = profile.effective.copySlammerWhenSameHoleType;
+      const humanLearning = rt.humanLearning && typeof rt.humanLearning === "object"
+        ? rt.humanLearning as Record<string, unknown>
+        : {};
 
       const effectivePolicy: AgentPolicy = {
         ...basePolicy,
@@ -473,6 +476,10 @@ export async function runAgentSession(
         riskMode: profile.effective.riskMode ?? String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
         customStrategy: customStrategy || undefined,
         copySlammerWhenSameHoleType: copySlammersEnabled,
+        learnFromManualThrows: humanLearning.enabled == null ? true : !!humanLearning.enabled,
+        learnOwnManualThrows: humanLearning.learnOwnManualThrows == null ? true : !!humanLearning.learnOwnManualThrows,
+        humanLearningAddresses: parseStringArray(humanLearning.addresses),
+        humanLearningMaxSeeds: parseOptionalNumber(humanLearning.maxSeedsPerCycle) ?? undefined,
         allowedAssets: parseStringArray(rt.allowedAssets),
         blockedAssets: parseStringArray(rt.blockedAssets),
         keepAssets: parseStringArray(rt.keepAssets),
@@ -487,6 +494,10 @@ export async function runAgentSession(
         effectivePolicy.riskMode = "balanced";
         effectivePolicy.customStrategy = undefined;
         effectivePolicy.copySlammerWhenSameHoleType = false;
+        effectivePolicy.learnFromManualThrows = false;
+        effectivePolicy.learnOwnManualThrows = false;
+        effectivePolicy.humanLearningAddresses = [];
+        effectivePolicy.humanLearningMaxSeeds = undefined;
         if (baselineMinUsd != null) {
           effectivePolicy.minThrowUsd = baselineMinUsd;
           effectivePolicy.maxThrowUsd = baselineMinUsd;
@@ -517,19 +528,29 @@ export async function runAgentSession(
 
         try {
           const report = await client.getGameReport(p.gameId);
-          const matched = matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected);
+          const provisionalMatch = matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected);
 
-          if (!hasPreciseSettledOutcome(matched)) {
+          if (!hasPreciseSettledOutcome(provisionalMatch)) {
             continue;
           }
+
+          let settledInput: Awaited<ReturnType<typeof client.getSimInput>> | undefined;
+          try {
+            settledInput = await client.getSimInput(p.gameId);
+          } catch {
+            settledInput = undefined;
+          }
+
+          const matched = settledInput
+            ? matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected, settledInput)
+            : provisionalMatch;
 
           const resultTs = new Date().toISOString();
           let predictionReveal: ArtifactLogRef | undefined;
           let honestScore: HonestScoreLogView | undefined;
 
-          if (p.predictionCommitPayload && p.predictionCommitRef) {
+          if (p.predictionCommitPayload && p.predictionCommitRef && settledInput) {
             try {
-              const settledInput = await client.getSimInput(p.gameId);
               const predictionHistory = effectiveLoopCfg.storage
                 ? await loadPredictionHistoryForGame({
                     storage: effectiveLoopCfg.storage,

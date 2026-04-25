@@ -147,5 +147,5 @@ Useful manager tools on these boards are:
 - manager candidate sets when the hypothesis depends on exact future branches
 - HPS temporal and game layers, because blackhole boards reward mid-game belief updates
 
-Treat the blackhole as a strategy object, not as spectacle. If a manager can imagine how it changes the board, it can be measured on whether that imagination was right.
+Treat the blackhole as a fairness-preserving control object, not as spectacle. If a manager can imagine how it changes the board, it can be measured on whether that imagination was right.
 

@@ -16,6 +16,7 @@ import {
   saveManagerCandidateSet,
   saveManagerOverlay,
 } from "../core/manager-state.js";
+import { ensureBetaBootstrap } from "../core/bootstrap.js";
 import { loadSettings } from "../core/settings.js";
 import { initStorage, makeSessionId } from "../core/storage.js";
 import {
@@ -26,7 +27,8 @@ import {
   updateRuntimeSettings,
 } from "../core/runtime-state.js";
 import { DEFAULT_POLICY } from "../policy/schema.js";
-import { loadVizWasm } from "../sim/wasm.js";
+import { loadVizWasm, type WasmVizRuntime } from "../sim/wasm.js";
+import { buildReplaySvgExportWithRuntime } from "../monitor/replay-svg.js";
 
 type MonitorBridgeRequest = {
   type: "bridge-request";
@@ -34,6 +36,9 @@ type MonitorBridgeRequest = {
   method: string;
   payload?: unknown;
 };
+
+let monitorBridgeClient: ColliderClient | null = null;
+let monitorBridgeWasm: WasmVizRuntime | null = null;
 
 function arg(name: string, fallback?: string): string | undefined {
   const idx = process.argv.indexOf(name);
@@ -69,6 +74,15 @@ async function handleMonitorBridgeRequest(message: MonitorBridgeRequest): Promis
       return getManagerCandidateSet();
     case "saveManagerCandidateSet":
       return await saveManagerCandidateSet((message.payload ?? null) as any);
+    case "buildReplaySvgExport":
+      if (!monitorBridgeClient || !monitorBridgeWasm) {
+        throw new Error("replay svg export unavailable before runtime initialization");
+      }
+      return await buildReplaySvgExportWithRuntime({
+        client: monitorBridgeClient,
+        wasm: monitorBridgeWasm,
+        request: (message.payload ?? {}) as any,
+      });
     default:
       throw new Error(`unknown monitor bridge method: ${message.method}`);
   }
@@ -141,23 +155,32 @@ async function startMonitorWorker(cfg: { port: number; dataDir: string; staticDi
 async function main(): Promise<void> {
   const dataDir = arg("--data-dir", process.env.COLLIDER_DATA_DIR ?? "./data")!;
   const fileSettings = await loadSettings(dataDir);
-
-  const effectiveSettings = {
+  const bootstrapSeedSettings = {
     ...fileSettings,
     rpc: arg("--rpc", process.env.COLLIDER_RPC_URL ?? fileSettings.rpc)!,
     wasm: arg("--wasm", process.env.COLLIDER_SIM_WASM ?? fileSettings.wasm)!,
     user: arg("--user", process.env.COLLIDER_BOT_USER ?? fileSettings.user)!,
     asset: arg("--asset", process.env.COLLIDER_DEFAULT_ASSET ?? fileSettings.asset)!,
     amount: arg("--amount", process.env.COLLIDER_DEFAULT_AMOUNT ?? fileSettings.amount)!,
-    maxCandidates: Number(arg("--max-candidates", String(fileSettings.maxCandidates))),
-    maxMs: Number(arg("--max-ms", String(fileSettings.maxMs))),
-    pollMs: Number(arg("--poll-ms", String(fileSettings.pollMs))),
-    maxThrowsPerGame: Number(arg("--max-throws-per-game", String(fileSettings.maxThrowsPerGame))),
-    maxThrowsPerSession: Number(arg("--max-throws-per-session", String(fileSettings.maxThrowsPerSession))),
+  };
+  const bootstrappedSettings = await ensureBetaBootstrap(bootstrapSeedSettings, dataDir);
+
+  const effectiveSettings = {
+    ...bootstrappedSettings,
+    rpc: arg("--rpc", process.env.COLLIDER_RPC_URL ?? bootstrappedSettings.rpc)!,
+    wasm: arg("--wasm", process.env.COLLIDER_SIM_WASM ?? bootstrappedSettings.wasm)!,
+    user: arg("--user", process.env.COLLIDER_BOT_USER ?? bootstrappedSettings.user)!,
+    asset: arg("--asset", process.env.COLLIDER_DEFAULT_ASSET ?? bootstrappedSettings.asset)!,
+    amount: arg("--amount", process.env.COLLIDER_DEFAULT_AMOUNT ?? bootstrappedSettings.amount)!,
+    maxCandidates: Number(arg("--max-candidates", String(bootstrappedSettings.maxCandidates))),
+    maxMs: Number(arg("--max-ms", String(bootstrappedSettings.maxMs))),
+    pollMs: Number(arg("--poll-ms", String(bootstrappedSettings.pollMs))),
+    maxThrowsPerGame: Number(arg("--max-throws-per-game", String(bootstrappedSettings.maxThrowsPerGame))),
+    maxThrowsPerSession: Number(arg("--max-throws-per-session", String(bootstrappedSettings.maxThrowsPerSession))),
     minMillisBetweenLiveThrows: Number(
-      arg("--min-ms-between-live-throws", String(fileSettings.minMillisBetweenLiveThrows)),
+      arg("--min-ms-between-live-throws", String(bootstrappedSettings.minMillisBetweenLiveThrows)),
     ),
-    monitorPort: Number(arg("--monitor-port", String(fileSettings.monitorPort))),
+    monitorPort: Number(arg("--monitor-port", String(bootstrappedSettings.monitorPort))),
   };
 
   initRuntimeSettings(effectiveSettings);
@@ -180,15 +203,16 @@ async function main(): Promise<void> {
 
   const dryRun = hasFlag("--dry-run");
   const stopOnWinner = hasFlag("--stop-on-winner");
-  const loop = hasFlag("--loop");
-  const serveMonitor = hasFlag("--serve-monitor");
+  const runOnceOnly = hasFlag("--once") || hasFlag("--single-run");
+  const loop = hasFlag("--loop") || !runOnceOnly;
+  const serveMonitor = !hasFlag("--no-monitor");
   const maxCycles = Number(arg("--max-cycles", "999999"));
 
   const sessionId = makeSessionId();
   const storage = await initStorage(dataDir);
 
   console.log(
-    `session=${sessionId} dataDir=${storage.rootDir} mode=${dryRun ? "dry-run" : "live"} loop=${loop ? "yes" : "no"}`,
+    `session=${sessionId} dataDir=${storage.rootDir} mode=${dryRun ? "dry-run" : "live"} loop=${loop ? "yes" : "no"} monitor=${serveMonitor ? "yes" : "no"}`,
   );
 
   if (serveMonitor) {
@@ -201,6 +225,8 @@ async function main(): Promise<void> {
 
   const client = new ColliderClient(rpcUrl);
   const wasm = await loadVizWasm(wasmPath);
+  monitorBridgeClient = client;
+  monitorBridgeWasm = wasm;
 
   const policy = {
     ...DEFAULT_POLICY,

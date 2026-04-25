@@ -67,6 +67,8 @@ If the game has no winners, the VM applies the game's `NoWinnerPolicy`:
 
 That policy changes strategy because `no winner` is not always neutral.
 
+For the full settlement semantics, read `payout-mechanics.md`.
+
 ## Payout kinds exposed in reports
 
 The settled report can contain these payout kinds:

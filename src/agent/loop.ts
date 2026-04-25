@@ -23,12 +23,14 @@ import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { ResolvedAgentProfile } from "../core/agent-profile.js";
 import { generateGridCandidates, shuffleCandidates, type Candidate } from "../strategy/candidate-gen.js";
 import { chooseBestRanked, rankPlannedCandidates, type RankedCandidate, type SearchBudget } from "../strategy/choose.js";
+import { applyBuiltInStrategyBias, normalizeBuiltInStrategyName } from "../strategy/built-in-strategies.js";
 import {
   runCandidateAcrossQueueScenarios,
   type PlannerScenarioOverride,
 } from "../sim/planner.js";
 import {
   buildQueueScenarioSet,
+  bytesToHex32,
   controlThrowToPlaceThrowArgs,
 } from "../collider/throw-builder.js";
 import type { RecentShot } from "../strategy/score.js";
@@ -140,6 +142,10 @@ type RankedCandidateMeta = {
   adjustedScore: ReturnType<typeof scoreViewFromRobustScore>;
   basePrediction: PredictionSummary | null;
   adjustedPrediction: PredictionSummary | null;
+  strategyName: string | null;
+  strategyScoreDelta: number;
+  strategyNotes: string[];
+  projectedFinalFrame: number | null;
   overlayActive: boolean;
   overlayScoreDelta: number;
   overlayAdjustments: OverlayAdjustment[];
@@ -385,6 +391,85 @@ async function loadHistoricalWinningSeeds(
   } catch {
     return [];
   }
+}
+
+function resolveManualLearningTargets(policy: AgentPolicy, botUserHex: string): Set<string> {
+  const out = new Set<string>();
+  if (policy.learnOwnManualThrows !== false) {
+    const botUser = cleanHex(botUserHex);
+    if (botUser) out.add(botUser);
+  }
+  for (const address of policy.humanLearningAddresses ?? []) {
+    const cleanAddress = cleanHex(address);
+    if (cleanAddress) out.add(cleanAddress);
+  }
+  return out;
+}
+
+function throwRecordToCandidateSeed(
+  throwRecord: SimRunInput["throws"][number],
+  simInput: SimRunInput,
+  assetHex: string,
+  amount: string,
+  tags: string[],
+): Candidate | null {
+  const vb = simInput.map?.physicsConfig?.vel_bounds ?? [1, 1, 1];
+  const vxBound = Math.abs(Number(vb[0] ?? 1)) || 1;
+  const vyBound = Math.abs(Number(vb[1] ?? 1)) || 1;
+  const spinBound = Math.abs(Number(vb[2] ?? 1)) || 1;
+  const x = Number(throwRecord?.init_pose?.pos?.x ?? NaN);
+  const y = Number(throwRecord?.init_pose?.pos?.y ?? NaN);
+  const vx = Number(throwRecord?.init_linvel?.x ?? NaN);
+  const vy = Number(throwRecord?.init_linvel?.y ?? NaN);
+  const angVel = Number(throwRecord?.init_angvel ?? NaN);
+  const nx = vx / vxBound;
+  const ny = vy / vyBound;
+  const angleDeg = Math.atan2(ny, nx) * 180 / Math.PI;
+  const speedPct = Math.max(0, Math.min(100, Math.sqrt((nx * nx) + (ny * ny)) * 100));
+  const spinPct = Math.max(-100, Math.min(100, (angVel / spinBound) * 100));
+  if (![x, y, angleDeg, speedPct, spinPct].every(Number.isFinite)) return null;
+  return {
+    x,
+    y,
+    angleDeg,
+    speedPct,
+    spinPct,
+    asset: assetHex,
+    amount,
+    source: "manual",
+    tags,
+  };
+}
+
+async function loadManualThrowSeeds(
+  simInput: SimRunInput,
+  policy: AgentPolicy,
+  botUserHex: string,
+  assetHex: string,
+  amount: string,
+): Promise<Candidate[]> {
+  if (policy.learnFromManualThrows === false) return [];
+  const targets = resolveManualLearningTargets(policy, botUserHex);
+  if (!targets.size) return [];
+  const maxSeeds = Math.max(1, Math.min(48, Number(policy.humanLearningMaxSeeds ?? 12) || 12));
+  const out: Candidate[] = [];
+  const throws = Array.isArray(simInput.throws) ? [...simInput.throws].reverse() : [];
+  for (const throwRecord of throws) {
+    if (throwRecord?.data_commit != null) continue;
+    let throwUser = "";
+    try {
+      throwUser = cleanHex(bytesToHex32(throwRecord.user as unknown as number[]));
+    } catch {
+      throwUser = "";
+    }
+    if (!targets.has(throwUser)) continue;
+    const tags = ["manual-example-seed", throwUser === cleanHex(botUserHex) ? "manual-own-address" : "manual-tracked-address"];
+    const candidate = throwRecordToCandidateSeed(throwRecord, simInput, assetHex, amount, tags);
+    if (!candidate) continue;
+    out.push(candidate);
+    if (out.length >= maxSeeds) break;
+  }
+  return out;
 }
 
 function samePlannedControl(
@@ -811,6 +896,7 @@ export async function runAgentOnce(
 
   const managerCandidates = buildManagerCandidates(managerCandidateSet);
   const managerCandidateSpecs = buildManagerCandidateSpecMap(managerCandidateSet);
+  const activeBuiltInStrategy = normalizeBuiltInStrategyName(policy.customStrategy ?? cfg.agentProfile?.effective.customStrategy ?? null);
 
   const rawCandidateGroups = await Promise.all(assetPlanning.assetAmountPairs.map(async ({ asset, amount }) => {
     const grid = generateGridCandidates(bounds, {
@@ -822,10 +908,11 @@ export async function runAgentOnce(
       asset,
       amount,
     });
-    const copied = policy.copySlammerWhenSameHoleType || String(policy.customStrategy || '').trim().toLowerCase() === 'copy_slammers'
+    const copied = policy.copySlammerWhenSameHoleType || activeBuiltInStrategy === "copy_slammers"
       ? await loadHistoricalWinningSeeds(cfg.storage, asset, amount)
       : [];
-    return [...copied, ...grid];
+    const manualSeeds = await loadManualThrowSeeds(simInput, policy, cfg.botUser, asset, amount);
+    return [...manualSeeds, ...copied, ...grid];
   }));
 
   const rawCandidates = dedupeCandidates([...rawCandidateGroups.flat(), ...managerCandidates]);
@@ -896,7 +983,14 @@ export async function runAgentOnce(
     const plan = planned.find((candidatePlan) => samePlannedControl(candidatePlan.control, row.candidate)) ?? null;
     const basePrediction = plan ? summarizePredictionFromPlan(plan, cfg.botUser) : null;
     const candidateHash = hashCandidate(row.candidate);
-    const baseScore = scoreViewFromRobustScore(row.score);
+    const strategyApplication = applyBuiltInStrategyBias({
+      strategyName: activeBuiltInStrategy,
+      baseScore: row.score,
+      prediction: basePrediction,
+      plan,
+      simInput,
+    });
+    const baseScore = scoreViewFromRobustScore(strategyApplication.adjustedScore);
     const overlayApplication = applyOverlayToCandidate({
       overlay,
       candidate: row.candidate,
@@ -922,6 +1016,10 @@ export async function runAgentOnce(
         adjustedScore: overlayApplication.adjustedScore,
         basePrediction,
         adjustedPrediction: overlayApplication.adjustedPrediction,
+        strategyName: strategyApplication.strategy,
+        strategyScoreDelta: strategyApplication.scoreDelta,
+        strategyNotes: strategyApplication.notes,
+        projectedFinalFrame: strategyApplication.projectedFinalFrame,
         overlayActive: overlayApplication.active,
         overlayScoreDelta: overlayApplication.scoreDelta,
         overlayAdjustments: overlayApplication.adjustments,

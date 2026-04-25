@@ -1,3 +1,9 @@
+import type { SimRunInput, ThrowRecord } from "../collider/types.js";
+import {
+  buildPriceLookupFromGameReport,
+  buildScenarioSettlementView,
+} from "./prediction-settlement.js";
+
 export type ExpectedThrowSummary = {
   payload?: {
     asset?: string;
@@ -44,6 +50,7 @@ export type MatchedResultSummary = {
     asset?: string;
     amount?: string;
     returned_by_asset?: Record<string, string>;
+    returned_by_asset_exact?: boolean;
     value_usd_e8?: string;
     mass_usd?: number;
     hole_type?: number;
@@ -55,6 +62,15 @@ export type MatchedResultSummary = {
     by_kind?: Record<string, string>;
     by_asset?: Record<string, string>;
     timeline?: Array<{
+      idx: number;
+      user: string;
+      kind: string;
+      asset: string;
+      amount: string;
+      throw_id?: string | null;
+      endFrame?: number;
+    }>;
+    exact_timeline?: Array<{
       idx: number;
       user: string;
       kind: string;
@@ -143,9 +159,76 @@ function approxSame(a: number | undefined, b: number | undefined, eps = 0.001): 
   return Math.abs(a - b) <= eps;
 }
 
+function normalizedGap(a: number | undefined, b: number | undefined, scale: number): number | null {
+  if (a == null || b == null) return null;
+  if (!Number.isFinite(a) || !Number.isFinite(b) || !(scale > 0)) return null;
+  return Math.abs(a - b) / scale;
+}
+
+function chooseClosestExpectedThrow(
+  userThrows: Array<Record<string, any>>,
+  expectedPayload: ExpectedThrowSummary["payload"],
+): Record<string, any> | null {
+  if (!expectedPayload || !userThrows.length) return null;
+
+  const expectedAsset = cleanHex(expectedPayload.asset ?? "");
+  const expectedAmount = str(expectedPayload.amount);
+  const expectedX = num(expectedPayload.x);
+  const expectedY = num(expectedPayload.y);
+  const expectedAngle = num(expectedPayload.angle_rad);
+  const expectedVx = num(expectedPayload.vx);
+  const expectedVy = num(expectedPayload.vy);
+  const expectedAngVel = num(expectedPayload.angVel);
+
+  const assetMatched = expectedAsset
+    ? userThrows.filter((t) => sameHexish(t.asset, expectedAsset))
+    : [...userThrows];
+  const amountMatched = expectedAmount != null
+    ? assetMatched.filter((t) => str(t.amount) === expectedAmount)
+    : assetMatched;
+  const pool = amountMatched.length ? amountMatched : assetMatched;
+  if (!pool.length) return null;
+  if (pool.length === 1) return pool[0];
+
+  let best: Record<string, any> | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const t of pool) {
+    const gaps = [
+      normalizedGap(num(t.init_pose?.pos?.x), expectedX, 8),
+      normalizedGap(num(t.init_pose?.pos?.y), expectedY, 8),
+      normalizedGap(num(t.init_pose?.angle_rad), expectedAngle, 0.18),
+      normalizedGap(num(t.init_linvel?.x), expectedVx, 140),
+      normalizedGap(num(t.init_linvel?.y), expectedVy, 140),
+      normalizedGap(num(t.init_angvel), expectedAngVel, 8),
+    ].filter((value): value is number => value != null);
+
+    if (!gaps.length) continue;
+    const score = gaps.reduce((sum, value) => sum + value, 0) / gaps.length;
+    if (score < bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+
+  return bestScore <= 1.75 ? best : null;
+}
+
 function assetHexFromUnknown(v: unknown): string {
   if (Array.isArray(v)) return bytesToHex(v);
   return cleanHex(v);
+}
+
+function hasAnyPositiveBaseAmount(map: Record<string, string> | null | undefined): boolean {
+  if (!map) return false;
+  for (const amount of Object.values(map)) {
+    try {
+      if (BigInt(String(amount ?? "0")) > 0n) return true;
+    } catch {
+      // ignore malformed rows
+    }
+  }
+  return false;
 }
 
 function extractAssetMeta(report: Record<string, any>) {
@@ -188,6 +271,7 @@ export function matchReportToSubmittedThrow(
   report: unknown,
   botUserHex: string,
   expected?: ExpectedThrowSummary,
+  settledInput?: SimRunInput,
 ): MatchedResultSummary {
   const r = report as Record<string, any>;
   const userHex = cleanHex(botUserHex);
@@ -246,16 +330,72 @@ export function matchReportToSubmittedThrow(
         approxSame(num(t.init_linvel?.x), expectedVx, 1.0) &&
         approxSame(num(t.init_linvel?.y), expectedVy, 1.0) &&
         approxSame(num(t.init_angvel), expectedAngVel, 0.5)
-      ) ?? null;
+      ) ?? chooseClosestExpectedThrow(userThrows, expectedPayload);
   }
 
-  if (!matchedThrow && userThrows.length) {
-    matchedThrow = userThrows[userThrows.length - 1];
+  if (!matchedThrow && !expectedPayload && userThrows.length === 1) {
+    matchedThrow = userThrows[0];
   }
 
   const matchedThrowIdHex = matchedThrow ? bytesToHex(matchedThrow.id) : "";
   const matchedOutcome =
     outcomesRaw.find((o) => sameHexish(o.throw_id, matchedThrowIdHex)) ?? null;
+
+  let exactMatchedOutputsByAsset: Record<string, string> | null = null;
+  let exactPayoutTimeline: Array<{
+    idx: number;
+    user: string;
+    kind: string;
+    asset: string;
+    amount: string;
+    throw_id?: string | null;
+    endFrame?: number;
+  }> = [];
+
+  if (settledInput && throwsRaw.length && outcomesRaw.length) {
+    try {
+      const priceLookup = buildPriceLookupFromGameReport(report);
+      const settlement = buildScenarioSettlementView({
+        input: {
+          ...settledInput,
+          throws: throwsRaw as ThrowRecord[],
+        },
+        outcomes: outcomesRaw as any,
+        priceLookup,
+      });
+
+      if (matchedThrowIdHex) {
+        const exactThrow = settlement.throwsById.get(matchedThrowIdHex);
+        if (exactThrow) {
+          exactMatchedOutputsByAsset = { ...exactThrow.returnedByAssetBase };
+        }
+      }
+
+      for (const throwView of settlement.throwsById.values()) {
+        for (const [kind, perAsset] of Object.entries(throwView.payoutKindsBase || {})) {
+          for (const [asset, amount] of Object.entries(perAsset || {})) {
+            try {
+              if (BigInt(String(amount ?? "0")) <= 0n) continue;
+            } catch {
+              continue;
+            }
+            exactPayoutTimeline.push({
+              idx: exactPayoutTimeline.length,
+              user: throwView.user,
+              kind,
+              asset: cleanHex(asset),
+              amount: String(amount ?? "0"),
+              throw_id: throwView.throwId || null,
+              endFrame: throwView.endFrame ?? undefined,
+            });
+          }
+        }
+      }
+    } catch {
+      exactMatchedOutputsByAsset = null;
+      exactPayoutTimeline = [];
+    }
+  }
 
   const throwUserById = new Map<string, string>();
   for (const t of throwsRaw) {
@@ -283,12 +423,16 @@ export function matchReportToSubmittedThrow(
 
   const userPayouts = payoutsRaw.filter((p) => sameHexish(p.user, userHex));
 
-  const matchedOutputsByAsset: Record<string, string> = {};
-  for (const p of userPayouts) {
-    if (!matchedThrowIdHex || !sameHexish(p.throw_id, matchedThrowIdHex)) continue;
-    const assetHex = assetHexFromUnknown(p.asset);
-    const amount = BigInt(String(p.amount ?? "0"));
-    matchedOutputsByAsset[assetHex] = (BigInt(matchedOutputsByAsset[assetHex] ?? "0") + amount).toString();
+  const matchedOutputsByAsset: Record<string, string> = exactMatchedOutputsByAsset
+    ? { ...exactMatchedOutputsByAsset }
+    : {};
+  if (!exactMatchedOutputsByAsset) {
+    for (const p of userPayouts) {
+      if (!matchedThrowIdHex || !sameHexish(p.throw_id, matchedThrowIdHex)) continue;
+      const assetHex = assetHexFromUnknown(p.asset);
+      const amount = BigInt(String(p.amount ?? "0"));
+      matchedOutputsByAsset[assetHex] = (BigInt(matchedOutputsByAsset[assetHex] ?? "0") + amount).toString();
+    }
   }
 
   const payoutsByKind: Record<string, string> = {};
@@ -366,6 +510,7 @@ export function matchReportToSubmittedThrow(
       asset: assetHexFromUnknown(matchedThrow.asset) || undefined,
       amount: str(matchedThrow.amount),
       returned_by_asset: matchedOutputsByAsset,
+      returned_by_asset_exact: exactMatchedOutputsByAsset != null || hasAnyPositiveBaseAmount(matchedOutputsByAsset),
       value_usd_e8: str(matchedThrow.value_usd_e8),
       mass_usd: num(matchedThrow.mass_usd),
       hole_type: matchedOutcome ? num(matchedOutcome.hole_type) : undefined,
@@ -377,6 +522,7 @@ export function matchReportToSubmittedThrow(
       by_kind: payoutsByKind,
       by_asset: payoutsByAsset,
       timeline: payoutTimeline,
+      exact_timeline: exactPayoutTimeline,
     },
 
     bonuses: userBonuses,

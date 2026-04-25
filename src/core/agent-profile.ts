@@ -95,10 +95,10 @@ export const DOCTRINE_PACK_PRESETS: Record<DoctrinePackId, DoctrinePackPreset> =
   tough_nut: {
     id: "tough_nut",
     label: "ToughNut",
-    summary: "Wait for conviction, copy credible winning lines, and size up when certainty feels real.",
+    summary: "Refuse to lose. Keep leaning on live boards that can still be saved, borrow proven winner lines when useful, and trade comfort for survival time.",
     defaults: {
       riskMode: "aggressive",
-      customStrategy: "copy_slammers",
+      customStrategy: "toughnut_never_lose",
       copySlammerWhenSameHoleType: true,
     },
     goalWeights: {
@@ -108,8 +108,8 @@ export const DOCTRINE_PACK_PRESETS: Record<DoctrinePackId, DoctrinePackPreset> =
       discoveryMapping: 0.08,
     },
     notes: [
-      "Built around conviction and historical winner imitation.",
-      "This is the only pack that defaults directly into the built-in copy-slammers hook.",
+      "Built around not accepting a losing projection while the board is still alive.",
+      "Defaults to the ToughNut never-lose hook while still enabling historical winner seeds.",
     ],
   },
   peanut: {

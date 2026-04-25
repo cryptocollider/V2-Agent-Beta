@@ -49,6 +49,7 @@ const bridge: MonitorBridge = {
   saveManagerOverlay: (overlay) => requestMain("saveManagerOverlay", overlay),
   getManagerCandidateSet: () => requestMain("getManagerCandidateSet"),
   saveManagerCandidateSet: (candidateSet) => requestMain("saveManagerCandidateSet", candidateSet),
+  buildReplaySvgExport: (request) => requestMain("buildReplaySvgExport", request),
 };
 
 const cfg = (workerData || {}) as ServerConfig;

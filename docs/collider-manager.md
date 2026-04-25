@@ -6,19 +6,41 @@ Collider Agent 1 exposes a manager-first control surface through the local monit
 
 The official supervisor UI is `monitor.html` at `http://localhost:8787`. It surfaces HPS commit/reveal supervision, the four-layer intuition lens, forecast coverage heatmaps, manager activity messages, and the main bank, game, and settled-throw views.
 
+## Zero-flag beta startup
+
+Agent 1 now ships with a starter `data/settings.json`. For a fresh beta launch, operators do not need to discover the old one-time flag set first.
+
+After `npm run build`, the normal beta startup path is now just `npm start`. That default launch starts the live loop and the local monitor together; `--once` and `--no-monitor` are now advanced overrides, not first-contact requirements.
+
+If `settings.user` is still blank when Agent 1 starts, bootstrap logic will:
+
+- generate a random valid 32-byte beta user address
+- keep beta USDC as the active starting asset
+- request beta test tokens through `mirrorDeposit`
+- persist that bootstrap state back into `data/settings.json`
+- expose a concise onboarding summary through `GET /api/manager/state`
+
+Managers should treat the returned `onboarding` object as the first-contact truth surface for startup status. It now includes the zero-flag startup mode, token-request state, the default human launch command, the starter strategy question, and the baseline/careful/stubborn/exploratory/hybrid style map. If the test-token request fails, report that exactly and tell the human to use the Bank page `Request Test Tokens` button instead of pretending the wallet is ready when it is not.
+
 ## Manager startup pack
 
 The repo-local Claw skill includes a startup pack for fresh managers under `plugins/collider-agent-claw/skills/collider-agent-manager/references/`:
 
 - `game-mechanics.md`: exact Collider rules, hole semantics, payout kinds, no-winner policies, and bonus families
 - `blackhole-dynamics.md`: blackhole modes, teleport anchor logic, control-point behavior, and why those boards reward both early and late strategic depth
+- `payout-mechanics.md`: settlement semantics, winner-share routing, no-winner policy behavior, and why throw-level PnL cannot be guessed from hole labels alone
 - `strategy-implications.md`: how those rules change real decision-making
 - `intuition-lens.md`: what the four HPS layers measure and how to use them
 - `progression-map.md`: rough growth path from execution hygiene to strategy invention
+- `persona-starter-packs.md`: baseline plus the four example persona/doctrine packs managers can start from or fork away from
 - `doctrine-packs.md`: Agent 1 starting postures, goal mixes, and how they relate to custom strategy naming
 - `manager-reporting.md`: how to keep humans involved through exact, concise strategy reporting
 
 Use these references to shorten the manager's first-contact ramp without pretending the best strategy is already known.
+
+## Settlement semantics
+
+Read `references/payout-mechanics.md` whenever a manager is interpreting return, PnL, winner-share, or no-winner behavior. Tactical overlays and manager candidate sets are supervision surfaces, not alternate truth surfaces. They may bias ranking and experimentation, but they do not redefine settled payout truth.
 
 ## Settings audit
 
@@ -108,6 +130,7 @@ Underlying stable reason codes currently emitted by the agent are:
 
 - `settings`
 - `runtime`
+- `onboarding`
 - `profile`
 - `control`
 - `audit`
@@ -132,6 +155,7 @@ Additional endpoints:
 - `POST /api/manager/candidate-set`
 - `DELETE /api/manager/candidate-set`
 - `POST /api/manager/target-game`
+- `POST /api/manager/replay-svg`
 - `GET /api/settings`
 - `POST /api/settings`
 - `GET /api/runtime-settings`
@@ -139,14 +163,47 @@ Additional endpoints:
 - `POST /api/control/action`
 
 
+## Replay storyboard export
+
+`POST /api/manager/replay-svg` is an explicit on-demand export only. It does not run during normal scan, ranking, or throw submission loops.
+
+Request shape:
+
+```json
+{
+  "gameId": "<hex>",
+  "frames": [0, 240, 960]
+}
+```
+
+Response highlights:
+
+- `mode: "forecast_storyboard_v1"`
+- `exactPhysics: false`
+- `finalFrame`
+- `selectedFrames[]`
+- `frames[]` with inline `svg` payloads
+
+Interpretation:
+
+- this is a storyboard surface for human review or vision-capable managers
+- it is built only for the requested frames
+- it is not a hidden always-on renderer
+- it is not a byte-for-byte raw engine replay stream
+
 ## Strategy hooks
 
 Use these manager-visible controls when shaping behavior without bypassing the deterministic planner:
 
 - `settings.doctrinePack`: coarse strategic starting posture for Agent 1. Current packs are `baseline`, `nutjob`, `tough_nut`, `peanut`, and `prof_deez_nutz`.
 - `settings.goalWeights`: relative weights for `profitMaxing`, `ladderMaxing`, `selfAwarenessMaxing`, and `discoveryMapping`. They are normalized internally.
-- `settings.customStrategy`: persistent named strategy hook stored in settings and runtime state. Use exact short identifiers such as `copy_slammers`.
+- `settings.customStrategy`: persistent named strategy hook stored in settings and runtime state. Use exact short identifiers such as `copy_slammers`, `toughnut_never_lose`, `nutjob_discovery`, `peanut_safe_flow`, or `prof_meta_rotator`.
 - `settings.copySlammerWhenSameHoleType`: compatibility alias for the built-in `copy_slammers` behavior.
+- `settings.humanLearning.enabled`: turns manual-example learning on or off.
+- `settings.humanLearning.learnOwnManualThrows`: when true, recent throws from the agent's own address with missing `data_commit` are treated as human/manual examples instead of standard committed bot throws.
+- `settings.humanLearning.addresses`: extra addresses the manager wants Agent 1 to watch for manual-example seeds.
+- `settings.humanLearning.maxSeedsPerCycle`: cap on how many recent manual-example seeds are injected into one planning cycle.
+- manual examples are candidate seeds, not blind imitation; the deterministic planner still decides whether those lines survive simulation.
 - `POST /api/manager/target-game` with `{ "gameId": "<hex>" }`: requests that the next live cycle prefer one exact game if it is eligible.
 - `POST /api/manager/target-game` with `{ "clear": true }`: clears the active priority target.
 
@@ -156,7 +213,15 @@ Treat doctrine, goal weights, and `customStrategy` as three different layers:
 - goal weights: the current objective mix
 - custom strategy: the shareable named idea being tested
 
-Treat `customStrategy` as a shareable strategy-profile name, not as raw code injection. Pair it with overlays, candidate sets, and human-readable notes when you want richer manager behavior.
+Treat `customStrategy` as a shareable strategy-profile name, not as raw code injection. Pair it with overlays, candidate sets, manual-example learning, and human-readable notes when you want richer manager behavior.
+
+Built-in starter-pack strategy ids:
+
+- `tough_nut` -> `toughnut_never_lose`
+- `nutjob` -> `nutjob_discovery`
+- `peanut` -> `peanut_safe_flow`
+- `prof_deez_nutz` -> `prof_meta_rotator`
+- compatibility hook -> `copy_slammers`
 
 ## Doctrine packs and goal weights
 
@@ -179,9 +244,19 @@ Current doctrine packs:
 
 - `baseline`: neutral starting posture for establishing empirical truth before stronger doctrine takes over
 - `nutjob`: novelty, weird lines, and discovery pressure
-- `tough_nut`: conviction, winner imitation, and bigger sizing when certainty feels real
+- `tough_nut`: stubborn anti-loss posture that keeps pressing live boards that can still be saved
 - `peanut`: survivability, smaller posture, and cleaner calibration
 - `prof_deez_nutz`: meta-doctrine that watches styles and composes hybrids
+
+Practical reading of those packs:
+
+- `baseline` is the clean lab coat. Use it when you want trustworthy baseline truth more than personality.
+- `nutjob` is the mapper. Use it when the board is teaching something new and you want the agent to go find it.
+- `tough_nut` is the stubborn non-loser. Use it when a live board might still be repaired and you want recovery pressure.
+- `peanut` is the conservative calibrator. Use it when bankroll protection and cleaner signal matter more than bravado.
+- `prof_deez_nutz` is the meta-operator. Use it when you want to compare styles, compose hybrids, or supervise the whole table as one system.
+
+If you are a human reading this directly, that is already a strong sign you will probably help your manager well. Use doctrine as a starting posture, not as a cage.
 
 Resolution rules:
 
@@ -384,9 +459,23 @@ Repo-local wrapper paths:
 - Codex or OpenClaw-style plugin bundle: `plugins/collider-agent-claw`
 - Core skill: `plugins/collider-agent-claw/skills/collider-agent-manager`
 - NanoClaw or Claude-style adapter: `.claude/skills/collider-agent-manager`
+- Hermes-native skill: `.hermes/skills/productivity/collider-agent-manager`
+- Hermes project plugin: `.hermes/plugins/collider-agent-hermes`
 - Marketplace entry: `.agents/plugins/marketplace.json`
 
-Use the core plugin skill as the canonical workflow. The Claude-style adapter is intentionally thin and points back to the same shared references.
+Use the core plugin skill as the canonical workflow. The Claude-style and Hermes-style adapters are intentionally thin and point back to the same shared references.
+
+Practical runtime mapping:
+
+- NanoClaw and Claude should load the Claude-style adapter.
+- IronClaw should load the existing OpenClaw-family plugin bundle.
+- Hermes should load the repo-local project plugin and use its bundled `collider-agent-manager` skill.
+
+Hermes note:
+
+- project-local plugins under `./.hermes/plugins/` require `HERMES_ENABLE_PROJECT_PLUGINS=true`
+- Hermes plugins are opt-in, so `collider-agent-hermes` still needs to be enabled in Hermes config or through the Hermes plugin UI or CLI
+- the project plugin registers the same repo-local skill file instead of duplicating Collider workflow logic
 
 ## Operating boundary
 
