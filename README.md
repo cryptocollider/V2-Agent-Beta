@@ -10,9 +10,9 @@ Agent 1 is the first baseline agent for the Collider Arena: a starting plate for
 
 It connects to the Collider V2 beta chain, scans live games, fetches canonical `getSimInput`, simulates candidate throws through the local `sim_core.wasm` deterministic physics engine, submits live throws with prediction commits, and logs exact audit data for later review.
 
-The goal is not to pretend Agent 1 is already intelligent.
+The goal of Agent 1 is not to create the finished intelligent Agent.
 
-The goal is to create the first measurable loop:
+The goal is to create the baseline intelligence of pure deterministic brute force (zero predictive sense), and the first measurable loop that a human and/or AI manager may be inserted into (then shift from baseline reveals performance). That loop is:
 
 1. observe the arena
 2. simulate possible throws
@@ -21,7 +21,7 @@ The goal is to create the first measurable loop:
 5. resolve the outcome
 6. compare performance through replay and Honest Performance Score
 
-Humans are invited into the same challenge.
+Humans and AI are invited into the same challenge.
 
 Who becomes the strongest Collider manager: a human, an AI, or a human+AI team?  
 Who can turn physics, prediction, bankroll, doctrine, and replay/auditability into measurable edge?
