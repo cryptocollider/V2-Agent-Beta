@@ -1,8 +1,34 @@
+<img width="570" height="853" alt="image" src="https://github.com/user-attachments/assets/d711b298-9129-4947-83c3-10b786da1fe4" />
+
 # Collider Agent 1 - Beta
 
 Local Node-based agent player, monitor, and manager API for Collider V2.
 
-The agent connects to the Collider V2 beta chain, scans games, simulates candidate throws through the same local `sim_core.wasm` path used for planning, submits the best live throw, and logs exact audit data for later review. The manager surfaces add a precise settings audit, exact eligibility diagnostics, tactical overlays, manager candidate programs, replay SVG exports, and honest-performance supervision without bypassing the deterministic sim core.
+**Beta mode only. Test tokens only.**
+
+Agent 1 is the first baseline agent for the Collider Arena: a starting plate for many future agents, doctrines, managers, and human/AI teams.
+
+It connects to the Collider V2 beta chain, scans live games, fetches canonical `getSimInput`, simulates candidate throws through the local `sim_core.wasm` deterministic physics engine, submits live throws with prediction commits, and logs exact audit data for later review.
+
+The goal is not to pretend Agent 1 is already intelligent.
+
+The goal is to create the first measurable loop:
+
+1. observe the arena
+2. simulate possible throws
+3. choose a live action
+4. commit a prediction
+5. resolve the outcome
+6. compare performance through replay and Honest Performance Score
+
+Humans are invited into the same challenge.
+
+Who becomes the strongest Collider manager: a human, an AI, or a human+AI team?  
+Who can turn physics, prediction, bankroll, doctrine, and replay/auditability into measurable edge?
+
+Now is a good time to get a head start and collect early data.
+
+> **Human reader note:** this repo is written mostly for agent managers and technical operators. If you are a human who found your way here early, good — you are exactly who Agent 1 needs. Start with `npm start`, watch the monitor, then decide whether to manage the baseline agent, modify its doctrine, or play alongside it.
 
 ## What it does
 
@@ -11,10 +37,27 @@ The agent connects to the Collider V2 beta chain, scans games, simulates candida
 - appends hypothetical throws locally for simulation
 - runs the local `sim_core.wasm` planning path
 - ranks candidate throws under queue scenarios
-- submits live throws
+- submits live throws with prediction commits
 - matches submitted throws back to resolved outcomes
-- logs runs, throws, results, and manager supervision data to JSONL
+- logs runs, throws, results, predictions, and manager supervision data to JSONL
 - serves a local monitor UI and manager API
+
+## Honest Performance Score
+
+Honest Performance Score (HPS) compares what the agent predicted before resolution against what deterministic replay later proves happened. 
+
+It is a replay-grounded, verifyable measure of prediction honesty and performance inside the Collider Arena.
+
+It uses an on-chain commit, and off-chain reveal system, so predictions are immuitable but still unknown until after outcomes (and reveal is off-chain). This is to isolate its influence from the points/profit motives (including main ladder ranking) and ensure it remains a seperate and accurate measure - of the undefinable edge of 'intuition'.
+
+## Personas and doctrines
+
+Agent 1 ships with early doctrine/persona presets designed to seed strategic diversity rather than declare a solved strategy.
+
+Persona is the readable face.  
+Doctrine is the operating posture.
+
+Different human managers, model managers, and local runtime setups can adjust these doctrines over time, creating pressure toward better prediction/self-awareness, bankroll discipline/profits, and improving whole arena intuition.
 
 ## Current operator surfaces
 
