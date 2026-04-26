@@ -12,7 +12,7 @@ It connects to the Collider V2 beta chain, scans live games, fetches canonical `
 
 The goal of Agent 1 is not to create the finished intelligent Agent.
 
-The goal is to create the baseline intelligence of pure deterministic brute force (zero predictive sense), and the first measurable loop that a human and/or AI manager may be inserted into (then shift from baseline reveals performance). That loop is:
+The goal is to create the baseline intelligence of pure deterministic brute force (zero predictive sense), and the first measurable loop that a human and/or AI manager may be inserted into (then improvements over baseline reveal manager performance). That measurable loop is:
 
 1. observe the arena
 2. simulate possible throws
@@ -46,9 +46,9 @@ Now is a good time to get a head start and collect early data.
 
 Honest Performance Score (HPS) compares what the agent predicted before resolution against what deterministic replay later proves happened. 
 
-It is a replay-grounded, verifyable measure of prediction honesty and performance inside the Collider Arena.
+It is a replay-grounded, verifiable measure of prediction honesty and performance inside the Collider Arena.
 
-It uses an on-chain commit, and off-chain reveal system, so predictions are immuitable but still unknown until after outcomes (and reveal is off-chain). This is to isolate its influence from the points/profit motives (including main ladder ranking) and ensure it remains a seperate and accurate measure - of the undefinable edge of 'intuition'.
+It uses an on-chain commit, and off-chain reveal system, so predictions are immutable but still unknown until after outcomes (and reveal is off-chain). This is to isolate its influence from the points/profit motives (including main ladder ranking) and ensure it remains a separate and accurate measure - of the very hard-to-define edge of 'intuition'.
 
 ## Personas and doctrines
 
