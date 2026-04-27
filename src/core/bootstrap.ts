@@ -1,10 +1,13 @@
 import crypto from "node:crypto";
 import { ColliderClient } from "../collider/client.js";
+import { displayUnitsToBaseUnitsString, normalizeAssetsMetaPayload } from "./assets-meta.js";
 import { DOCTRINE_PACK_PRESETS, type DoctrinePackId } from "./agent-profile.js";
 import {
   BETA_TEST_TOKEN_AMOUNT,
+  BETA_TEST_TOKEN_AMOUNT_DISPLAY,
   BETA_USDC_ASSET,
   BETA_DEFAULT_THROW_AMOUNT,
+  BETA_DEFAULT_THROW_AMOUNT_DISPLAY,
   normalizeSettings,
   saveSettings,
   type AgentSettings,
@@ -65,6 +68,24 @@ export function generateRandomHex32(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+async function fetchLiveAssetMeta(client: ColliderClient): Promise<Record<string, { asset: string; symbol: string; decimals: number }>> {
+  try {
+    return normalizeAssetsMetaPayload(await client.getAssetsMeta());
+  } catch {
+    return {};
+  }
+}
+
+function resolveBootstrapRawAmount(asset: string, displayAmount: string, assetMeta: Record<string, { decimals: number }>, fallbackRaw: string): string {
+  const normalizedAsset = cleanHex(asset);
+  const decimals = Number(assetMeta?.[normalizedAsset]?.decimals);
+  if (Number.isFinite(decimals) && decimals >= 0) {
+    const converted = displayUnitsToBaseUnitsString(displayAmount, decimals);
+    if (converted) return converted;
+  }
+  return fallbackRaw;
+}
+
 export function buildBootstrapSummary(settings: AgentSettings): AgentBootstrapSummary {
   const normalized = normalizeSettings(settings);
   const trackedAddresses = [
@@ -110,13 +131,15 @@ export async function ensureBetaBootstrap(settings: AgentSettings, dataDir: stri
   let next = normalizeSettings(settings);
   const ts = new Date().toISOString();
   let changed = false;
+  const bootstrapClient = new ColliderClient(next.rpc);
+  const liveAssetMeta = await fetchLiveAssetMeta(bootstrapClient);
 
   if (!cleanHex(next.asset)) {
     next.asset = BETA_USDC_ASSET;
     changed = true;
   }
-  if (!String(next.amount || "").trim()) {
-    next.amount = BETA_DEFAULT_THROW_AMOUNT;
+  if (!String(next.amount || "").trim() || cleanHex(next.asset) === BETA_USDC_ASSET && String(next.amount || "") === BETA_DEFAULT_THROW_AMOUNT) {
+    next.amount = resolveBootstrapRawAmount(next.asset, BETA_DEFAULT_THROW_AMOUNT_DISPLAY, liveAssetMeta, BETA_DEFAULT_THROW_AMOUNT);
     changed = true;
   }
   if (!Array.isArray(next.allowedAssets) || next.allowedAssets.length === 0) {
@@ -152,11 +175,11 @@ export async function ensureBetaBootstrap(settings: AgentSettings, dataDir: stri
     && !next.onboarding?.requestedTestTokensAt
   ) {
     try {
-      const client = new ColliderClient(next.rpc);
-      await client.mirrorDeposit(
+      const requestAmount = resolveBootstrapRawAmount(next.asset, BETA_TEST_TOKEN_AMOUNT_DISPLAY, liveAssetMeta, BETA_TEST_TOKEN_AMOUNT);
+      await bootstrapClient.mirrorDeposit(
         with0x(next.asset),
         with0x(next.user),
-        BETA_TEST_TOKEN_AMOUNT,
+        requestAmount,
         with0x(generateRandomHex32()),
       );
       next = normalizeSettings({

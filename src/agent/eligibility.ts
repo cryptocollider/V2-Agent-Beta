@@ -187,9 +187,11 @@ export function estimateBaseAmountForUsd(
 export function buildUsdTargets(
   policy: AgentPolicy,
   fallbackUsd: number | null,
+  gameMinThrowUsd?: number | null,
 ): { targets: number[]; reasons: EligibilityReasonCode[] } {
   const explicitMin = Number.isFinite(Number(policy.minThrowUsd)) ? Number(policy.minThrowUsd) : null;
   const explicitMax = Number.isFinite(Number(policy.maxThrowUsd)) ? Number(policy.maxThrowUsd) : null;
+  const floorUsd = Number.isFinite(Number(gameMinThrowUsd)) ? Number(gameMinThrowUsd) : null;
   const minUsd = explicitMin ?? fallbackUsd;
   const maxUsd = explicitMax ?? minUsd;
 
@@ -197,8 +199,16 @@ export function buildUsdTargets(
     return { targets: [], reasons: ["missing_price_basis"] };
   }
 
-  const lo = Math.max(0.000001, Math.min(minUsd, maxUsd));
-  const hi = Math.max(lo, Math.max(minUsd, maxUsd));
+  const cappedMax = Math.max(minUsd, maxUsd);
+  if (floorUsd != null && floorUsd > 0) {
+    if ((policy.maxSingleThrowUsd != null && floorUsd > Number(policy.maxSingleThrowUsd))
+      || (explicitMax != null && floorUsd > explicitMax)) {
+      return { targets: [], reasons: ["below_game_min_throw"] };
+    }
+  }
+
+  const lo = Math.max(0.000001, Math.min(minUsd, maxUsd), floorUsd ?? 0);
+  const hi = Math.max(lo, cappedMax, floorUsd ?? 0);
   const mid = lo + (hi - lo) * 0.5;
   const baseTargets =
     policy.riskMode === "defensive"
@@ -284,8 +294,9 @@ export function buildAssetPlanningResult(params: {
   defaultAsset: string;
   defaultAmount: string;
   priceHintsUsdPerBase?: Record<string, number>;
+  chosenGame?: GameListItem | null;
 }): AssetPlanningResult {
-  const { policy, balances, simInput, defaultAsset, defaultAmount, priceHintsUsdPerBase } = params;
+  const { policy, balances, simInput, defaultAsset, defaultAmount, priceHintsUsdPerBase, chosenGame } = params;
   const allowedAssets = normalizeAssetList(policy.allowedAssets);
   const blockedAssets = new Set(normalizeAssetList(policy.blockedAssets));
   const keepAssets = new Set(normalizeAssetList(policy.keepAssets));
@@ -293,7 +304,8 @@ export function buildAssetPlanningResult(params: {
 
   const reserveBase = parseBaseAmount(policy.reserveBalanceBase || "0");
   const fallbackUsd = estimateCandidateUsd(defaultAmount, defaultAsset, simInput, priceHintsUsdPerBase);
-  const { targets: requestedUsdTargets, reasons: targetReasons } = buildUsdTargets(policy, fallbackUsd);
+  const gameMinThrowUsd = chosenGame ? parseStakeUsdLike(chosenGame.throw_min_value) : null;
+  const { targets: requestedUsdTargets, reasons: targetReasons } = buildUsdTargets(policy, fallbackUsd, gameMinThrowUsd);
 
   const candidateUniverse = new Set<string>([cleanHex(defaultAsset)]);
   for (const asset of allowedAssets) candidateUniverse.add(asset);
@@ -382,6 +394,9 @@ export function buildAssetPlanningResult(params: {
   if (assetAmountPairs.length === 0 && entries.some((entry) => entry.reasons.includes("asset_not_allowed"))) {
     globalReasons.push("asset_not_allowed");
   }
+  if (assetAmountPairs.length === 0 && entries.some((entry) => entry.reasons.includes("below_game_min_throw"))) {
+    globalReasons.push("below_game_min_throw");
+  }
 
   return {
     entries,
@@ -415,14 +430,16 @@ export function getCandidateFilterReasons(params: {
   if (balanceBase <= reserveBase) reasons.push("reserve_balance");
   if (balanceBase - amountBase < reserveBase) reasons.push("no_balance_for_amounts");
 
-  if (parseBaseAmount(candidate.amount) < parseBaseAmount(chosenGame.throw_min_value)) {
-    reasons.push("below_game_min_throw");
-  }
+  const gameMinThrowUsd = parseStakeUsdLike(chosenGame.throw_min_value);
 
   const candidateUsd = estimateCandidateUsd(candidate.amount, candidate.asset, simInput, priceHintsUsdPerBase);
   if (candidateUsd == null) {
     reasons.push("missing_price_basis");
     return reasons.filter((value, index, arr) => arr.indexOf(value) === index);
+  }
+
+  if (gameMinThrowUsd > 0 && candidateUsd < gameMinThrowUsd) {
+    reasons.push("below_game_min_throw");
   }
 
   if (policy.minThrowUsd != null && candidateUsd < policy.minThrowUsd) reasons.push("below_min_throw_usd");
@@ -457,7 +474,7 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("cooldown"))) return "COOLDOWN";
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("per_game_cap"))) return "MAX/G";
   if (reasons.has("reserve_balance") || reasons.has("no_balance_for_amounts")) return "NO-CAND/BAL";
-  if (counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "NO-CAND/MIN";
+  if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "NO-CAND/MIN";
   if (counts.above_max_single_throw_usd || counts.above_game_exposure) return "NO-CAND/RISK";
   if (reasons.has("search_budget_stop")) return "NO-CAND/SEARCH";
   if (reasons.has("missing_price_basis") || reasons.has("asset_blocked") || reasons.has("asset_not_allowed")) return "NO-CAND/FILTER";

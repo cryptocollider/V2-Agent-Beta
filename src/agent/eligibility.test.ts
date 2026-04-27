@@ -104,6 +104,50 @@ function makeGame(): GameListItem {
   };
 }
 
+test("game minimum is enforced in USD units, not raw asset units", () => {
+  const simInput = makeSimInput();
+  const game = { ...makeGame(), throw_min_value: "100000000" };
+  const policy: AgentPolicy = {
+    enabled: true,
+    reserveBalanceBase: "0",
+    minThrowUsd: 11,
+    maxThrowUsd: 11,
+    maxSingleThrowUsd: 12,
+  };
+
+  const reasons = getCandidateFilterReasons({
+    candidate: { asset: assetA, amount: "220" },
+    chosenGame: game,
+    policy,
+    simInput,
+    balances: { [assetA]: "1000" },
+  });
+
+  assert.ok(reasons.includes("below_game_min_throw"));
+  assert.ok(!reasons.includes("below_min_throw_usd"));
+});
+
+test("asset planning stops early when game minimum exceeds current caps", () => {
+  const simInput = makeSimInput();
+  const planning = buildAssetPlanningResult({
+    policy: {
+      enabled: true,
+      minThrowUsd: 11,
+      maxThrowUsd: 11,
+      maxSingleThrowUsd: 12,
+      reserveBalanceBase: "0",
+    },
+    balances: { [assetA]: "1000" },
+    simInput,
+    defaultAsset: assetA,
+    defaultAmount: "220",
+    chosenGame: { ...makeGame(), throw_min_value: "100000000" },
+  });
+
+  assert.equal(planning.assetAmountPairs.length, 0);
+  assert.ok(planning.globalReasons.includes("below_game_min_throw"));
+});
+
 test("candidate filters enforce max throw usd and balance diagnostics", () => {
   const simInput = makeSimInput();
   const game = makeGame();

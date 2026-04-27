@@ -568,7 +568,7 @@ function deriveStoppedBy(snapshot: LatestEligibilitySnapshot, fallback?: string 
   if (reasons.has("asset_blocked")) return "asset_blocked";
   if (reasons.has("asset_not_allowed")) return "asset_not_allowed";
   if (reasons.has("search_budget_stop")) return "search_budget_stop";
-  if (counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "candidate_min_limits";
+  if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "candidate_min_limits";
   if (counts.above_max_single_throw_usd || counts.above_game_exposure) return "candidate_risk_limits";
   if (reasons.has("no_candidates_after_filter")) return "no_candidates_after_filter";
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("cooldown"))) return "cooldown";
@@ -892,6 +892,7 @@ export async function runAgentOnce(
     defaultAsset: cfg.defaultAsset,
     defaultAmount: cfg.defaultAmount,
     priceHintsUsdPerBase,
+    chosenGame: selectedGame,
   });
 
   const managerCandidates = buildManagerCandidates(managerCandidateSet);

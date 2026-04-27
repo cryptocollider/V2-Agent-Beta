@@ -1,10 +1,12 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { ColliderClient } from "../collider/client.js";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
 import { buildSettingsAuditReport } from "../agent/settings-audit.js";
 import { resolveAgentProfile } from "../core/agent-profile.js";
 import { buildBootstrapSummary } from "../core/bootstrap.js";
+import { normalizeAssetsMetaPayload } from "../core/assets-meta.js";
 import { normalizeReplaySvgRequest, type ReplaySvgRequest } from "./replay-svg.js";
 import { buildHonestPerformanceBaseline } from "../core/hps-baseline.js";
 import {
@@ -243,6 +245,19 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     if (url.pathname === "/api/logs/results") {
       const txt = await safeReadText(path.join(dataDir, "results.jsonl"));
       sendJson(res, 200, parseJsonl(txt));
+      return;
+    }
+
+    if (url.pathname === "/api/assets-meta" && req.method === "GET") {
+      try {
+        const settings = await loadSettings(dataDir);
+        const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+        const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
+        const client = new ColliderClient(effective.rpc);
+        sendJson(res, 200, { assets: normalizeAssetsMetaPayload(await client.getAssetsMeta()) });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: String(err) });
+      }
       return;
     }
 
