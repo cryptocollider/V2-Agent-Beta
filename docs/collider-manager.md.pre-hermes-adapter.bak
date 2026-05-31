@@ -4,17 +4,13 @@
 
 Collider Agent 1 exposes a manager-first control surface through the local monitor server at `http://localhost:8787`. The human monitor and any Claw-compatible manager skill should read the same exact state, labels, diagnostics, and ranked candidate data.
 
-The official supervisor UI is served from the newest bundled monitor file, currently `monitor21.html`, at `http://localhost:8787`. `monitor20.html` remains the previous solid milestone snapshot and `monitor.html` remains the legacy fallback. The runtime monitor surfaces HPS commit/reveal supervision, the four-layer intuition lens, forecast coverage heatmaps, manager activity messages, the embedded LLM co-manager dock, and the main bank, game, and settled-throw views.
-
-The embedded manager dock is approval-gated and bounded. It can explain state, remove setup friction, and propose changes through the same manager surfaces the human sees, but it does not bypass deterministic execution. Provider support now includes Venice, OpenAI, Claude/Anthropic, OpenRouter, Google Gemini, Ollama, Hugging Face, and generic local OpenAI-compatible endpoints.
+The official supervisor UI is `monitor.html` at `http://localhost:8787`. It surfaces HPS commit/reveal supervision, the four-layer intuition lens, forecast coverage heatmaps, manager activity messages, and the main bank, game, and settled-throw views.
 
 ## Zero-flag beta startup
 
-Agent 1 can now bootstrap from a clean `data/` directory. For a fresh beta launch, operators do not need to discover the old one-time flag set first or pre-seed `settings.json` manually.
+Agent 1 now ships with a starter `data/settings.json`. For a fresh beta launch, operators do not need to discover the old one-time flag set first.
 
 After `npm run build`, the normal beta startup path is now just `npm start`. That default launch starts the live loop and the local monitor together; `--once` and `--no-monitor` are now advanced overrides, not first-contact requirements.
-
-If `data/settings.json` is absent, Agent 1 creates it from the built-in defaults first. Public release repos should therefore ship with a clean `data/` directory instead of copied live logs, reveal artifacts, or operator state.
 
 If `settings.user` is still blank when Agent 1 starts, bootstrap logic will:
 
@@ -144,7 +140,6 @@ Underlying stable reason codes currently emitted by the agent are:
 - `eligibilityCode`
 - `latestCandidates`
 - `honestPerformance`
-- `llmManager`
 
 Additional endpoints:
 
@@ -160,15 +155,6 @@ Additional endpoints:
 - `POST /api/manager/candidate-set`
 - `DELETE /api/manager/candidate-set`
 - `POST /api/manager/target-game`
-- `GET /api/manager/llm`
-- `POST /api/manager/llm/config`
-- `POST /api/manager/llm/reset`
-- `POST /api/manager/llm/chat`
-- `POST /api/manager/llm/apply`
-- `POST /api/manager/llm/reject`
-- `POST /api/manager/llm/guide`
-- `POST /api/manager/llm/hide`
-- `GET /api/manager/llm/audit`
 - `POST /api/manager/replay-svg`
 - `GET /api/settings`
 - `POST /api/settings`
@@ -458,30 +444,13 @@ Runs and throws now preserve manager-visible audit data so later analysis can us
 - `candidateHash`
 - `topDetailed`
 
-The official runtime monitor (`monitor21.html` when present, otherwise the fallback chain) uses these exact values to improve supervision:
+The official `monitor.html` uses these exact values to improve supervision:
 
 - precise eligibility column labels such as `NO-CAND/BAL` and `NO-CAND/SEARCH`
 - clearer manager and action feed wording
 - manager overlay and manager candidate-set visibility
 - HPS commit/reveal supervision through the intuition lens and coverage views
 - selected-game analytics for board context, payouts, and throw history
-
-## Co-manager proposal flow
-
-The embedded co-manager can propose bounded actions, but operator approval remains explicit.
-
-Current operator actions:
-
-- `Apply`: execute the bounded change inside Agent 1
-- `Reject`: refuse the proposal and record the rejection
-- `Guide`: send a corrective note back to the manager before re-proposal or apply
-- `Hide`: remove an already-resolved proposal from the live queue while keeping it in the audit trail
-
-Audit behavior:
-
-- proposal events are recorded through the local manager audit log
-- pre-apply snapshots are recorded before bounded changes are applied
-- the audit trail is the durable history; the live proposal queue is only the active working surface
 
 ## Claw wrapper locations
 
@@ -490,23 +459,9 @@ Repo-local wrapper paths:
 - Codex or OpenClaw-style plugin bundle: `plugins/collider-agent-claw`
 - Core skill: `plugins/collider-agent-claw/skills/collider-agent-manager`
 - NanoClaw or Claude-style adapter: `.claude/skills/collider-agent-manager`
-- Hermes-native skill: `.hermes/skills/productivity/collider-agent-manager`
-- Hermes project plugin: `.hermes/plugins/collider-agent-hermes`
 - Marketplace entry: `.agents/plugins/marketplace.json`
 
-Use the core plugin skill as the canonical workflow. The Claude-style and Hermes-style adapters are intentionally thin and point back to the same shared references.
-
-Practical runtime mapping:
-
-- NanoClaw and Claude should load the Claude-style adapter.
-- IronClaw should load the existing OpenClaw-family plugin bundle.
-- Hermes should load the repo-local project plugin and use its bundled `collider-agent-manager` skill.
-
-Hermes note:
-
-- project-local plugins under `./.hermes/plugins/` require `HERMES_ENABLE_PROJECT_PLUGINS=true`
-- Hermes plugins are opt-in, so `collider-agent-hermes` still needs to be enabled in Hermes config or through the Hermes plugin UI or CLI
-- the project plugin registers the same repo-local skill file instead of duplicating Collider workflow logic
+Use the core plugin skill as the canonical workflow. The Claude-style adapter is intentionally thin and points back to the same shared references.
 
 ## Operating boundary
 
@@ -530,8 +485,7 @@ Reasoning-model managers should use the same exact commit/reveal evidence as the
 
 - `GET /api/manager/honest-score` returns the latest and recent HPS rows, including headline/layer metrics, resolved `profile`, empirical `baseline`, and artifact references.
 - `GET /api/manager/reveals?includeArtifacts=1` returns the exact reveal and commit JSON payloads for model-side analysis, replay, or ladder construction.
-- `honestPerformance`
-- `llmManager` inside `GET /api/manager/state` gives a lightweight summary for first-pass inspection before deeper artifact reads.
+- `honestPerformance` inside `GET /api/manager/state` gives a lightweight summary for first-pass inspection before deeper artifact reads.
 
 Important distinction:
 
