@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Collider V2: Agent 1</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="titlebar">
+    <div class="titlebar-brand" data-tauri-drag-region>
+      <img class="titlebar-icon" src="./icon.png" alt="Collider V2">
+      <span class="titlebar-label">Collider V2: Agent 1</span>
+    </div>
+    <div class="titlebar-dragfill" data-tauri-drag-region></div>
+    <div class="titlebar-actions">
+      <button id="windowMinBtn" class="titlebar-btn" type="button" aria-label="Minimize">_</button>
+      <button id="windowMaxBtn" class="titlebar-btn" type="button" aria-label="Maximize">[]</button>
+      <button id="windowCloseBtn" class="titlebar-close" type="button">Close</button>
+    </div>
+  </div>
+  <main class="shell">
+    <section class="shell-card">
+      <div class="brand-lockup">
+        <img class="brand-mark" src="./logoV2-potra.png" alt="Crypto Collider V2">
+      </div>
+      <p class="eyebrow">Collider V2 Standalone Beta</p>
+      <h1>Launching Agent 1</h1>
+      <p class="lede">
+        The desktop shell is starting the local runtime, monitor, and embedded manager surface.
+      </p>
+      <div class="status-wrap">
+        <div class="status-pill" id="phasePill">BOOTING</div>
+        <div class="status-copy">
+          <div class="status-line" id="statusMessage">Preparing the local Agent 1 runtime.</div>
+          <div class="status-meta" id="statusMeta">Waiting for the launcher.</div>
+        </div>
+      </div>
+      <div class="startup-log-shell">
+        <div class="startup-log-head">Startup Tasks</div>
+        <div class="startup-log" id="statusLog" aria-live="polite">
+          <div class="startup-log-row">Preparing the local Agent 1 runtime.</div>
+        </div>
+      </div>
+      <div class="details" id="detailsBox">
+        <div><span>Mode</span><strong id="modeValue">starting</strong></div>
+        <div><span>Data Dir</span><strong id="dataDirValue">...</strong></div>
+        <div><span>Static Dir</span><strong id="staticDirValue">...</strong></div>
+      </div>
+      <div class="actions">
+        <button id="retryBtn" type="button">Retry Connection</button>
+        <a id="browserLink" href="http://127.0.0.1:8787" target="_blank" rel="noreferrer">Open In Browser</a>
+      </div>
+      <p class="footnote" id="footnote">
+        The shell will switch into the full Agent 1 monitor as soon as the local service is ready.
+      </p>
+    </section>
+  </main>
+  <script src="./main.js"></script>
+</body>
+</html>

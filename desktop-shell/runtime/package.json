@@ -1,0 +1,12 @@
+{
+  "name": "agent1-runtime-sidecar",
+  "private": true,
+  "version": "0.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node ../scripts/build-sidecar.mjs"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.6.0"
+  }
+}

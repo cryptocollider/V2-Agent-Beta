@@ -1,0 +1,13 @@
+{
+  "name": "agent1-desktop-shell",
+  "private": true,
+  "version": "0.1.8",
+  "scripts": {
+    "sidecar:build": "node ../scripts/build-sidecar.mjs",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}
