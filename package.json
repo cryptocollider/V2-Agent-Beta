@@ -1,13 +1,22 @@
 {
   "name": "collider-agent-js",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prestart": "npm run build",
     "start": "node dist/cli/main.js",
     "dev": "tsx src/cli/main.ts",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "check": "tsc -p tsconfig.json --noEmit",
+    "start:once": "node dist/cli/main.js --once --no-monitor",
+    "start:headless": "node dist/cli/main.js --loop --no-monitor",
+    "dev:once": "tsx src/cli/main.ts --once --no-monitor",
+    "desktop:runtime:stage-node": "node ./desktop-shell/scripts/stage-node-runtime.mjs",
+    "desktop:sidecar:build": "npm run build && node ./desktop-shell/scripts/build-sidecar.mjs",
+    "desktop:sidecar:plan": "node ./desktop-shell/scripts/build-sidecar.mjs --dry-run",
+    "desktop:release:prep": "npm run build && npm run desktop:runtime:stage-node",
+    "desktop:tauri:build": "npm run desktop:release:prep && npm --prefix ./desktop-shell/tauri run tauri:build"
   },
   "dependencies": {
     "ws": "^8.18.0"

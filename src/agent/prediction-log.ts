@@ -1,5 +1,6 @@
 import type { Hex32, SimRunInput, ThrowRecord } from "../collider/types.js";
 import type { CandidatePlanRun, CandidateScenarioRun } from "../sim/planner.js";
+import { defaultDecimalsForAsset } from "../core/assets-meta.js";
 
 export type PredictionSummary = {
   scenarioCount: number;
@@ -77,7 +78,7 @@ function parseNoWinnerPolicy(v: unknown): "Refund" | "BiggestLoser" | "BiggestBa
 }
 
 function assetDecimals(input: SimRunInput, asset: Hex32): number {
-  return input.assets.find((a) => sameHexish(a.asset, asset))?.decimals ?? 8;
+  return input.assets.find((a) => sameHexish(a.asset, asset))?.decimals ?? defaultDecimalsForAsset(asset);
 }
 
 function assetPriceUsdPerBaseFromThrow(input: SimRunInput, asset: Hex32): number {

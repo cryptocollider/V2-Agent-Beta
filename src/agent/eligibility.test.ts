@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { GameListItem, SimRunInput } from "../collider/types.js";
-import { buildAssetPlanningResult, buildEligibilityCompactCode, evaluateGamesForEligibility, getCandidateFilterReasons } from "./eligibility.js";
+import { buildAssetPlanningResult, buildEligibilityCompactCode, estimateAssetUsdPerBaseUnit, evaluateGamesForEligibility, getCandidateFilterReasons } from "./eligibility.js";
 import type { AgentPolicy } from "../policy/schema.js";
+import { BETA_USDC_ASSET } from "../core/settings.js";
 
-const assetA = "01".repeat(32);
-const assetB = "02".repeat(32);
+const assetA = "11".repeat(32);
+const assetB = "22".repeat(32);
 
 function bytes(hex: string): number[] {
   return hex.match(/../g)?.map((value) => parseInt(value, 16)) ?? [];
@@ -106,7 +107,7 @@ function makeGame(): GameListItem {
 
 test("game minimum is enforced in USD units, not raw asset units", () => {
   const simInput = makeSimInput();
-  const game = { ...makeGame(), throw_min_value: "100000000" };
+  const game = { ...makeGame(), throw_min_value: "1300000000" };
   const policy: AgentPolicy = {
     enabled: true,
     reserveBalanceBase: "0",
@@ -120,6 +121,7 @@ test("game minimum is enforced in USD units, not raw asset units", () => {
     chosenGame: game,
     policy,
     simInput,
+    botUser: "aa".repeat(32),
     balances: { [assetA]: "1000" },
   });
 
@@ -141,7 +143,7 @@ test("asset planning stops early when game minimum exceeds current caps", () => 
     simInput,
     defaultAsset: assetA,
     defaultAmount: "220",
-    chosenGame: { ...makeGame(), throw_min_value: "100000000" },
+    chosenGame: { ...makeGame(), throw_min_value: "1300000000" },
   });
 
   assert.equal(planning.assetAmountPairs.length, 0);
@@ -162,11 +164,75 @@ test("candidate filters enforce max throw usd and balance diagnostics", () => {
     chosenGame: game,
     policy,
     simInput,
+    botUser: "aa".repeat(32),
     balances: { [assetA]: "150" },
   });
 
   assert.ok(reasons.includes("above_max_throw_usd"));
   assert.ok(reasons.includes("no_balance_for_amounts"));
+});
+
+test("candidate filters use one effective max-throw cap even if legacy maxSingleThrowUsd differs", () => {
+  const simInput = makeSimInput();
+  const game = makeGame();
+
+  const reasons = getCandidateFilterReasons({
+    candidate: { asset: assetA, amount: "300" },
+    chosenGame: game,
+    policy: {
+      enabled: true,
+      maxThrowUsd: 100,
+      maxSingleThrowUsd: 12,
+      reserveBalanceBase: "0",
+    },
+    simInput,
+    botUser: "aa".repeat(32),
+    balances: { [assetA]: "1000" },
+  });
+
+  assert.ok(reasons.includes("above_max_throw_usd"));
+  assert.ok(!reasons.includes("above_max_single_throw_usd"));
+});
+
+test("game exposure compares against bot-user exposure rather than whole-game total", () => {
+  const simInput = makeSimInput();
+  const game = { ...makeGame(), stake: "1500000000" };
+
+  const reasons = getCandidateFilterReasons({
+    candidate: { asset: assetA, amount: "40" },
+    chosenGame: game,
+    policy: {
+      enabled: true,
+      maxGameExposureUsd: 8,
+      reserveBalanceBase: "0",
+    },
+    simInput,
+    botUser: "aa".repeat(32),
+    balances: { [assetA]: "1000" },
+  });
+
+  assert.ok(!reasons.includes("above_game_exposure"));
+});
+
+test("game exposure no longer pre-filters games by total table stake", () => {
+  const games: GameListItem[] = [
+    { ...makeGame(), game_id: "aa".repeat(32), stake: "1500000000", throws: 2 },
+  ];
+
+  const { entries, selectedGame } = evaluateGamesForEligibility(
+    games,
+    { enabled: true, maxGameExposureUsd: 8 },
+    {
+      now: 10_000,
+      cooldownMsPerGame: 100,
+      recentGameTouches: {},
+      sessionThrowCounts: {},
+      maxThrowsPerGame: 99,
+    },
+  );
+
+  assert.equal(entries[0]?.eligible, true);
+  assert.equal(selectedGame?.game_id, games[0].game_id);
 });
 
 test("asset planning can use fallback internal price hints for first-throw sizing", () => {
@@ -187,6 +253,34 @@ test("asset planning can use fallback internal price hints for first-throw sizin
   });
 
   assert.equal(planning.assetAmountPairs[0]?.asset, assetA);
+  assert.ok(!planning.globalReasons.includes("missing_price_basis"));
+});
+
+test("beta bootstrap USDC can size the first throw without prior price history", () => {
+  const simInput = makeSimInput();
+  simInput.throws = [];
+  simInput.assets = [
+    { ...simInput.assets[0], asset: bytes(BETA_USDC_ASSET) as any, symbol: "USDC", decimals: 6 },
+  ];
+
+  const planning = buildAssetPlanningResult({
+    policy: {
+      enabled: true,
+      allowedAssets: [BETA_USDC_ASSET],
+      minThrowUsd: 11,
+      maxThrowUsd: 11,
+      reserveBalanceBase: "0",
+    },
+    balances: { [BETA_USDC_ASSET]: "1000000000" },
+    simInput,
+    defaultAsset: BETA_USDC_ASSET,
+    defaultAmount: "11000000",
+  });
+
+  assert.equal(estimateAssetUsdPerBaseUnit(simInput, BETA_USDC_ASSET), 0.000001);
+  assert.equal(planning.entries[0]?.priceBasisUsdPerBase, 0.000001);
+  assert.equal(planning.assetAmountPairs[0]?.asset, BETA_USDC_ASSET);
+  assert.equal(planning.assetAmountPairs[0]?.amount, "11000000");
   assert.ok(!planning.globalReasons.includes("missing_price_basis"));
 });
 

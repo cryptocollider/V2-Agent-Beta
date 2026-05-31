@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { ColliderClient } from "../collider/client.js";
-import { displayUnitsToBaseUnitsString, normalizeAssetsMetaPayload } from "./assets-meta.js";
+import { defaultDecimalsForAsset, displayUnitsToBaseUnitsString, normalizeAssetsMetaPayload } from "./assets-meta.js";
 import { DOCTRINE_PACK_PRESETS, type DoctrinePackId } from "./agent-profile.js";
 import {
   BETA_TEST_TOKEN_AMOUNT,
@@ -55,6 +55,8 @@ const STARTER_STYLE_CHOICES: Array<{
   { promptLabel: "hybrid", doctrinePack: "prof_deez_nutz" },
 ];
 
+const LEGACY_BETA_DEFAULT_THROW_AMOUNT = "1100000000";
+
 function cleanHex(value: unknown): string {
   return String(value ?? "").trim().replace(/^0x/i, "").toLowerCase();
 }
@@ -70,8 +72,13 @@ export function generateRandomHex32(): string {
 
 async function fetchLiveAssetMeta(client: ColliderClient): Promise<Record<string, { asset: string; symbol: string; decimals: number }>> {
   try {
-    return normalizeAssetsMetaPayload(await client.getAssetsMeta());
-  } catch {
+    const normalized = normalizeAssetsMetaPayload(await client.getAssetsMeta());
+    if (!Object.keys(normalized).length) {
+      console.warn('[bootstrap] getAssetsMeta returned no assets; falling back to local decimal defaults');
+    }
+    return normalized;
+  } catch (err) {
+    console.warn('[bootstrap] getAssetsMeta failed; falling back to local decimal defaults', err);
     return {};
   }
 }
@@ -83,6 +90,8 @@ function resolveBootstrapRawAmount(asset: string, displayAmount: string, assetMe
     const converted = displayUnitsToBaseUnitsString(displayAmount, decimals);
     if (converted) return converted;
   }
+  const converted = displayUnitsToBaseUnitsString(displayAmount, defaultDecimalsForAsset(normalizedAsset));
+  if (converted) return converted;
   return fallbackRaw;
 }
 
@@ -138,7 +147,7 @@ export async function ensureBetaBootstrap(settings: AgentSettings, dataDir: stri
     next.asset = BETA_USDC_ASSET;
     changed = true;
   }
-  if (!String(next.amount || "").trim() || cleanHex(next.asset) === BETA_USDC_ASSET && String(next.amount || "") === BETA_DEFAULT_THROW_AMOUNT) {
+  if (!String(next.amount || "").trim() || (cleanHex(next.asset) === BETA_USDC_ASSET && [BETA_DEFAULT_THROW_AMOUNT, LEGACY_BETA_DEFAULT_THROW_AMOUNT].includes(String(next.amount || "")))) {
     next.amount = resolveBootstrapRawAmount(next.asset, BETA_DEFAULT_THROW_AMOUNT_DISPLAY, liveAssetMeta, BETA_DEFAULT_THROW_AMOUNT);
     changed = true;
   }

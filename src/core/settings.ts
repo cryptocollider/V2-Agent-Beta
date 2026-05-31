@@ -4,8 +4,8 @@ import type { DoctrinePackId, GoalWeights } from "./agent-profile.js";
 
 export const BETA_USDC_ASSET = "0101010101010101010101010101010101010101010101010101010101010101";
 export const BETA_CLC_ASSET = "0303030303030303030303030303030303030303030303030303030303030303";
-export const BETA_DEFAULT_THROW_AMOUNT = "1100000000";
-export const BETA_TEST_TOKEN_AMOUNT = "100000000000";
+export const BETA_DEFAULT_THROW_AMOUNT = "11000000";
+export const BETA_TEST_TOKEN_AMOUNT = "1000000000";
 export const BETA_DEFAULT_THROW_AMOUNT_DISPLAY = "11";
 export const BETA_TEST_TOKEN_AMOUNT_DISPLAY = "1000";
 
@@ -81,7 +81,7 @@ export const DEFAULT_HUMAN_LEARNING_SETTINGS: HumanLearningSettings = {
 };
 
 export const DEFAULT_SETTINGS: AgentSettings = {
-  rpc: "https://v2.cryptocollider.com:4430/ext/bc/WdFeSwHfau9U7Vj8B1wEHhNMtubRQKfVGiuJwgTyDUBLbCH4s/collider_v2",
+  rpc: "https://v2.cryptocollider.com:4430/ext/bc/2H2YX6uB4sMcu9iXARdL7erKU278Z564bYNWDCMJHyB1pK54Fo/collider_v2",
   wasm: "./assets/sim_core.wasm",
   user: "",
   asset: BETA_USDC_ASSET,
@@ -96,8 +96,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   minGameStakeUsd: 0,
   maxSingleThrowUsd: 12,
   maxGameExposureUsd: 20000,
-  minThrowUsd: 11,
-  maxThrowUsd: 100,
+  minThrowUsd: 2,
+  maxThrowUsd: 12,
   riskMode: "balanced",
   doctrinePack: "baseline",
   goalWeights: null,
@@ -131,6 +131,14 @@ function normalizeNullableString(value: unknown): string | null {
   return trimmed ? trimmed : null;
 }
 
+function normalizeUnifiedMaxThrowUsd(...values: Array<unknown>): number | null {
+  const normalized = values
+    .map((value) => normalizeNullableNumber(value))
+    .filter((value): value is number => value != null);
+  if (!normalized.length) return null;
+  return Math.min(...normalized);
+}
+
 function normalizeOnboardingSettings(value: Partial<AgentOnboardingSettings> | null | undefined): AgentOnboardingSettings {
   return {
     ...DEFAULT_ONBOARDING_SETTINGS,
@@ -161,6 +169,8 @@ function normalizeHumanLearningSettings(value: Partial<HumanLearningSettings> | 
 
 export function normalizeSettings(settings: Partial<AgentSettings> | null | undefined): AgentSettings {
   const allowedAssets = normalizeStringArray(settings?.allowedAssets);
+  const merged = { ...DEFAULT_SETTINGS, ...(settings ?? {}) };
+  const unifiedMaxThrowUsd = normalizeUnifiedMaxThrowUsd(merged.maxThrowUsd, merged.maxSingleThrowUsd);
   return {
     ...DEFAULT_SETTINGS,
     ...(settings ?? {}),
@@ -177,10 +187,10 @@ export function normalizeSettings(settings: Partial<AgentSettings> | null | unde
     minMillisBetweenLiveThrows: Number(settings?.minMillisBetweenLiveThrows ?? DEFAULT_SETTINGS.minMillisBetweenLiveThrows) || DEFAULT_SETTINGS.minMillisBetweenLiveThrows,
     monitorPort: Number(settings?.monitorPort ?? DEFAULT_SETTINGS.monitorPort) || DEFAULT_SETTINGS.monitorPort,
     minGameStakeUsd: normalizeNullableNumber(settings?.minGameStakeUsd),
-    maxSingleThrowUsd: normalizeNullableNumber(settings?.maxSingleThrowUsd),
+    maxSingleThrowUsd: unifiedMaxThrowUsd,
     maxGameExposureUsd: normalizeNullableNumber(settings?.maxGameExposureUsd),
     minThrowUsd: normalizeNullableNumber(settings?.minThrowUsd),
-    maxThrowUsd: normalizeNullableNumber(settings?.maxThrowUsd),
+    maxThrowUsd: unifiedMaxThrowUsd,
     riskMode: settings?.riskMode ?? DEFAULT_SETTINGS.riskMode,
     doctrinePack: settings?.doctrinePack ?? DEFAULT_SETTINGS.doctrinePack,
     goalWeights: settings?.goalWeights ?? DEFAULT_SETTINGS.goalWeights,

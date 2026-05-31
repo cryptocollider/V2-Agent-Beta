@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -25,6 +26,35 @@ import {
   saveManagerOverlay,
 } from "../core/manager-state.js";
 import {
+  addManagerLlmPendingActions,
+  appendManagerLlmMessage,
+  getManagerLlmState,
+  getPublicManagerLlmState,
+  initManagerLlmState,
+  resetManagerLlmSession,
+  saveManagerLlmConfig,
+  setManagerLlmBusy,
+  setManagerLlmError,
+  setManagerLlmResponseMeta,
+  updateManagerLlmAction,
+} from "../llm/state.js";
+import {
+  appendManagerLlmAuditEntry,
+  initManagerLlmAudit,
+  readManagerLlmAuditEntries,
+} from "../llm/audit.js";
+import { autoDetectLocalManagerProvider } from "../llm/autodetect.js";
+import { autoSetupLocalManagerRuntime, buildLocalManagerSetupPlan } from "../llm/local-setup.js";
+import { runManagerConversation } from "../llm/session.js";
+import {
+  applyManagerLlmAction,
+  buildManagerStatePayload,
+  captureManagerLlmActionSnapshot,
+  fetchAssetsMeta,
+  saveSettingsAndRuntime,
+  toManagerLlmSnapshot,
+} from "../llm/server-support.js";
+import {
   normalizeManagerCandidateSet,
   normalizeManagerTacticalOverlay,
 } from "../strategy/tactical-overlay.js";
@@ -49,6 +79,18 @@ export type ServerConfig = {
   staticDir?: string;
   bridge?: MonitorBridge;
 };
+
+async function resolveDefaultMonitorFile(staticDir: string): Promise<string> {
+  for (const filename of ["monitor21.html", "monitor20.html", "monitor19f.html", "monitor.html"]) {
+    try {
+      await readFile(path.join(staticDir, filename));
+      return filename;
+    } catch {
+      // Try the next known monitor build.
+    }
+  }
+  return "monitor.html";
+}
 
 async function safeReadText(file: string): Promise<string> {
   try {
@@ -79,6 +121,47 @@ function cleanHex(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/^0x/, "");
 }
 
+function isWithinRoot(candidate: string, root: string): boolean {
+  const resolvedCandidate = path.resolve(candidate);
+  const resolvedRoot = path.resolve(root);
+  const rel = path.relative(resolvedRoot, resolvedCandidate);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+function resolveReadableLocalJsonPath(
+  requestedPath: string | null | undefined,
+  dataDir: string,
+  staticDir: string,
+): string | null {
+  const raw = String(requestedPath ?? "").trim();
+  if (!raw) return null;
+  if (/^[a-z]+:\/\//i.test(raw)) return null;
+  const normalizedRaw = raw.replace(/[\\/]+/g, path.sep);
+  const allowedRoots = [path.resolve(dataDir), path.resolve(staticDir)];
+  const candidates = path.isAbsolute(normalizedRaw)
+    ? [path.resolve(normalizedRaw)]
+    : [
+      path.resolve(dataDir, normalizedRaw),
+      path.resolve(staticDir, normalizedRaw),
+    ];
+
+  const dataDirName = path.basename(path.resolve(dataDir));
+  if (!path.isAbsolute(normalizedRaw)) {
+    const lowerRaw = normalizedRaw.toLowerCase();
+    const prefix = `${dataDirName.toLowerCase()}${path.sep}`;
+    if (lowerRaw.startsWith(prefix)) {
+      candidates.push(path.resolve(dataDir, normalizedRaw.slice(prefix.length)));
+    }
+  }
+
+  const allowedCandidates = [...new Set(candidates)]
+    .filter((candidate) => candidate.toLowerCase().endsWith(".json"))
+    .filter((candidate) => allowedRoots.some((root) => isWithinRoot(candidate, root)));
+
+  if (!allowedCandidates.length) return null;
+  return allowedCandidates.find((candidate) => existsSync(candidate)) ?? allowedCandidates[0];
+}
+
 function resultRowCompletenessScore(row: any): number {
   let score = 0;
   if (row?.actual?.throwMatch) score += 4;
@@ -87,7 +170,48 @@ function resultRowCompletenessScore(row: any): number {
   if (row?.actual?.throwMatch?.matched) score += 2;
   if (Array.isArray(row?.actual?.wholeGame?.per_user_scoreboard)) score += 1;
   if (row?.actual?.expectationVsActual?.actual_hole_type != null) score += 2;
+  if (row?.predictionReveal?.localPath) score += 6;
+  if (row?.predictionCommit?.localPath) score += 3;
+  if (row?.honestScore) score += 5;
   return score;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasMergeValue(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (isPlainRecord(value)) return Object.keys(value).length > 0;
+  return true;
+}
+
+function mergePreferPrimary(primary: any, fallback: any): any {
+  if (Array.isArray(primary) || Array.isArray(fallback)) {
+    return hasMergeValue(primary) ? primary : fallback;
+  }
+  if (isPlainRecord(primary) || isPlainRecord(fallback)) {
+    const merged: Record<string, unknown> = {};
+    const keys = new Set([
+      ...Object.keys(isPlainRecord(primary) ? primary : {}),
+      ...Object.keys(isPlainRecord(fallback) ? fallback : {}),
+    ]);
+    for (const key of keys) {
+      merged[key] = mergePreferPrimary(primary?.[key], fallback?.[key]);
+    }
+    return merged;
+  }
+  return hasMergeValue(primary) ? primary : fallback;
+}
+
+function mergeResultRows(preferred: any, fallback: any): any {
+  const merged = mergePreferPrimary(preferred, fallback);
+  const preferredTs = new Date(preferred?.ts || 0).getTime();
+  const fallbackTs = new Date(fallback?.ts || 0).getTime();
+  if (fallbackTs > preferredTs && fallback?.ts) merged.ts = fallback.ts;
+  return merged;
 }
 
 function buildLatestResultsByDecision(rows: any[]): any[] {
@@ -104,9 +228,8 @@ function buildLatestResultsByDecision(rows: any[]): any[] {
     const nextScore = resultRowCompletenessScore(row);
     const prevTs = new Date(prev?.ts || 0).getTime();
     const nextTs = new Date(row?.ts || 0).getTime();
-    if (nextScore > prevScore || (nextScore === prevScore && nextTs >= prevTs)) {
-      map.set(key, row);
-    }
+    const preferNext = nextScore > prevScore || (nextScore === prevScore && nextTs >= prevTs);
+    map.set(key, preferNext ? mergeResultRows(row, prev) : mergeResultRows(prev, row));
   }
   return [...map.values()].sort((a, b) => new Date(b?.ts || 0).getTime() - new Date(a?.ts || 0).getTime());
 }
@@ -207,6 +330,26 @@ function mergeEffectiveSettings(
     : settings;
 }
 
+const BRIDGE_READ_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function fromBridge<T>(bridgeCall: (() => T | Promise<T>) | undefined, fallback: () => T | Promise<T>): Promise<T> {
   if (bridgeCall) return await bridgeCall();
   return await fallback();
@@ -221,11 +364,29 @@ async function fromBridgeWithArg<T, A>(
   return await fallback(arg);
 }
 
+async function fromBridgeRead<T>(
+  bridgeCall: (() => T | Promise<T>) | undefined,
+  fallback: () => T | Promise<T>,
+  label: string,
+  timeoutMs = BRIDGE_READ_TIMEOUT_MS,
+): Promise<T> {
+  if (!bridgeCall) return await fallback();
+  try {
+    return await withTimeout(Promise.resolve().then(() => bridgeCall()), timeoutMs, label);
+  } catch {
+    return await fallback();
+  }
+}
+
 export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.Server> {
   const port = cfg.port ?? 8787;
   const dataDir = cfg.dataDir ?? "./data";
   const staticDir = cfg.staticDir ?? process.cwd();
   const bridge = cfg.bridge ?? {};
+
+  await initManagerLlmState(dataDir);
+  await initManagerLlmAudit(dataDir);
+  const defaultMonitorFile = await resolveDefaultMonitorFile(staticDir);
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
@@ -248,10 +409,32 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
+    if (url.pathname === "/api/local-json" && req.method === "GET") {
+      const requestedPath = url.searchParams.get("path");
+      const filePath = resolveReadableLocalJsonPath(requestedPath, dataDir, staticDir);
+      if (!filePath) {
+        sendJson(res, 400, { ok: false, error: "invalid local json path" });
+        return;
+      }
+      const text = await safeReadText(filePath);
+      if (!text) {
+        sendJson(res, 404, { ok: false, error: "local json file not found" });
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.end(text);
+      return;
+    }
+
     if (url.pathname === "/api/assets-meta" && req.method === "GET") {
       try {
         const settings = await loadSettings(dataDir);
-        const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+        const runtime = await fromBridgeRead(
+          bridge.getRuntimeSettings,
+          () => safeRuntimeSettings(),
+          "assets meta runtime settings",
+        );
         const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
         const client = new ColliderClient(effective.rpc);
         sendJson(res, 200, { assets: normalizeAssetsMetaPayload(await client.getAssetsMeta()) });
@@ -263,7 +446,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
 
     if (url.pathname === "/api/settings" && req.method === "GET") {
       const settings = await loadSettings(dataDir);
-      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+      const runtime = await fromBridgeRead(
+        bridge.getRuntimeSettings,
+        () => safeRuntimeSettings(),
+        "settings runtime settings",
+      );
       sendJson(
         res,
         200,
@@ -275,38 +462,35 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     if (url.pathname === "/api/settings" && req.method === "POST") {
       try {
         const json = await readJsonBody(req);
+        const saved = await saveSettingsAndRuntime(json, dataDir, bridge);
+        sendJson(res, 200, {
+          ok: true,
+          settings: saved.settings,
+          runtime: saved.runtime,
+          runtimeSyncPending: saved.runtimeSyncPending,
+          runtimeSyncError: saved.runtimeSyncError,
+        });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: String(err) });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/settings/onboarding" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
         const current = await loadSettings(dataDir);
-        const merged = normalizeSettings({
+        const nextOnboarding = normalizeSettings({
           ...current,
-          ...json,
-          goalWeights: {
-            ...(current.goalWeights ?? {}),
-            ...((json?.goalWeights && typeof json.goalWeights === "object") ? json.goalWeights : {}),
-          },
           onboarding: {
             ...(current.onboarding ?? {}),
             ...((json?.onboarding && typeof json.onboarding === "object") ? json.onboarding : {}),
           },
-          humanLearning: {
-            ...(current.humanLearning ?? {}),
-            ...((json?.humanLearning && typeof json.humanLearning === "object") ? json.humanLearning : {}),
-          },
         });
-
-        await saveSettings(merged, dataDir);
-        const runtime = await fromBridgeWithArg(
-          bridge.updateRuntimeSettings,
-          merged,
-          (patch) => updateRuntimeSettings(patch),
-        );
-
+        await saveSettings(nextOnboarding, dataDir);
         sendJson(res, 200, {
           ok: true,
-          settings: mergeEffectiveSettings(
-            merged,
-            (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null,
-          ),
-          runtime,
+          settings: nextOnboarding,
         });
       } catch (err) {
         sendJson(res, 400, { ok: false, error: String(err) });
@@ -315,7 +499,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/runtime-settings" && req.method === "GET") {
-      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+      const runtime = await fromBridgeRead(
+        bridge.getRuntimeSettings,
+        () => safeRuntimeSettings(),
+        "runtime settings",
+      );
       if (!runtime) {
         sendJson(res, 500, { ok: false, error: "runtime settings not initialized" });
         return;
@@ -325,7 +513,15 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/control/status" && req.method === "GET") {
-      sendJson(res, 200, await fromBridge(bridge.getControlState, () => getControlState()));
+      sendJson(
+        res,
+        200,
+        await fromBridgeRead(
+          bridge.getControlState,
+          () => getControlState(),
+          "control state",
+        ),
+      );
       return;
     }
 
@@ -365,37 +561,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/manager/state" && req.method === "GET") {
-      const settings = await loadSettings(dataDir);
-      const latestEligibility = await fromBridge(
-        bridge.getLatestEligibilitySnapshot,
-        () => getLatestEligibilitySnapshot(),
-      );
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
-      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
-      const settingsSource = (runtime && typeof runtime === "object")
-        ? normalizeSettings({ ...settings, ...(runtime as Record<string, unknown>) })
-        : settings;
-      const profile = resolveAgentProfile(settingsSource);
-      sendJson(res, 200, {
-        settings,
-        runtime,
-        onboarding: buildBootstrapSummary(settingsSource),
-        profile,
-        control: await fromBridge(bridge.getControlState, () => getControlState()),
-        audit: buildSettingsAuditReport(settings),
-        overlay: await fromBridge(bridge.getManagerOverlay, () => getManagerOverlay()),
-        managerCandidateSet: await fromBridge(bridge.getManagerCandidateSet, () => getManagerCandidateSet()),
-        latestEligibility,
-        eligibilityCode: buildEligibilityCompactCode(latestEligibility as any),
-        latestCandidates: await fromBridge(bridge.getLatestCandidateContext, () => getLatestCandidateContext()),
-        honestPerformance: {
-          counts: honestPerformance.counts,
-          baseline: honestPerformance.baseline,
-          latest: honestPerformance.revealRows[0] ? summarizeHonestPerformanceRow(honestPerformance.revealRows[0]) : null,
-          latestScored: honestPerformance.scoredRows[0] ? summarizeHonestPerformanceRow(honestPerformance.scoredRows[0]) : null,
-        },
-      });
+      sendJson(res, 200, await buildManagerStatePayload(dataDir, bridge));
       return;
     }
 
@@ -409,20 +575,18 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/manager/eligibility" && req.method === "GET") {
-      const latestEligibility = await fromBridge(
-        bridge.getLatestEligibilitySnapshot,
-        () => getLatestEligibilitySnapshot(),
-      );
+      const managerStatePayload = await buildManagerStatePayload(dataDir, bridge);
+      const latestEligibility = managerStatePayload.latestEligibility ?? null;
       sendJson(res, 200, {
         snapshot: latestEligibility,
-        eligibilityCode: buildEligibilityCompactCode(latestEligibility as any),
+        eligibilityCode: String(managerStatePayload.eligibilityCode || ""),
       });
       return;
     }
 
     if (url.pathname === "/api/manager/candidates" && req.method === "GET") {
       sendJson(res, 200, {
-        latest: await fromBridge(bridge.getLatestCandidateContext, () => getLatestCandidateContext()),
+        latest: (await buildManagerStatePayload(dataDir, bridge)).latestCandidates ?? null,
       });
       return;
     }
@@ -434,7 +598,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
       const recentRows = honestPerformance.revealRows.slice(0, limit);
       const settings = await loadSettings(dataDir);
-      const runtime = await fromBridge(bridge.getRuntimeSettings, () => safeRuntimeSettings());
+      const runtime = await fromBridgeRead(
+        bridge.getRuntimeSettings,
+        () => safeRuntimeSettings(),
+        "honest-score runtime settings",
+      );
       sendJson(res, 200, {
         counts: honestPerformance.counts,
         baseline: honestPerformance.baseline,
@@ -533,6 +701,352 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
+    if (url.pathname === "/api/manager/llm" && req.method === "GET") {
+      sendJson(res, 200, { state: getPublicManagerLlmState() });
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/audit" && req.method === "GET") {
+      const limit = parseLimit(url, 20, 100);
+      sendJson(res, 200, { rows: await readManagerLlmAuditEntries(limit) });
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/config" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        sendJson(res, 200, { ok: true, state: await saveManagerLlmConfig(json) });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/autodetect" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req).catch(() => ({}));
+        const preferRaw = String(json?.prefer || "any").trim().toLowerCase();
+        const prefer = preferRaw === "ollama" || preferRaw === "local" ? preferRaw : "any";
+        const detection = await autoDetectLocalManagerProvider(prefer);
+        const setupPlan = buildLocalManagerSetupPlan();
+        if (!detection.selected) {
+          sendJson(res, 404, {
+            ok: false,
+            error: "No supported local manager runtime was detected. Start Ollama or a local OpenAI-compatible server first.",
+            candidates: detection.candidates,
+            setupPlan,
+            state: getPublicManagerLlmState(),
+          });
+          return;
+        }
+        const state = await saveManagerLlmConfig({
+          activeProvider: detection.selected.providerId,
+          providers: {
+            [detection.selected.providerId]: {
+              enabled: true,
+              model: detection.selected.model,
+              endpointUrl: detection.selected.endpointUrl,
+            },
+          },
+        });
+        await setManagerLlmError(null);
+        sendJson(res, 200, {
+          ok: true,
+          detected: detection.selected,
+          candidates: detection.candidates,
+          setupPlan,
+          state,
+        });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: String(err), setupPlan: buildLocalManagerSetupPlan(), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/local-setup" && req.method === "POST") {
+      const setupPlan = buildLocalManagerSetupPlan();
+      try {
+        const json = await readJsonBody(req).catch(() => ({}));
+        const planId = String(json?.planId || setupPlan.recommendedPlanId || "ollama").trim() || setupPlan.recommendedPlanId;
+        const execution = await autoSetupLocalManagerRuntime(planId);
+        if (!execution.ok) {
+          sendJson(res, 400, {
+            ok: false,
+            error: execution.error || execution.message,
+            message: execution.message,
+            steps: execution.steps,
+            setupPlan,
+            state: getPublicManagerLlmState(),
+          });
+          return;
+        }
+        const state = await saveManagerLlmConfig({
+          activeProvider: execution.option.providerId,
+          providers: {
+            [execution.option.providerId]: {
+              enabled: true,
+              model: execution.option.model,
+              endpointUrl: execution.option.endpointUrl,
+            },
+          },
+        });
+        await setManagerLlmError(null);
+        sendJson(res, 200, {
+          ok: true,
+          message: execution.message,
+          steps: execution.steps,
+          detected: execution.detected ?? {
+            providerId: execution.option.providerId,
+            endpointUrl: execution.option.endpointUrl,
+            model: execution.option.model,
+            label: execution.option.label,
+            source: "local_setup",
+          },
+          setupPlan,
+          state,
+        });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: String(err), setupPlan, state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/reset" && req.method === "POST") {
+      sendJson(res, 200, { ok: true, state: await resetManagerLlmSession() });
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/chat" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        const message = String(json?.message || "").trim();
+        if (!message) throw new Error("missing message");
+        await appendManagerLlmMessage("user", message);
+        await setManagerLlmBusy(true);
+        await setManagerLlmError(null);
+        const llmState = getManagerLlmState();
+        const managerStatePayload = await buildManagerStatePayload(dataDir, bridge);
+        const conversation = await runManagerConversation({
+          provider: llmState.config.activeProvider,
+          config: llmState.config,
+          history: llmState.history,
+          snapshot: toManagerLlmSnapshot(managerStatePayload),
+        });
+        await appendManagerLlmMessage("assistant", conversation.reply);
+        await addManagerLlmPendingActions(conversation.actions);
+        for (const action of conversation.actions) {
+          await appendManagerLlmAuditEntry({
+            actionId: action.id,
+            event: "proposed",
+            title: action.title,
+            note: conversation.summary,
+            action,
+            snapshot: null,
+            result: null,
+          });
+        }
+        await setManagerLlmResponseMeta(llmState.config.activeProvider, conversation.summary);
+        await setManagerLlmBusy(false);
+        sendJson(res, 200, {
+          ok: true,
+          assistantMessage: conversation.reply,
+          summary: conversation.summary,
+          actions: conversation.actions,
+          state: getPublicManagerLlmState(),
+        });
+      } catch (err) {
+        await setManagerLlmBusy(false);
+        await setManagerLlmError(String(err));
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/reject" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        const actionId = String(json?.actionId || "").trim();
+        const note = String(json?.note || "").trim();
+        if (!actionId) throw new Error("missing actionId");
+        const action = getManagerLlmState().pendingActions.find((entry) => entry.id === actionId);
+        if (!action) throw new Error(`unknown actionId: ${actionId}`);
+        await updateManagerLlmAction(action.id, {
+          rejectedAt: new Date().toISOString(),
+          rejection: note || "Rejected by operator.",
+          failedAt: null,
+          failure: null,
+        });
+        await appendManagerLlmAuditEntry({
+          actionId: action.id,
+          event: "rejected",
+          title: action.title,
+          note: note || "Rejected by operator.",
+          action: { ...action, rejectedAt: new Date().toISOString(), rejection: note || "Rejected by operator." },
+          snapshot: null,
+          result: null,
+        });
+        await setManagerLlmError(null);
+        sendJson(res, 200, { ok: true, state: getPublicManagerLlmState() });
+      } catch (err) {
+        await setManagerLlmError(String(err));
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/hide" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        const actionId = String(json?.actionId || "").trim();
+        if (!actionId) throw new Error("missing actionId");
+        const action = getManagerLlmState().pendingActions.find((entry) => entry.id === actionId);
+        if (!action) throw new Error(`unknown actionId: ${actionId}`);
+        const hiddenAt = new Date().toISOString();
+        await updateManagerLlmAction(action.id, { hiddenAt });
+        await appendManagerLlmAuditEntry({
+          actionId: action.id,
+          event: "hidden",
+          title: action.title,
+          note: "Hidden from the live proposal queue.",
+          action: { ...action, hiddenAt },
+          snapshot: null,
+          result: null,
+        });
+        sendJson(res, 200, { ok: true, state: getPublicManagerLlmState() });
+      } catch (err) {
+        await setManagerLlmError(String(err));
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/guide" && req.method === "POST") {
+      try {
+        const json = await readJsonBody(req);
+        const actionId = String(json?.actionId || "").trim();
+        const guidance = String(json?.message || "").trim();
+        if (!actionId) throw new Error("missing actionId");
+        if (!guidance) throw new Error("missing guidance message");
+        const action = getManagerLlmState().pendingActions.find((entry) => entry.id === actionId);
+        if (!action) throw new Error(`unknown actionId: ${actionId}`);
+        const prompt = [
+          `GUIDANCE FOR PROPOSAL ${action.title}`,
+          `Action kind: ${action.kind}`,
+          `Proposal why: ${action.why || "No reason supplied."}`,
+          "Operator guidance:",
+          guidance,
+          "Acknowledge the guidance, revise course if needed, and stay within the deterministic Agent 1 rails.",
+        ].join("\n");
+        await appendManagerLlmMessage("user", prompt);
+        await setManagerLlmBusy(true);
+        await setManagerLlmError(null);
+        const guidedAt = new Date().toISOString();
+        await updateManagerLlmAction(action.id, { guidedAt, guideMessage: guidance });
+        const llmState = getManagerLlmState();
+        const managerStatePayload = await buildManagerStatePayload(dataDir, bridge);
+        const conversation = await runManagerConversation({
+          provider: llmState.config.activeProvider,
+          config: llmState.config,
+          history: llmState.history,
+          snapshot: toManagerLlmSnapshot(managerStatePayload),
+        });
+        await appendManagerLlmMessage("assistant", conversation.reply);
+        await addManagerLlmPendingActions(conversation.actions);
+        for (const nextAction of conversation.actions) {
+          await appendManagerLlmAuditEntry({
+            actionId: nextAction.id,
+            event: "proposed",
+            title: nextAction.title,
+            note: conversation.summary,
+            action: nextAction,
+            snapshot: null,
+            result: null,
+          });
+        }
+        await appendManagerLlmAuditEntry({
+          actionId: action.id,
+          event: "guided",
+          title: action.title,
+          note: guidance,
+          action: { ...action, guidedAt, guideMessage: guidance },
+          snapshot: null,
+          result: { assistantReply: conversation.reply, summary: conversation.summary, addedActions: conversation.actions.map((entry) => entry.id) },
+        });
+        await setManagerLlmResponseMeta(llmState.config.activeProvider, conversation.summary);
+        await setManagerLlmBusy(false);
+        sendJson(res, 200, {
+          ok: true,
+          assistantMessage: conversation.reply,
+          summary: conversation.summary,
+          actions: conversation.actions,
+          state: getPublicManagerLlmState(),
+        });
+      } catch (err) {
+        await setManagerLlmBusy(false);
+        await setManagerLlmError(String(err));
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/manager/llm/apply" && req.method === "POST") {
+      let actionId = "";
+      try {
+        const json = await readJsonBody(req);
+        actionId = String(json?.actionId || "").trim();
+        if (!actionId) throw new Error("missing actionId");
+        const action = getManagerLlmState().pendingActions.find((entry) => entry.id === actionId);
+        if (!action) throw new Error(`unknown actionId: ${actionId}`);
+        const snapshot = await captureManagerLlmActionSnapshot(dataDir, bridge);
+        const applied = await applyManagerLlmAction(action, dataDir, bridge);
+        const appliedAt = new Date().toISOString();
+        await updateManagerLlmAction(action.id, {
+          hiddenAt: null,
+          appliedAt: new Date().toISOString(),
+          rejectedAt: null,
+          rejection: null,
+          failedAt: null,
+          failure: null,
+        });
+        await appendManagerLlmAuditEntry({
+          actionId: action.id,
+          event: "applied",
+          title: action.title,
+          note: action.why,
+          action: { ...action, appliedAt },
+          snapshot,
+          result: applied,
+        });
+        await setManagerLlmError(null);
+        sendJson(res, 200, {
+          ok: true,
+          applied,
+          state: getPublicManagerLlmState(),
+          managerState: await buildManagerStatePayload(dataDir, bridge),
+        });
+      } catch (err) {
+        if (actionId) {
+          const failedAction = getManagerLlmState().pendingActions.find((entry) => entry.id === actionId) || null;
+          await updateManagerLlmAction(actionId, {
+            failedAt: new Date().toISOString(),
+            failure: String(err),
+          });
+          await appendManagerLlmAuditEntry({
+            actionId,
+            event: "apply_failed",
+            title: failedAction?.title || "Manager action",
+            note: String(err),
+            action: failedAction,
+            snapshot: null,
+            result: null,
+          });
+        }
+        await setManagerLlmError(String(err));
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
+      }
+      return;
+    }
+
     if (url.pathname === "/api/manager/replay-svg" && req.method === "POST") {
       try {
         const json = await readJsonBody(req);
@@ -556,7 +1070,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     const filePath = url.pathname === "/"
-      ? path.join(staticDir, "monitor.html")
+      ? path.join(staticDir, defaultMonitorFile)
       : path.join(staticDir, url.pathname.replace(/^\/+/, ""));
 
     try {
@@ -584,6 +1098,16 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
   console.log(`monitor server: http://localhost:${displayPort}`);
   return server;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

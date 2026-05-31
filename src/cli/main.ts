@@ -154,6 +154,7 @@ async function startMonitorWorker(cfg: { port: number; dataDir: string; staticDi
 
 async function main(): Promise<void> {
   const dataDir = arg("--data-dir", process.env.COLLIDER_DATA_DIR ?? "./data")!;
+  const staticDir = arg("--static-dir", process.env.COLLIDER_STATIC_DIR ?? process.cwd())!;
   const fileSettings = await loadSettings(dataDir);
   const bootstrapSeedSettings = {
     ...fileSettings,
@@ -167,11 +168,6 @@ async function main(): Promise<void> {
 
   const effectiveSettings = {
     ...bootstrappedSettings,
-    rpc: arg("--rpc", process.env.COLLIDER_RPC_URL ?? bootstrappedSettings.rpc)!,
-    wasm: arg("--wasm", process.env.COLLIDER_SIM_WASM ?? bootstrappedSettings.wasm)!,
-    user: arg("--user", process.env.COLLIDER_BOT_USER ?? bootstrappedSettings.user)!,
-    asset: arg("--asset", process.env.COLLIDER_DEFAULT_ASSET ?? bootstrappedSettings.asset)!,
-    amount: arg("--amount", process.env.COLLIDER_DEFAULT_AMOUNT ?? bootstrappedSettings.amount)!,
     maxCandidates: Number(arg("--max-candidates", String(bootstrappedSettings.maxCandidates))),
     maxMs: Number(arg("--max-ms", String(bootstrappedSettings.maxMs))),
     pollMs: Number(arg("--poll-ms", String(bootstrappedSettings.pollMs))),
@@ -219,7 +215,7 @@ async function main(): Promise<void> {
     await startMonitorWorker({
       port: monitorPort,
       dataDir,
-      staticDir: process.cwd(),
+      staticDir,
     });
   }
 
@@ -292,4 +288,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-

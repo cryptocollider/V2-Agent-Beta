@@ -112,15 +112,15 @@ const AUDIT_TEMPLATES: AuditTemplate[] = [
   {
     key: "maxSingleThrowUsd",
     state: "implemented",
-    summary: "Candidates above the configured single-throw cap are rejected.",
-    evidence: ["bankroll max single throw check", "candidate filter diagnostics"],
+    summary: "Legacy alias of maxThrowUsd. Runtime normalization collapses both fields into one effective max-throw cap.",
+    evidence: ["settings normalization", "runtime unified max-throw cap"],
     gaps: [],
   },
   {
     key: "maxGameExposureUsd",
     state: "implemented",
-    summary: "Games and candidates that would exceed configured total game exposure are rejected.",
-    evidence: ["game eligibility filter", "candidate exposure check"],
+    summary: "Candidates that would push Agent 1's own total input in a single game above the configured cap are rejected.",
+    evidence: ["candidate exposure check against bot-user throws"],
     gaps: [],
   },
   {
@@ -132,10 +132,10 @@ const AUDIT_TEMPLATES: AuditTemplate[] = [
   },
   {
     key: "maxThrowUsd",
-    state: "partial",
-    summary: "Maximum throw USD shapes generated target sizes and now hard-rejects oversized candidates.",
-    evidence: ["USD target generation", "candidate filter diagnostics"],
-    gaps: ["If the current game has no priced throws yet, sizing now falls back to the latest internally observed asset price from recent sim inputs. External oracle validation is still pending."],
+    state: "implemented",
+    summary: "Single effective per-throw USD cap for sizing and candidate rejection. Legacy maxSingleThrowUsd is folded into this cap.",
+    evidence: ["settings normalization", "USD target generation", "candidate filter diagnostics"],
+    gaps: [],
   },
   {
     key: "riskMode",

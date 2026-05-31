@@ -1,4 +1,6 @@
 import type { GameListItem, SimRunInput } from "../collider/types.js";
+import { defaultDecimalsForAsset } from "../core/assets-meta.js";
+import { BETA_USDC_ASSET } from "../core/settings.js";
 import type { AgentPolicy } from "../policy/schema.js";
 
 export type EligibilityReasonCode =
@@ -121,15 +123,66 @@ function findBalanceBase(balances: Record<string, string> | undefined, assetHex:
   return parseBaseAmount(raw);
 }
 
-function normalizeAssetHex(value: unknown): string {
+function normalizeHexValue(value: unknown): string {
   return Array.isArray(value)
     ? value.map((b) => Number(b).toString(16).padStart(2, "0")).join("")
     : cleanHex(String(value || ""));
 }
 
+function normalizeAssetHex(value: unknown): string {
+  return normalizeHexValue(value);
+}
+
+function resolveUnifiedMaxThrowUsd(policy: AgentPolicy): number | null {
+  const caps = [policy.maxThrowUsd, policy.maxSingleThrowUsd]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return caps.length ? Math.min(...caps) : null;
+}
+
+function estimateRecordedThrowUsd(
+  throwRecord: SimRunInput["throws"][number],
+  simInput: SimRunInput,
+  priceHintsUsdPerBase?: Record<string, number>,
+): number | null {
+  const rawUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0);
+  if (Number.isFinite(rawUsd) && rawUsd > 0) return rawUsd / 1e8;
+  const amount = String((throwRecord as { amount?: unknown }).amount ?? "0");
+  const assetHex = normalizeAssetHex((throwRecord as { asset?: unknown }).asset);
+  return assetHex ? estimateCandidateUsd(amount, assetHex, simInput, priceHintsUsdPerBase) : null;
+}
+
+function estimateUserGameExposureUsd(
+  simInput: SimRunInput,
+  userHex: string,
+  priceHintsUsdPerBase?: Record<string, number>,
+): number {
+  const normalizedUser = cleanHex(userHex);
+  if (!normalizedUser) return 0;
+  return (simInput.throws || []).reduce((sum, throwRecord) => {
+    if (normalizeHexValue((throwRecord as { user?: unknown }).user) !== normalizedUser) return sum;
+    const usd = estimateRecordedThrowUsd(throwRecord, simInput, priceHintsUsdPerBase);
+    return Number.isFinite(usd) ? sum + Number(usd) : sum;
+  }, 0);
+}
+
 function hintedUsdPerBase(priceHintsUsdPerBase: Record<string, number> | undefined, assetHex: string): number | null {
   const hinted = Number(priceHintsUsdPerBase?.[cleanHex(assetHex)]);
   return Number.isFinite(hinted) && hinted > 0 ? hinted : null;
+}
+
+function simAssetDecimals(simInput: SimRunInput, assetHex: string): number {
+  const normalized = cleanHex(assetHex);
+  const match = (simInput.assets || []).find((asset) => normalizeAssetHex((asset as { asset?: unknown }).asset) === normalized);
+  const decimals = Number((match as { decimals?: unknown } | undefined)?.decimals);
+  return Number.isFinite(decimals) && decimals >= 0 ? decimals : defaultDecimalsForAsset(normalized);
+}
+
+function stableAssetUsdPerBaseFallback(simInput: SimRunInput, assetHex: string): number | null {
+  const normalized = cleanHex(assetHex);
+  if (normalized !== cleanHex(BETA_USDC_ASSET)) return null;
+  const perBase = 1 / Math.pow(10, simAssetDecimals(simInput, normalized));
+  return Number.isFinite(perBase) && perBase > 0 ? perBase : null;
 }
 
 export function estimateAssetUsdPerBaseUnit(
@@ -157,7 +210,10 @@ export function estimateAssetUsdPerBaseUnit(
     return bestPerBase;
   }
 
-  return hintedUsdPerBase(priceHintsUsdPerBase, target);
+  const hinted = hintedUsdPerBase(priceHintsUsdPerBase, target);
+  if (hinted != null) return hinted;
+
+  return stableAssetUsdPerBaseFallback(simInput, target);
 }
 
 export function estimateCandidateUsd(
@@ -190,7 +246,7 @@ export function buildUsdTargets(
   gameMinThrowUsd?: number | null,
 ): { targets: number[]; reasons: EligibilityReasonCode[] } {
   const explicitMin = Number.isFinite(Number(policy.minThrowUsd)) ? Number(policy.minThrowUsd) : null;
-  const explicitMax = Number.isFinite(Number(policy.maxThrowUsd)) ? Number(policy.maxThrowUsd) : null;
+  const explicitMax = resolveUnifiedMaxThrowUsd(policy);
   const floorUsd = Number.isFinite(Number(gameMinThrowUsd)) ? Number(gameMinThrowUsd) : null;
   const minUsd = explicitMin ?? fallbackUsd;
   const maxUsd = explicitMax ?? minUsd;
@@ -201,8 +257,7 @@ export function buildUsdTargets(
 
   const cappedMax = Math.max(minUsd, maxUsd);
   if (floorUsd != null && floorUsd > 0) {
-    if ((policy.maxSingleThrowUsd != null && floorUsd > Number(policy.maxSingleThrowUsd))
-      || (explicitMax != null && floorUsd > explicitMax)) {
+    if (explicitMax != null && floorUsd > explicitMax) {
       return { targets: [], reasons: ["below_game_min_throw"] };
     }
   }
@@ -247,10 +302,6 @@ export function evaluateGamesForEligibility(
     if (policy.minGameStakeUsd != null && stakeUsd < policy.minGameStakeUsd) {
       reasons.push("below_min_game_stake");
     }
-    if (policy.maxGameExposureUsd != null && stakeUsd > policy.maxGameExposureUsd) {
-      reasons.push("above_game_exposure");
-    }
-
     return {
       gameId: game.game_id,
       eligible: reasons.length === 0,
@@ -411,10 +462,11 @@ export function getCandidateFilterReasons(params: {
   chosenGame: GameListItem;
   policy: AgentPolicy;
   simInput: SimRunInput;
+  botUser: string;
   balances?: Record<string, string>;
   priceHintsUsdPerBase?: Record<string, number>;
 }): EligibilityReasonCode[] {
-  const { candidate, chosenGame, policy, simInput, balances, priceHintsUsdPerBase } = params;
+  const { candidate, chosenGame, policy, simInput, botUser, balances, priceHintsUsdPerBase } = params;
   const reasons: EligibilityReasonCode[] = [];
   const allowedAssets = normalizeAssetList(policy.allowedAssets);
   const blockedAssets = new Set(normalizeAssetList(policy.blockedAssets));
@@ -442,14 +494,13 @@ export function getCandidateFilterReasons(params: {
     reasons.push("below_game_min_throw");
   }
 
+  const maxThrowUsd = resolveUnifiedMaxThrowUsd(policy);
+  const currentUserExposureUsd = estimateUserGameExposureUsd(simInput, botUser, priceHintsUsdPerBase);
+
   if (policy.minThrowUsd != null && candidateUsd < policy.minThrowUsd) reasons.push("below_min_throw_usd");
-  if (policy.maxThrowUsd != null && candidateUsd > policy.maxThrowUsd) reasons.push("above_max_throw_usd");
-  if (policy.maxSingleThrowUsd != null && candidateUsd > policy.maxSingleThrowUsd) {
-    reasons.push("above_max_single_throw_usd");
-  }
-  if (policy.maxGameExposureUsd != null) {
-    const currentStakeUsd = parseStakeUsdLike(chosenGame.stake);
-    if (currentStakeUsd + candidateUsd > policy.maxGameExposureUsd) reasons.push("above_game_exposure");
+  if (maxThrowUsd != null && candidateUsd > maxThrowUsd) reasons.push("above_max_throw_usd");
+  if (policy.maxGameExposureUsd != null && currentUserExposureUsd + candidateUsd > policy.maxGameExposureUsd) {
+    reasons.push("above_game_exposure");
   }
 
   return reasons.filter((value, index, arr) => arr.indexOf(value) === index);
@@ -474,8 +525,8 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("cooldown"))) return "COOLDOWN";
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("per_game_cap"))) return "MAX/G";
   if (reasons.has("reserve_balance") || reasons.has("no_balance_for_amounts")) return "NO-CAND/BAL";
-  if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "NO-CAND/MIN";
-  if (counts.above_max_single_throw_usd || counts.above_game_exposure) return "NO-CAND/RISK";
+  if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd || counts.above_max_single_throw_usd) return "NO-CAND/MIN";
+  if (counts.above_game_exposure) return "NO-CAND/RISK";
   if (reasons.has("search_budget_stop")) return "NO-CAND/SEARCH";
   if (reasons.has("missing_price_basis") || reasons.has("asset_blocked") || reasons.has("asset_not_allowed")) return "NO-CAND/FILTER";
   if (reasons.has("no_candidates_after_filter")) return "NO-CAND/FILTER";

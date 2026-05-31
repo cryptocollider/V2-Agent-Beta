@@ -925,6 +925,7 @@ export async function runAgentOnce(
       chosenGame: selectedGame,
       policy,
       simInput,
+      botUser: cfg.botUser,
       balances,
       priceHintsUsdPerBase,
     });

@@ -1,4 +1,5 @@
 import type { Hex32, SimRunInput, ThrowRecord } from "../collider/types.js";
+import { defaultDecimalsForAsset } from "../core/assets-meta.js";
 
 export type HoleRule = {
   return_pct: number;
@@ -125,7 +126,7 @@ function mergeKindBaseAmount(
 }
 
 function assetDecimals(input: SimRunInput, asset: Hex32): number {
-  return input.assets.find((entry) => bytesToHex(entry.asset) === cleanHex(asset))?.decimals ?? 8;
+  return input.assets.find((entry) => bytesToHex(entry.asset) === cleanHex(asset))?.decimals ?? defaultDecimalsForAsset(asset);
 }
 
 function lookupPriceUsd(

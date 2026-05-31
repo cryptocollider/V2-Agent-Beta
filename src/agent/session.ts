@@ -243,6 +243,14 @@ function parseOptionalNumber(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function resolveUnifiedMaxThrowUsd(...values: Array<unknown>): number | undefined {
+  const normalized = values
+    .map((value) => parseOptionalNumber(value))
+    .filter((value): value is number => value != null);
+  if (!normalized.length) return undefined;
+  return Math.min(...normalized);
+}
+
 function parseStringArray(v: unknown): string[] | undefined {
   if (Array.isArray(v)) {
     const out = v.map((x) => String(x).trim()).filter(Boolean);
@@ -460,6 +468,7 @@ export async function runAgentSession(
       const humanLearning = rt.humanLearning && typeof rt.humanLearning === "object"
         ? rt.humanLearning as Record<string, unknown>
         : {};
+      const unifiedMaxThrowUsd = resolveUnifiedMaxThrowUsd(rt.maxThrowUsd, rt.maxSingleThrowUsd);
 
       const effectivePolicy: AgentPolicy = {
         ...basePolicy,
@@ -469,10 +478,10 @@ export async function runAgentSession(
           rt.minMillisBetweenLiveThrows ?? basePolicy.minMillisBetweenLiveThrows ?? 20_000,
         ),
         minGameStakeUsd: parseOptionalNumber(rt.minGameStakeUsd),
-        maxSingleThrowUsd: parseOptionalNumber(rt.maxSingleThrowUsd),
+        maxSingleThrowUsd: unifiedMaxThrowUsd,
         maxGameExposureUsd: parseOptionalNumber(rt.maxGameExposureUsd),
         minThrowUsd: parseOptionalNumber(rt.minThrowUsd),
-        maxThrowUsd: parseOptionalNumber(rt.maxThrowUsd),
+        maxThrowUsd: unifiedMaxThrowUsd,
         riskMode: profile.effective.riskMode ?? String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
         customStrategy: customStrategy || undefined,
         copySlammerWhenSameHoleType: copySlammersEnabled,

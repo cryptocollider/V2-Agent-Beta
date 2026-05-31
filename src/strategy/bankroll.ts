@@ -37,12 +37,20 @@ export function violatesSmallBigRatio(
   return positioning.smallThrowsPlaced < requiredSmalls;
 }
 
+function resolveMaxThrowUsdCap(policy: AgentPolicy): number | null {
+  const caps = [policy.maxThrowUsd, policy.maxSingleThrowUsd]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return caps.length ? Math.min(...caps) : null;
+}
+
 export function violatesMaxSingleThrow(
   candidateUsd: number,
   policy: AgentPolicy,
 ): boolean {
-  if (policy.maxSingleThrowUsd == null) return false;
-  return candidateUsd > policy.maxSingleThrowUsd;
+  const cap = resolveMaxThrowUsdCap(policy);
+  if (cap == null) return false;
+  return candidateUsd > cap;
 }
 
 export function bankrollPenalty(
