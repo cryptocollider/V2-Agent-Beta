@@ -326,6 +326,7 @@ test("compact eligibility codes stay specific", () => {
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["reserve_balance"] }), "NO-CAND/BAL");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: [], candidateFilterSummary: { ...base.candidateFilterSummary, reasonCounts: { below_game_min_throw: 1 } } }), "NO-CAND/MIN");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: [], candidateFilterSummary: { ...base.candidateFilterSummary, reasonCounts: { above_game_exposure: 1 } } }), "NO-CAND/RISK");
+  assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["planner_failure"] }), "NO-CAND/PLAN");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["search_budget_stop"] }), "NO-CAND/SEARCH");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["target_balance"] }), "TARGET/BAL");
   assert.equal(buildEligibilityCompactCode({ ...base, globalReasons: ["cooldown"] }), "COOLDOWN");
@@ -360,4 +361,3 @@ test("eligible game selection rotates toward least recently touched games", () =
 
   assert.equal(selectedGame?.game_id, games[1].game_id);
 });
-

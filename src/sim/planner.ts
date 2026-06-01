@@ -42,6 +42,7 @@ export type PlanOptions = {
   nextAcceptedHeight: number;
   includeSlip1?: boolean;
   scenarioOverrides?: PlannerScenarioOverride[];
+  priceHintsUsdPerBase?: Partial<Record<Hex32, number>>;
 };
 
 function throwIdHexFromLast(simInput: SimRunInput): Hex32 {
@@ -79,6 +80,7 @@ function appendFutureThrows(
   futureThrows: PlannedFutureThrow[],
   initialScenario: PlannerScenarioOverride,
   defaultUser: Hex32,
+  priceHintsUsdPerBase?: Partial<Record<Hex32, number>>,
 ): SimRunInput {
   let workingInput = cloneSimInput(simInput);
   let previousAcceptedAtHeight = initialScenario.acceptedAtHeight;
@@ -110,6 +112,7 @@ function appendFutureThrows(
       workingInput,
       futureThrow.user ?? defaultUser,
       scenario,
+      priceHintsUsdPerBase,
     );
 
     workingInput = {
@@ -140,17 +143,19 @@ export async function runCandidateAcrossQueueScenarios(
         simInput,
         botUser,
         scenario,
+        opts.priceHintsUsdPerBase,
       );
       const syntheticThrowId = throwIdHexFromLast(candidateInput);
 
       const syntheticInput = scenario.futureThrows?.length
         ? appendFutureThrows(
             gameId,
-            candidateInput,
-            scenario.futureThrows,
-            scenario,
-            botUser,
-          )
+          candidateInput,
+          scenario.futureThrows,
+          scenario,
+          botUser,
+          opts.priceHintsUsdPerBase,
+        )
         : candidateInput;
 
       const rawFinalizeBytes = await wasm.runToFinalize(syntheticInput);

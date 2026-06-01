@@ -403,6 +403,17 @@
     .kpi-help-body .eligibility-help-meta{display:grid;gap:12px}
     .kpi-help-body .eligibility-help-meta p{margin:0}
     .kpi-help-body .eligibility-help-label{display:block;margin-bottom:4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+    .kpi-help-body .eligibility-funnel{display:grid;gap:10px;margin-bottom:14px}
+    .kpi-help-body .eligibility-funnel-row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid rgba(82,230,255,.12);border-radius:12px;background:rgba(7,17,31,.55)}
+    .kpi-help-body .eligibility-funnel-row.is-break{border-color:rgba(255,230,109,.34);background:rgba(47,38,12,.34)}
+    .kpi-help-body .eligibility-funnel-row.is-error{border-color:rgba(255,107,136,.34);background:rgba(47,14,22,.34)}
+    .kpi-help-body .eligibility-funnel-step{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#dff4ff}
+    .kpi-help-body .eligibility-funnel-track{height:10px;border-radius:999px;background:rgba(8,25,42,.92);overflow:hidden;position:relative}
+    .kpi-help-body .eligibility-funnel-fill{height:100%;border-radius:999px;background:linear-gradient(90deg, rgba(82,230,255,.78), rgba(101,255,176,.88))}
+    .kpi-help-body .eligibility-funnel-row.is-break .eligibility-funnel-fill{background:linear-gradient(90deg, rgba(255,230,109,.78), rgba(255,172,79,.88))}
+    .kpi-help-body .eligibility-funnel-row.is-error .eligibility-funnel-fill{background:linear-gradient(90deg, rgba(255,107,136,.76), rgba(255,79,216,.86))}
+    .kpi-help-body .eligibility-funnel-count{font-size:14px;font-weight:800;color:#fff}
+    .kpi-help-body .eligibility-funnel-note{margin-top:6px;font-size:12px;line-height:1.45;color:var(--muted)}
     .control-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
     .control-grid.wide{grid-template-columns:repeat(3,minmax(0,1fr))}
     .control-btn{min-height:44px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;font-size:12px;border-radius:10px}
@@ -3949,8 +3960,44 @@ function getPredictedHoleInfo(throwRow){
   }
   return { ok:true, value:Number(ht), label:holeTypeLabel(Number(ht)) };
 }
+function expectedChosenUsdFromRun(row){
+  const payload = row?.chosenPayload || row?.expected?.payload || {};
+  const asset = cleanHex(payload?.asset || '');
+  const amountBase = Number(payload?.amount ?? NaN);
+  if (!asset || !(amountBase > 0)) return null;
+  const planningEntries = Array.isArray(row?.eligibility?.assetPlanning) ? row.eligibility.assetPlanning : [];
+  const planningEntry = planningEntries.find((entry) => cleanHex(entry?.asset || '') === asset);
+  const usdPerBase = Number(planningEntry?.priceBasisUsdPerBase ?? NaN);
+  if (!(usdPerBase > 0)) return null;
+  const expectedUsd = amountBase * usdPerBase;
+  return Number.isFinite(expectedUsd) && expectedUsd > 0 ? expectedUsd : null;
+}
+function predictedSubmissionUsdFromRun(row){
+  const directCandidates = [
+    row?.prediction?.valueUsd,
+    row?.basePrediction?.valueUsd,
+    row?.managerAdjustedPrediction?.valueUsd,
+    row?.prediction?.valueUsdE8 != null ? Number(row.prediction.valueUsdE8) / 1e8 : null,
+    row?.basePrediction?.valueUsdE8 != null ? Number(row.basePrediction.valueUsdE8) / 1e8 : null,
+  ];
+  for (const candidate of directCandidates) {
+    const value = Number(candidate ?? NaN);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+function isPredictionScaleCorrupt(row){
+  const expectedUsd = expectedChosenUsdFromRun(row);
+  const predictedUsd = predictedSubmissionUsdFromRun(row);
+  if (!(expectedUsd > 0) || !(predictedUsd > 0)) return false;
+  const ratio = Math.max(predictedUsd / expectedUsd, expectedUsd / predictedUsd);
+  return Number.isFinite(ratio) && ratio >= 50;
+}
 function getPredictedRunByGame(){
-  return latestByKey((runs || []).filter(r => r?.prediction?.pnlUsd != null && r?.gameId), r => cleanHex(r.gameId));
+  return latestByKey(
+    (runs || []).filter((r) => r?.prediction?.pnlUsd != null && r?.gameId && !isPredictionScaleCorrupt(r)),
+    (r) => cleanHex(r.gameId),
+  );
 }
 function resultRowSettlementUserHex(row){
   return currentConfiguredUserHex(row);
@@ -5763,16 +5810,18 @@ function reasonPriority(reason){
     above_game_exposure: 13,
     target_profit: 14,
     target_balance: 15,
-    search_budget_stop: 16,
-    no_candidates_after_filter: 17,
-    empty_no_eligible_candidates: 18,
+    planner_failure: 16,
+    search_budget_stop: 17,
+    no_candidates_after_filter: 18,
+    empty_no_eligible_candidates: 19,
     candidate_risk_limits: 30,
     no_cand_px: 40,
     no_cand_bal: 41,
     no_cand_min: 42,
     no_cand_risk: 43,
-    no_cand_srch: 44,
-    no_cand_flt: 45
+    no_cand_plan: 44,
+    no_cand_srch: 45,
+    no_cand_flt: 46
   };
   return Object.prototype.hasOwnProperty.call(rank, reason) ? rank[reason] : 99;
 }
@@ -6156,6 +6205,7 @@ const eligibilityReasonMeta = {
   'NO-CAND/TPRF': { code:'NO-CAND/TPRF', tone:'tone-pink', title:'Target Profit Reached', summary:'The current target-profit stop prevented another throw here.' },
   'NO-CAND/TBAL': { code:'NO-CAND/TBAL', tone:'tone-pink', title:'Target Balance Reached', summary:'The current target-balance stop prevented another throw here.' },
   'NO-CAND/FLT': { code:'NO-CAND/FLT', tone:'tone-neutral', title:'Filtered Out', summary:'This cycle ended before a playable candidate survived filtering. If all search counters are zero, the stop happened before raw search even opened.' },
+  'NO-CAND/PLAN': { code:'NO-CAND/PLAN', tone:'tone-pink', title:'Planner Run Failed', summary:'Candidates made it through first-pass gates, but the deeper simulation/planning step failed before any candidate could be ranked.' },
   'NO-CAND/SRCH': { code:'NO-CAND/SRCH', tone:'tone-info', title:'Search Budget Stop', summary:'Search stopped before a playable candidate survived ranking.' },
   'NO-CAND/BAL': { code:'NO-CAND/BAL', tone:'tone-pink', title:'Balance Gate', summary:'A bankroll or reserve gate stopped this game before raw candidate search could choose an amount.' },
   'NO-CAND/MIN': { code:'NO-CAND/MIN', tone:'tone-warn', title:'Minimum Gate', summary:'A minimum-throw rule removed this game before a throw could be chosen.' },
@@ -6182,10 +6232,12 @@ function eligibilityCodeForReason(reasonKey){
     above_game_exposure: 'NO-CAND/GEXP',
     target_profit: 'NO-CAND/TPRF',
     target_balance: 'NO-CAND/TBAL',
+    planner_failure: 'NO-CAND/PLAN',
     no_candidates_after_filter: 'NO-CAND/FLT',
     empty_no_eligible_candidates: 'NO-CAND/FLT',
     search_budget_stop: 'NO-CAND/SRCH',
     candidate_risk_limits: 'NO-CAND/RISK',
+    no_cand_plan: 'NO-CAND/PLAN',
     no_cand_px: 'NO-CAND/PX',
     no_cand_bal: 'NO-CAND/BAL',
     no_cand_min: 'NO-CAND/MIN',
@@ -6202,7 +6254,7 @@ function pickEligibilityReasonKey(g){
   const codeKey = normalizeReasonKey(g?.latestEligibilityCode || '');
   const filterKeys = sortReasonKeys(g?.latestCandidateFilterReasonCounts);
   const globalKeys = Array.isArray(g?.latestGlobalReasonKeys) ? g.latestGlobalReasonKeys.filter(Boolean) : [];
-  const genericKeys = new Set(['candidate_risk_limits', 'no_cand_risk', 'no_cand_bal', 'no_cand_min', 'no_cand_srch', 'no_cand_flt', 'no_candidates_after_filter']);
+  const genericKeys = new Set(['candidate_risk_limits', 'no_cand_risk', 'no_cand_bal', 'no_cand_min', 'no_cand_plan', 'no_cand_srch', 'no_cand_flt', 'no_candidates_after_filter']);
 
   if (perGameKeys.length) return perGameKeys[0];
   if (filterKeys.length && (genericKeys.has(rawKey) || genericKeys.has(codeKey))) return filterKeys[0];
@@ -6216,6 +6268,71 @@ function pickEligibilityReasonKey(g){
 
 function formatEligibilityDetailSection(label, html){
   return `<p><span class="eligibility-help-label">${esc(label)}</span>${html}</p>`;
+}
+
+function describeEligibilityFunnelBreak(counts){
+  const raw = Number(counts?.raw ?? 0);
+  const eligible = Number(counts?.eligible ?? 0);
+  const planned = Number(counts?.planned ?? 0);
+  const examined = Number(counts?.examined ?? 0);
+  if (raw <= 0) {
+    return {
+      breakKey: 'raw',
+      summary: 'The cycle never opened raw candidate generation for this game.',
+      hint: 'Look at the game-level gates first: cooldown, caps, minimums, balance, or price-basis blockers can stop search before the funnel even starts.',
+    };
+  }
+  if (eligible <= 0) {
+    return {
+      breakKey: 'eligible',
+      summary: 'Raw candidate variants were generated, but all of them were filtered out before they became eligible.',
+      hint: 'Loosen the first-pass gates only if that is intentional: check game minimum, min/max throw size, balance, reserve, price basis, and per-game exposure.',
+    };
+  }
+  if (planned <= 0) {
+    return {
+      breakKey: 'planned',
+      summary: 'Candidates survived the first-pass gates, but none reached the deeper planner/simulation stage.',
+      hint: 'This is the funnel break you pointed out: inspect planner failures or search-budget pressure before changing bankroll or eligibility settings.',
+    };
+  }
+  if (examined <= 0) {
+    return {
+      breakKey: 'examined',
+      summary: 'The planner produced scenario plans, but none completed the final ranking/examined stage.',
+      hint: 'Treat this as a deeper ranking/budget issue rather than a top-of-funnel eligibility issue.',
+    };
+  }
+  return {
+    breakKey: 'examined',
+    summary: 'The funnel reached the fully examined stage.',
+    hint: 'If no throw was submitted, the final stop likely happened after ranking rather than during candidate generation.',
+  };
+}
+
+function buildEligibilityFunnel(ctx = {}){
+  const counts = {
+    raw: Number(ctx.rawCandidates ?? 0),
+    eligible: Number(ctx.eligibleCandidates ?? 0),
+    planned: Number(ctx.plannedCandidates ?? 0),
+    examined: Number(ctx.examinedCandidates ?? 0),
+  };
+  const maxCount = Math.max(1, counts.raw, counts.eligible, counts.planned, counts.examined);
+  const breakInfo = describeEligibilityFunnelBreak(counts);
+  const rows = [
+    { key: 'raw', label: '1. Raw', count: counts.raw, note: 'Generated variants before any filtering.' },
+    { key: 'eligible', label: '2. Eligible', count: counts.eligible, note: 'Variants surviving first-pass gates.' },
+    { key: 'planned', label: '3. Planned', count: counts.planned, note: 'Variants that reached deeper simulation/planning.' },
+    { key: 'examined', label: '4. Examined', count: counts.examined, note: 'Variants fully ranked at the end of the funnel.' },
+  ];
+  const rowsHtml = rows.map((row) => {
+    const widthPct = Math.max(4, Math.min(100, (row.count / maxCount) * 100));
+    const rowClass = row.key === breakInfo.breakKey && row.count === 0
+      ? 'eligibility-funnel-row is-error'
+      : (row.key === breakInfo.breakKey ? 'eligibility-funnel-row is-break' : 'eligibility-funnel-row');
+    return `<div class="${rowClass}"><div class="eligibility-funnel-step">${esc(row.label)}</div><div><div class="eligibility-funnel-track"><div class="eligibility-funnel-fill" style="width:${widthPct}%"></div></div><div class="eligibility-funnel-note">${esc(row.note)}</div></div><div class="eligibility-funnel-count">${esc(String(row.count))}</div></div>`;
+  }).join('');
+  return `<div class="eligibility-help-label">Planner Funnel</div><div class="eligibility-funnel">${rowsHtml}</div><div class="eligibility-funnel-note"><strong>Break point:</strong> ${esc(breakInfo.summary)} ${esc(breakInfo.hint)}</div>`;
 }
 
 function buildEligibilityInfo(reasonKey, ctx = {}){
@@ -6247,8 +6364,14 @@ function buildEligibilityInfo(reasonKey, ctx = {}){
     .map(value => String(value));
 
   const detailSections = [];
+  if (Number(ctx.rawCandidates || 0) > 0 || Number(ctx.eligibleCandidates || 0) > 0 || Number(ctx.plannedCandidates || 0) > 0 || Number(ctx.examinedCandidates || 0) > 0) {
+    detailSections.push(buildEligibilityFunnel(ctx));
+  }
   if ((displayCode === 'NO-CAND/RISK' || displayCode === 'NO-CAND/SRCH') && (filterKeys.length || globalReasons.length)) {
     detailSections.push(formatEligibilityDetailSection('Why this looks broad', 'The backend umbrella code is broad here. The specific filter counts and cycle reasons below are the exact blocker for the latest cycle.'));
+  }
+  if (displayCode === 'NO-CAND/PLAN') {
+    detailSections.push(formatEligibilityDetailSection('What it means', 'The first funnel stages were healthy enough to generate candidates, but the deeper simulation/planning pass failed before any candidate became plan-ready. This points to planner execution, not bankroll tightening.'));
   }
   if (displayCode === 'NO-CAND/GEXP' && configuredMaxGameExposureUsd != null) {
     const exposureBits = [];
@@ -6288,7 +6411,10 @@ function buildEligibilityInfo(reasonKey, ctx = {}){
     detailSections.push(formatEligibilityDetailSection('Planner counters', '<code>raw</code> = generated candidate variants, <code>eligible</code> = variants surviving first-pass gates, <code>planned</code> = variants sent into deeper planning, <code>examined</code> = variants fully ranked. These counters describe the planner funnel, not the game\'s live throw count.'));
   }
   if (ctx.stopReason === 'search_budget_stop' && Number(ctx.eligibleCandidates || 0) > 0 && Number(ctx.plannedCandidates || 0) === 0) {
-    detailSections.push(formatEligibilityDetailSection('Search budget stop', 'The planner produced legal first-pass candidates, but the cycle budget ended before a deeper ranked pass selected one to play.'));
+    detailSections.push(formatEligibilityDetailSection('Search budget stop', 'The current logs say search budget stop, but the funnel shows the break between eligible and planned. Treat that as a planner-stage problem first, then only loosen budget settings if the planner itself is healthy.'));
+  }
+  if (ctx.stopReason === 'planner_failure' || displayCode === 'NO-CAND/PLAN') {
+    detailSections.push(formatEligibilityDetailSection('Planner-stage response', 'Try this order: confirm the planner is producing valid scenario runs again, then review any planner failure notes, and only after that consider changing throw caps or search budget.'));
   }
   if (searchIsZero && combinedReasons.includes('no_candidates_after_filter')) {
     detailSections.push(formatEligibilityDetailSection('Filter note', '<code>no_candidates_after_filter</code> is acting as a cycle summary here. Because every search counter is zero, the cycle never reached a real candidate-ranking pass for this game.'));

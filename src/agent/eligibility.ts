@@ -21,6 +21,7 @@ export type EligibilityReasonCode =
   | "above_game_exposure"
   | "no_candidates_after_filter"
   | "search_budget_stop"
+  | "planner_failure"
   | "below_min_game_stake"
   | "no_game";
 
@@ -527,13 +528,13 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   if (reasons.has("reserve_balance") || reasons.has("no_balance_for_amounts")) return "NO-CAND/BAL";
   if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd || counts.above_max_single_throw_usd) return "NO-CAND/MIN";
   if (counts.above_game_exposure) return "NO-CAND/RISK";
+  if (reasons.has("planner_failure")) return "NO-CAND/PLAN";
   if (reasons.has("search_budget_stop")) return "NO-CAND/SEARCH";
   if (reasons.has("missing_price_basis") || reasons.has("asset_blocked") || reasons.has("asset_not_allowed")) return "NO-CAND/FILTER";
   if (reasons.has("no_candidates_after_filter")) return "NO-CAND/FILTER";
   if (reasons.has("below_min_game_stake")) return "STAKE/MIN";
   return "NO-CAND";
 }
-
 
 
 

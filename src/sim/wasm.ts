@@ -69,7 +69,7 @@ export async function loadVizWasm(wasmPath: string): Promise<WasmVizRuntime> {
     return out;
   }
 
-  async function runToFinalize(input: SimRunInput, stepChunk = 32): Promise<Uint8Array> {
+  async function runToFinalizeUnsafe(input: SimRunInput, stepChunk = 32): Promise<Uint8Array> {
     const jsonText = JSON.stringify(input);
     const encoded = new TextEncoder().encode(jsonText);
     const { ptr, len } = writeBytes(encoded);
@@ -103,6 +103,14 @@ export async function loadVizWasm(wasmPath: string): Promise<WasmVizRuntime> {
     }
 
     return readOwnedBytes(outPtr, outLen);
+  }
+
+  let runQueue = Promise.resolve();
+
+  async function runToFinalize(input: SimRunInput, stepChunk = 32): Promise<Uint8Array> {
+    const task = runQueue.then(() => runToFinalizeUnsafe(input, stepChunk));
+    runQueue = task.then(() => undefined, () => undefined);
+    return task;
   }
 
   return { runToFinalize };

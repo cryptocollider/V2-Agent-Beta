@@ -180,6 +180,23 @@ import type {
     }
     return fallbackTemplateThrow();
   }
+
+  function pickTemplateThrowForAsset(simInput: SimRunInput, assetHex: Hex32): ThrowRecord {
+    const cleanAsset = assetHex.replace(/^0x/i, "").toLowerCase();
+    const throws = Array.isArray(simInput.throws) ? simInput.throws : [];
+    const sameAsset = throws
+      .filter((record) => bytesToHex32(record.asset as unknown as number[]) === cleanAsset)
+      .sort((a, b) => Number(b.accepted_at_height ?? 0) - Number(a.accepted_at_height ?? 0));
+
+    const valuedSameAsset = sameAsset.find((record) => {
+      const amount = BigInt(String(record.amount ?? "0"));
+      const valueUsdE8 = BigInt(String(record.value_usd_e8 ?? "0"));
+      return amount > 0n && valueUsdE8 > 0n;
+    });
+    if (valuedSameAsset) return deepClone(valuedSameAsset);
+    if (sameAsset.length > 0) return deepClone(sameAsset[0]);
+    return pickTemplateThrow(simInput);
+  }
   
   function findAssetMeta(simInput: SimRunInput, assetHex: Hex32) {
     const clean = assetHex.replace(/^0x/i, "").toLowerCase();
@@ -189,11 +206,18 @@ import type {
   function estimateValueUsdE8FromTemplate(
     amountBaseStr: string,
     templateThrow: ThrowRecord,
+    usdPerBaseHint?: number | null,
   ): string {
     const amountBase = BigInt(amountBaseStr);
+    if (Number.isFinite(usdPerBaseHint) && Number(usdPerBaseHint) > 0) {
+      const estimatedUsd = Number(amountBaseStr) * Number(usdPerBaseHint);
+      if (Number.isFinite(estimatedUsd) && estimatedUsd >= 0) {
+        return String(Math.max(0, Math.round(estimatedUsd * 1e8)));
+      }
+    }
     const tplAmount = BigInt(templateThrow.amount || "0");
     const tplValue = BigInt(templateThrow.value_usd_e8 || "0");
-  
+
     if (tplAmount <= 0n || tplValue < 0n) {
       return "0";
     }
@@ -217,21 +241,23 @@ import type {
     simInput: SimRunInput,
     botUserHex: Hex32,
     scenario: QueueScenario,
+    priceHintsUsdPerBase?: Partial<Record<Hex32, number>>,
   ): ThrowRecord {
     const place = controlThrowToPlaceThrowArgs(gameId, botUserHex, control, simInput);
-    const template = pickTemplateThrow(simInput);
-  
     const assetHex = control.asset.replace(/^0x/i, "").toLowerCase();
+    const template = pickTemplateThrowForAsset(simInput, assetHex);
+
     const assetBytes = hex32ToBytes(assetHex);
     const userBytes = hex32ToBytes(botUserHex);
-  
+
     const previewThrow = deepClone(template);
-  
+
     const assetMeta = findAssetMeta(simInput, assetHex);
     const assetMassScale = assetMeta?.mass_scale ?? 1;
     const gameMassScale = simInput.game?.mass_scale ?? 1;
-  
-    const valueUsdE8 = estimateValueUsdE8FromTemplate(control.amount, template);
+    const usdPerBaseHint = priceHintsUsdPerBase?.[assetHex] ?? null;
+
+    const valueUsdE8 = estimateValueUsdE8FromTemplate(control.amount, template, usdPerBaseHint);
     const massUsd = estimateMassUsd(valueUsdE8, assetMassScale, gameMassScale);
   
     previewThrow.asset = assetBytes as unknown as ThrowRecord["asset"];
@@ -258,6 +284,7 @@ import type {
     simInput: SimRunInput,
     botUserHex: Hex32,
     scenario: QueueScenario,
+    priceHintsUsdPerBase?: Partial<Record<Hex32, number>>,
   ): SimRunInput {
     const synthetic = buildSyntheticThrowRecord(
       gameId,
@@ -265,6 +292,7 @@ import type {
       simInput,
       botUserHex,
       scenario,
+      priceHintsUsdPerBase,
     );
   
     return {

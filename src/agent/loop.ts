@@ -567,6 +567,7 @@ function deriveStoppedBy(snapshot: LatestEligibilitySnapshot, fallback?: string 
   if (reasons.has("missing_price_basis")) return "missing_price_basis";
   if (reasons.has("asset_blocked")) return "asset_blocked";
   if (reasons.has("asset_not_allowed")) return "asset_not_allowed";
+  if (reasons.has("planner_failure")) return "planner_failure";
   if (reasons.has("search_budget_stop")) return "search_budget_stop";
   if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "candidate_min_limits";
   if (counts.above_max_single_throw_usd || counts.above_game_exposure) return "candidate_risk_limits";
@@ -954,6 +955,7 @@ export async function runAgentOnce(
         {
           nextAcceptedHeight,
           includeSlip1: cfg.includeSlip1 ?? true,
+          priceHintsUsdPerBase,
           scenarioOverrides: managerCandidateScenarioOverrides(
             simInput,
             nextAcceptedHeight,
@@ -1055,7 +1057,7 @@ export async function runAgentOnce(
   if (reasonCounts.asset_blocked) globalReasons.push("asset_blocked");
   if (filtered.length === 0) globalReasons.push("no_candidates_after_filter");
   if (chosen.stoppedBy === "budget_time" || chosen.stoppedBy === "budget_candidates") globalReasons.push("search_budget_stop");
-  if (limited.length > 0 && planned.length === 0) globalReasons.push("search_budget_stop");
+  if (limited.length > 0 && planned.length === 0) globalReasons.push(plannerFailureCount > 0 ? "planner_failure" : "search_budget_stop");
 
   const eligibilitySnapshot: LatestEligibilitySnapshot = {
     ts: nowIso,
@@ -1278,4 +1280,3 @@ export async function runAgentOnce(
     stoppedBy,
   };
 }
-
