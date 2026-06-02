@@ -78,11 +78,16 @@ export async function loadVizWasm(wasmPath: string): Promise<WasmVizRuntime> {
     try {
       handle = toU32(wasm.sim_begin_json(ptr, len));
     } catch (err) {
+      wasm.sim_core_free_viz(ptr, len);
       await writeFile("./debug-last-sim-input.json", jsonText, "utf8");
       throw new Error(
         `sim_begin_json failed; wrote debug-last-sim-input.json. Original error: ${String(err)}`,
       );
     }
+
+    // sim_begin_json has already consumed the JSON payload, so keeping the
+    // input buffer alive leaks WASM heap across long-running planner sessions.
+    wasm.sim_core_free_viz(ptr, len);
 
     const frameCap =
       input.frame_cap_override ??
