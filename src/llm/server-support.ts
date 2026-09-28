@@ -134,7 +134,7 @@ function safeRuntimeSettings(): Record<string, unknown> | null {
   }
 }
 
-const BRIDGE_READ_TIMEOUT_MS = 3000;
+const BRIDGE_READ_TIMEOUT_MS = 1000;
 
 export type SaveSettingsAndRuntimeResult = {
   settings: ReturnType<typeof normalizeSettings>;
@@ -359,7 +359,7 @@ export async function buildManagerStatePayload(dataDir: string, bridge: ManagerB
     ),
     fromBridgeRead(
       bridge.getRuntimeSettings,
-      () => safeRuntimeSettings(),
+      () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
       "manager runtime settings",
     ),
     fromBridgeRead(
@@ -442,10 +442,14 @@ export async function saveSettingsAndRuntime(
   let runtimeSyncPending = false;
   let runtimeSyncError: string | null = null;
   try {
-    runtime = await fromBridgeWithArg(
-      bridge.updateRuntimeSettings,
-      merged,
-      (runtimePatch) => updateRuntimeSettings(runtimePatch),
+    runtime = await withTimeout(
+      fromBridgeWithArg(
+        bridge.updateRuntimeSettings,
+        merged,
+        (runtimePatch) => updateRuntimeSettings(runtimePatch),
+      ),
+      5000,
+      "settings runtime sync",
     );
   } catch (err) {
     runtimeSyncPending = true;

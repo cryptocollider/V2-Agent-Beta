@@ -330,7 +330,7 @@ function mergeEffectiveSettings(
     : settings;
 }
 
-const BRIDGE_READ_TIMEOUT_MS = 3000;
+const BRIDGE_READ_TIMEOUT_MS = 1000;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -432,7 +432,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         const settings = await loadSettings(dataDir);
         const runtime = await fromBridgeRead(
           bridge.getRuntimeSettings,
-          () => safeRuntimeSettings(),
+          () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
           "assets meta runtime settings",
         );
         const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
@@ -448,7 +448,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const settings = await loadSettings(dataDir);
       const runtime = await fromBridgeRead(
         bridge.getRuntimeSettings,
-        () => safeRuntimeSettings(),
+        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
         "settings runtime settings",
       );
       sendJson(
@@ -487,7 +487,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
             ...((json?.onboarding && typeof json.onboarding === "object") ? json.onboarding : {}),
           },
         });
-        await saveSettings(nextOnboarding, dataDir);
+        await saveSettingsAndRuntime(nextOnboarding, dataDir, bridge);
         sendJson(res, 200, {
           ok: true,
           settings: nextOnboarding,
@@ -501,7 +501,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     if (url.pathname === "/api/runtime-settings" && req.method === "GET") {
       const runtime = await fromBridgeRead(
         bridge.getRuntimeSettings,
-        () => safeRuntimeSettings(),
+        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
         "runtime settings",
       );
       if (!runtime) {
@@ -600,7 +600,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const settings = await loadSettings(dataDir);
       const runtime = await fromBridgeRead(
         bridge.getRuntimeSettings,
-        () => safeRuntimeSettings(),
+        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
         "honest-score runtime settings",
       );
       sendJson(res, 200, {
@@ -1089,8 +1089,13 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
   });
 
-  await new Promise<void>((resolve) => {
-    server.listen(port, () => resolve());
+  await new Promise<void>((resolve, reject) => {
+    const onError = (error: Error) => reject(error);
+    server.once("error", onError);
+    server.listen(port, () => {
+      server.off("error", onError);
+      resolve();
+    });
   });
 
   const address = server.address();

@@ -767,3 +767,38 @@ test("manager LLM panel supports local provider chat and bounded apply", async (
   assert.equal(state.settings.riskMode, "defensive");
   assert.equal(state.settings.minThrowUsd, 9);
 });
+
+test("monitor startup rejects cleanly when its port is already in use", async (t) => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "collider-port-test-"));
+  const server = await startMonitorServer({ port: 0, dataDir });
+  t.after(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await rm(dataDir, { recursive: true, force: true });
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  await assert.rejects(startMonitorServer({ port: address.port, dataDir }), { code: "EADDRINUSE" });
+});
+
+test("dismissing onboarding updates the running state as well as persisted settings", async (t) => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "collider-welcome-test-"));
+  initRuntimeSettings({ ...DEFAULT_SETTINGS });
+  await saveSettings({ ...DEFAULT_SETTINGS }, dataDir);
+  const server = await startMonitorServer({ port: 0, dataDir });
+  t.after(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await rm(dataDir, { recursive: true, force: true });
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const base = 'http://127.0.0.1:' + address.port;
+  const dismissedAt = "2026-09-28T14:00:00.000Z";
+  await fetchJson(base + '/api/settings/onboarding', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ onboarding: { welcomeDismissedAt: dismissedAt } }),
+  });
+  const settings = await fetchJson(base + '/api/settings');
+  const state = await fetchJson(base + '/api/manager/state');
+  assert.equal(settings.onboarding.welcomeDismissedAt, dismissedAt);
+  assert.equal(state.onboarding.welcomePending, false);
+});

@@ -5033,7 +5033,7 @@ function renderHonestPerformance(games, metaMap){
   document.getElementById('hpsPredictedProfit').textContent = predictedProfitTotal == null ? 'Waiting' : formatUsd(predictedProfitTotal);
   document.getElementById('hpsPredictedProfit').className = 'hps-value';
   document.getElementById('hpsPredictedProfitMeta').textContent = predictedProfitTotal == null
-    ? errorText('missing latest run-level predicted pnl rows for settled games in scope')
+    ? (hpsProfitRows.length ? errorText('missing latest run-level predicted pnl rows for settled games in scope') : 'Waiting for your first settled game.')
     : `${predictedProfitRows.length} games / ${formatUsd(predictedProfitTotal / Math.max(predictedProfitRows.length, 1))} per game`;
 
   document.getElementById('hpsActualProfit').textContent = formatUsd(actualProfitTotal, '$0');

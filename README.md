@@ -61,16 +61,13 @@ Different human managers, model managers, and local runtime setups can adjust th
 
 ## Current operator surfaces
 
-- Official human monitor: `monitor.html`
+- Default human monitor: `monitor21.html` (served at `/`); `monitor.html` is an older alternate
 - Local manager API base: `http://localhost:8787`
 - Honest-performance API surfaces: `/api/manager/honest-score` and `/api/manager/reveals`
 - Explicit replay storyboard SVG export: `POST /api/manager/replay-svg`
 - Agent profile, onboarding/bootstrap summary, and baseline-lift state: `/api/manager/state`
 - Full manager docs: `docs/collider-manager.md`
 - Repo-local Claw wrapper plugin: `plugins/collider-agent-claw`
-- Claude or NanoClaw adapter skill: `.claude/skills/collider-agent-manager`
-- Hermes adapter skill: `.hermes/skills/productivity/collider-agent-manager`
-- Hermes project plugin wrapper: `.hermes/plugins/collider-agent-hermes`
 
 ## Manager startup pack
 
@@ -90,19 +87,15 @@ These are designed to accelerate first-contact managers without replacing self-d
 
 ## Manager runtime compatibility
 
-Agent 1 now ships three repo-local manager surfaces that all point back to the same Collider workflow and references:
+The public checkout includes the shared manager skill and references under
+`plugins/collider-agent-claw/skills/collider-agent-manager`.
+Point a compatible manager at that skill and the local API described in
+`docs/collider-manager.md`. Separate Claude, NanoClaw, and Hermes adapter folders
+are not included in this public checkout.
 
-- NanoClaw or Claude-compatible skill: `.claude/skills/collider-agent-manager`
-- IronClaw or OpenClaw-family bundle: `plugins/collider-agent-claw`
-- Hermes-native skill and project plugin: `.hermes/skills/productivity/collider-agent-manager` and `.hermes/plugins/collider-agent-hermes`
-
-Practical reading:
-
-- NanoClaw and Claude should use the Claude-style adapter.
-- IronClaw should use the existing OpenClaw-family plugin bundle.
-- Hermes can use the repo-local project plugin path directly when project plugins are enabled, while still exposing the same shared Collider manager skill.
-
-The goal is that the manager runtime changes, but the Collider supervision surface does not.
+An AI manager is optional. Baseline play, the monitor, test-token funding, and
+manual settings work without an API key or local model. Desktop installer
+packaging is experimental; use the Node workflow below for this beta demo.
 
 ## Project layout
 
@@ -117,10 +110,30 @@ The goal is that the manager runtime changes, but the Collider supervision surfa
 
 ## Install
 
+Install **Node.js 22 or newer with npm**, then open a terminal in this repository.
+Node 22 was used for the public-beta verification. Verify `node --version` and
+`npm --version` before continuing.
+
+`npm ci` installs the exact dependency versions in the lockfile. Keep development
+dependencies installed: startup compiles the TypeScript source.
+
 ```bash
-npm install
-npm run build
+npm ci
+npm start
 ```
+
+Startup builds automatically. Open **http://localhost:8787** after the terminal
+prints the monitor address. On Windows, if PowerShell blocks npm's script,
+use `npm.cmd ci` and `npm.cmd start`.
+
+For offline regression checks after dependency installation:
+
+```bash
+npm run check
+npm test
+```
+
+See [the demo run check](docs/beta-demo-check.md) for verified behavior and limits.
 
 ## First start
 
@@ -145,6 +158,8 @@ Then open:
 - Monitor UI: `http://localhost:8787`
 - Manager state snapshot: `http://localhost:8787/api/manager/state`
 - Manager guide: `docs/collider-manager.md`
+
+A test-token request may take a few seconds to appear in the on-chain balance. The live loop retries automatically; an initial balance-gate message during funding is normal.
 
 The monitor welcome screen explains what was auto-configured, what the app is for, and what to do next. If the automatic token request fails, use the Bank page `Request Test Tokens` button.
 
@@ -174,3 +189,12 @@ Zero-flag startup is now the default path. Advanced operators can still override
 - direct CLI flags still work for exact overrides such as `--rpc`, `--asset`, `--amount`, `--once`, or `--no-monitor`
 
 The settings file and monitor are now the primary operator surface for beta startup. Persona is the human-readable face. Doctrine is the exact operating posture.
+
+## Demo troubleshooting
+
+- If port 8787 is already used by another agent, run `npm start -- --monitor-port 8788` and open http://localhost:8788.
+- To keep a demo identity and logs separate, run `npm start -- --data-dir ./data-demo --monitor-port 8788`.
+- A fresh identity has no settled results. Honest Score and predicted profit stay pending until a game settles; funding and a submitted throw do not immediately produce HPS.
+- This beta needs internet access to the public RPC and the monitor's Chart.js CDN. Local AI setup and hosted AI connections are optional.
+- Existing users should preserve their identity and settings. If their RPC still contains `WdFeSwHfau9U7Vj8B1wEHhNMtubRQKfVGiuJwgTyDUBLbCH4s`, replace only the RPC URL with the current value in the starter settings; the old endpoint returns 404.
+- Stop the terminal process with Ctrl+C when finished. `start:once` and `start:headless` also build automatically.
