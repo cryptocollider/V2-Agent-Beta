@@ -1,0 +1,3 @@
+export class SubmissionGateClosed extends Error{constructor(){super('Planning context changed or local submission allowance closed; no signed preparation');}}
+export function runtimeSnapshotMatches(before:unknown,now:unknown){return JSON.stringify(before)===JSON.stringify(now);}
+export function submissionStillAllowed(before:unknown,now:any,epoch:string|null,current:{state:string;lastAction?:{ts?:string}|null},accepted:number,maximum:number){return current.state==='live'&&(current.lastAction?.ts??null)===epoch&&runtimeSnapshotMatches(before,now)&&accepted<Math.min(Number(now.maxThrowsPerSession??maximum),maximum);}

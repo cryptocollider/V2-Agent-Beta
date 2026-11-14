@@ -2,6 +2,7 @@ import type { SimRunInput, ThrowRecord } from "../collider/types.js";
 import type { CandidatePlanRun } from "../sim/planner.js";
 import type { ResolvedAgentProfile } from "../core/agent-profile.js";
 import { makeCommitSaltHex } from "../core/content-address.js";
+import { decimalE8ToApproxNumber } from "../core/exact.js";
 import {
   buildPriceLookupFromSimInput,
   buildScenarioSettlementView,
@@ -260,7 +261,7 @@ function throwRecordSummary(throwRecord: ThrowRecord, weightedUsdValue: number) 
     amount: String(throwRecord.amount ?? "0"),
     enterFrame: Number(throwRecord.enter_frame ?? 0),
     priceEpoch: Number(throwRecord.price_epoch ?? 0),
-    submissionValueUsd: Number(String(throwRecord.value_usd_e8 ?? "0")) / 1e8,
+    submissionValueUsd: decimalE8ToApproxNumber(throwRecord.value_usd_e8) ?? 0,
     weightedUsdValue,
     massUsd: Number(throwRecord.mass_usd ?? 0),
     valueUsdE8: throwRecord.value_usd_e8 != null ? String(throwRecord.value_usd_e8) : null,
@@ -406,6 +407,7 @@ function buildSummaryFromCandidateForecast(params: {
 }
 
 export function buildPredictionCommitBundle(params: {
+  holeRules?: unknown;
   createdAt: string;
   sessionId: string;
   decisionId: string;
@@ -417,10 +419,13 @@ export function buildPredictionCommitBundle(params: {
   agentProfile?: ResolvedAgentProfile | null;
 }): PredictionCommitBundle {
   const { createdAt, sessionId, decisionId, gameId, botUser, candidateHash, plan, simInput, agentProfile } = params;
-  const priceLookup = buildPriceLookupFromSimInput(simInput);
+  // Include the hypothetical candidate's validated live-price valuation on an
+  // empty board; never mutate or enrich the canonical confirmation input.
+  const priceLookup = buildPriceLookupFromSimInput(plan.perScenario[0]?.syntheticInput ?? simInput);
   const weightedSettlements: WeightedScenarioSettlement[] = plan.perScenario.map((scenarioRun) => ({
     weight: Number(scenarioRun.scenario.weight ?? 1),
     settlement: buildScenarioSettlementView({
+      holeRules: params.holeRules,
       input: scenarioRun.syntheticInput,
       outcomes: scenarioRun.decoded.per_throw,
       priceLookup,

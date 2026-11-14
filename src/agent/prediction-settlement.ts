@@ -1,14 +1,8 @@
 import type { Hex32, SimRunInput, ThrowRecord } from "../collider/types.js";
 import { defaultDecimalsForAsset } from "../core/assets-meta.js";
+import { decimalE8ToApproxNumber, decimalUnitsToApproxNumber } from "../core/exact.js";
+import { computePayouts, distribute, uint } from "./exact-payouts.js";
 
-export type HoleRule = {
-  return_pct: number;
-  prize_pct: number;
-  losers_pct: number;
-  fee_pct: number;
-  creator_fee_pct: number;
-  name: string;
-};
 
 export type ThrowOutcomeLike = {
   throw_id: Hex32;
@@ -61,13 +55,6 @@ export type ScenarioSettlementView = {
   noWinnerPolicy: "Refund" | "BiggestLoser" | "BiggestBalls" | "MostPlayed";
 };
 
-const DEFAULT_HOLE_RULES: Record<number, HoleRule> = {
-  1: { return_pct: 1.0, prize_pct: 0.0, losers_pct: 0.0, fee_pct: 0.0, creator_fee_pct: 0.0, name: "DRAW" },
-  2: { return_pct: 0.0, prize_pct: 0.0, losers_pct: 0.99, fee_pct: 0.01, creator_fee_pct: 0.0, name: "-100%" },
-  3: { return_pct: 1.0, prize_pct: 0.0, losers_pct: 0.0, fee_pct: 0.0, creator_fee_pct: 0.0, name: "WIN" },
-  4: { return_pct: 0.5, prize_pct: 0.0, losers_pct: 0.495, fee_pct: 0.005, creator_fee_pct: 0.0, name: "-50%" },
-  5: { return_pct: 0.99, prize_pct: 0.0, losers_pct: 0.0, fee_pct: 0.005, creator_fee_pct: 0.005, name: "-1%" },
-};
 
 function cleanHex(v: unknown): string {
   return String(v ?? "").toLowerCase().replace(/^0x/, "");
@@ -86,11 +73,6 @@ function bigintOrZero(v: unknown): bigint {
   }
 }
 
-function roundPctAmount(amount: bigint, pct: number): bigint {
-  const scale = 1_000_000n;
-  const scaledPct = BigInt(Math.round(pct * Number(scale)));
-  return (amount * scaledPct + scale / 2n) / scale;
-}
 
 function parseNoWinnerPolicy(v: unknown): "Refund" | "BiggestLoser" | "BiggestBalls" | "MostPlayed" {
   if (typeof v === "string") {
@@ -106,7 +88,7 @@ function parseNoWinnerPolicy(v: unknown): "Refund" | "BiggestLoser" | "BiggestBa
 }
 
 function amountDisplay(amountBase: bigint, decimals: number): number {
-  return Number(amountBase) / Math.pow(10, decimals);
+  return decimalUnitsToApproxNumber(amountBase.toString(), decimals) ?? 0;
 }
 
 function mergeBaseAmount(target: Record<string, string>, asset: string, amount: bigint): void {
@@ -147,7 +129,7 @@ function throwUsdValue(
   const amountBase = bigintOrZero(throwRecord.amount);
   const asset = bytesToHex(throwRecord.asset);
   const epoch = Number(throwRecord.price_epoch ?? 0);
-  const direct = Number(String(throwRecord.value_usd_e8 ?? "0")) / 1e8;
+  const direct = decimalE8ToApproxNumber(throwRecord.value_usd_e8) ?? 0;
   const decimals = assetDecimals(input, asset);
   const px = lookupPriceUsd(priceLookup, asset, epoch);
   if (px != null) {
@@ -172,31 +154,6 @@ function baseToUsd(
   return 0;
 }
 
-function resolveHoleRules(input: SimRunInput): Map<number, HoleRule> {
-  const rules = new Map<number, HoleRule>();
-  for (const [key, value] of Object.entries(DEFAULT_HOLE_RULES)) {
-    rules.set(Number(key), { ...value });
-  }
-
-  const payoutRules = (input.map as any)?.tournament?.payout_rules;
-  if (!Array.isArray(payoutRules)) return rules;
-
-  for (const record of payoutRules) {
-    const id = Number(record?.id);
-    const composite = record?.rule?.CompositeFull ?? record?.CompositeFull ?? null;
-    if (!Number.isFinite(id) || !composite) continue;
-    rules.set(id, {
-      return_pct: Number(composite.return_pct ?? 0),
-      prize_pct: Number(composite.prize_pct ?? 0),
-      losers_pct: Number(composite.losers_pct ?? 0),
-      fee_pct: Number(composite.fee_pct ?? 0),
-      creator_fee_pct: Number(composite.creator_fee_pct ?? 0),
-      name: String(composite.name ?? record?.name ?? `Hole ${id}`),
-    });
-  }
-
-  return rules;
-}
 
 export function buildPriceLookupFromSimInput(input: SimRunInput): PriceLookup {
   const byAssetEpoch = new Map<string, Map<number, number>>();
@@ -205,7 +162,7 @@ export function buildPriceLookupFromSimInput(input: SimRunInput): PriceLookup {
     const asset = bytesToHex(throwRecord.asset);
     const epoch = Number(throwRecord.price_epoch ?? 0);
     const amountBase = bigintOrZero(throwRecord.amount);
-    const valueUsd = Number(String(throwRecord.value_usd_e8 ?? "0")) / 1e8;
+    const valueUsd = decimalE8ToApproxNumber(throwRecord.value_usd_e8) ?? 0;
     const decimals = assetDecimals(input, asset);
     const display = amountDisplay(amountBase, decimals);
     if (!(display > 0) || !Number.isFinite(valueUsd) || valueUsd <= 0) continue;
@@ -254,7 +211,7 @@ function makeThrowView(
   const asset = bytesToHex(throwRecord.asset);
   const amountBase = bigintOrZero(throwRecord.amount);
   const decimals = assetDecimals(input, asset);
-  const submissionValueUsd = Number(String(throwRecord.value_usd_e8 ?? "0")) / 1e8;
+  const submissionValueUsd = decimalE8ToApproxNumber(throwRecord.value_usd_e8) ?? 0;
 
   return {
     throwId: bytesToHex(throwRecord.id),
@@ -278,235 +235,67 @@ function makeThrowView(
   };
 }
 
-function beneficiaryUserByPolicy(
-  throwsById: Map<string, ThrowRecord>,
-  noWinnerPolicy: "Refund" | "BiggestLoser" | "BiggestBalls" | "MostPlayed",
-  throwViews: Map<string, SettledThrowView>,
-): string | null {
-  if (noWinnerPolicy === "Refund") return null;
-
-  if (noWinnerPolicy === "BiggestBalls") {
-    let best: { user: string; massUsd: number } | null = null;
-    for (const [throwId, throwView] of throwViews.entries()) {
-      if (!best || throwView.massUsd > best.massUsd) {
-        best = { user: throwView.user, massUsd: throwView.massUsd };
-      }
-    }
-    return best?.user ?? null;
-  }
-
-  const totals = new Map<string, number>();
-  for (const [throwId, throwRecord] of throwsById.entries()) {
-    const throwView = throwViews.get(throwId);
-    if (!throwView) continue;
-    const key = bytesToHex(throwRecord.user);
-    const weight = noWinnerPolicy === "MostPlayed"
-      ? Number(throwRecord.mass_usd ?? 0)
-      : throwView.weightedUsdValue;
-    totals.set(key, (totals.get(key) ?? 0) + weight);
-  }
-
-  return [...totals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-}
-
-function allocateAcrossThrows(
-  throwIds: string[],
-  throwViews: Map<string, SettledThrowView>,
-  totalAmount: bigint,
-  kind: string,
-  asset: string,
-  weightOf: (throwView: SettledThrowView) => number,
-): void {
-  if (totalAmount <= 0n || throwIds.length === 0) return;
-
-  const weighted = throwIds
-    .map((throwId) => throwViews.get(throwId))
-    .filter((throwView): throwView is SettledThrowView => !!throwView)
-    .map((throwView) => ({
-      throwView,
-      weight: Math.max(0, weightOf(throwView)),
-    }));
-
-  if (weighted.length === 0) return;
-
-  const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
-  if (!(totalWeight > 0)) {
-    const target = weighted[0]?.throwView;
-    if (!target) return;
-    mergeBaseAmount(target.returnedByAssetBase, asset, totalAmount);
-    mergeKindBaseAmount(target.payoutKindsBase, kind, asset, totalAmount);
-    return;
-  }
-
-  let remaining = totalAmount;
-  weighted.forEach((entry, index) => {
-    const isLast = index === weighted.length - 1;
-    const share = isLast
-      ? remaining
-      : BigInt(Math.floor(Number(totalAmount) * (entry.weight / totalWeight)));
-    remaining -= share;
-    mergeBaseAmount(entry.throwView.returnedByAssetBase, asset, share);
-    mergeKindBaseAmount(entry.throwView.payoutKindsBase, kind, asset, share);
-  });
-}
-
 export function buildScenarioSettlementView(params: {
   input: SimRunInput;
   outcomes: ThrowOutcomeLike[];
   priceLookup?: PriceLookup | null;
+  holeRules?: unknown;
+  canonicalPayouts?: unknown;
 }): ScenarioSettlementView {
   const { input, outcomes, priceLookup = null } = params;
-  const rules = resolveHoleRules(input);
-  const noWinnerPolicy = parseNoWinnerPolicy((input.game as any)?.no_winner_policy);
-
-  const throwsById = new Map<string, ThrowRecord>();
-  const throwViews = new Map<string, SettledThrowView>();
-  const usersById = new Map<string, UserSettlementView>();
-  const winnersByUser = new Map<string, string[]>();
-  const winnersWeightByUser = new Map<string, number>();
-  const losersPoolByAsset = new Map<string, bigint>();
-  let hasWinner = false;
+  const plan = computePayouts(input, outcomes, params.holeRules);
+  // The VM publishes user-level credits. Per-throw values below are deterministic
+  // attributions of those credits, never a second source of bank balances.
+  if (params.canonicalPayouts !== undefined) {
+    if (!Array.isArray(params.canonicalPayouts)) throw Error("canonical payouts unavailable");
+    for (const [kind, expected] of [["Return",plan.returns],["WinnerShare",plan.winners]] as const) {
+      const observed = new Map<string,bigint>();
+      for (const p of params.canonicalPayouts) {
+        if (p.kind !== kind) continue;
+        const key = bytesToHex(p.user)+":"+bytesToHex(p.asset);
+        const amount = uint(p.amount);
+        if (amount) observed.set(key,(observed.get(key)??0n)+amount);
+      }
+      if (expected.size !== observed.size || [...expected].some(([key,n])=>observed.get(key)!==n)) {
+        throw Error("local payout plan differs from canonical VM credits");
+      }
+    }
+  }
+  const throwViews = new Map<string,SettledThrowView>();
+  const usersById = new Map<string,UserSettlementView>();
+  const outcomeById = new Map(outcomes.map(o=>[bytesToHex(o.throw_id),o]));
   let finalFrame = 0;
-
-  for (const throwRecord of input.throws) {
-    const throwId = bytesToHex(throwRecord.id);
-    throwsById.set(throwId, throwRecord);
-    const throwView = makeThrowView(input, priceLookup, throwRecord);
-    throwViews.set(throwId, throwView);
-    usersById.set(throwView.user, {
-      user: throwView.user,
-      throwIds: [...(usersById.get(throwView.user)?.throwIds ?? []), throwId],
-      stakeUsd: (usersById.get(throwView.user)?.stakeUsd ?? 0) + throwView.submissionValueUsd,
-      returnedUsd: usersById.get(throwView.user)?.returnedUsd ?? 0,
-      pnlUsd: 0,
-      returnedByAssetBase: usersById.get(throwView.user)?.returnedByAssetBase ?? {},
-      winnerWeightUsd: 0,
-    });
+  for (const t of input.throws) {
+    const id=bytesToHex(t.id),view=makeThrowView(input,priceLookup,t),o=outcomeById.get(id)!;
+    view.holeType=Number(o.hole_type); view.holeIndex=Number.isFinite(Number(o.hole_i))?Number(o.hole_i):null;
+    view.endFrame=Number(o.endFrame);finalFrame=Math.max(finalFrame,view.endFrame);
+    const amount=plan.directByThrow.get(id)??0n;
+    mergeBaseAmount(view.returnedByAssetBase,view.asset,amount);
+    mergeKindBaseAmount(view.payoutKindsBase,"Return",view.asset,amount);
+    throwViews.set(id,view);
+    const user=usersById.get(view.user)??{user:view.user,throwIds:[],stakeUsd:0,returnedUsd:0,pnlUsd:0,returnedByAssetBase:{},winnerWeightUsd:0};
+    user.throwIds.push(id);user.stakeUsd+=view.submissionValueUsd;usersById.set(view.user,user);
   }
-
-  for (const outcome of outcomes) {
-    const throwId = bytesToHex(outcome.throw_id);
-    const throwRecord = throwsById.get(throwId);
-    const throwView = throwViews.get(throwId);
-    if (!throwRecord || !throwView) continue;
-
-    const holeType = Number(outcome.hole_type ?? 0);
-    const rule = rules.get(holeType);
-    if (!rule) continue;
-
-    const amount = bigintOrZero(throwRecord.amount);
-    const asset = throwView.asset;
-    const user = throwView.user;
-
-    let refund = roundPctAmount(amount, rule.return_pct);
-    let prize = roundPctAmount(amount, rule.prize_pct);
-    let lose = roundPctAmount(amount, rule.losers_pct);
-    let fee = roundPctAmount(amount, rule.fee_pct);
-    let creatorFee = roundPctAmount(amount, rule.creator_fee_pct);
-    const sum = refund + prize + lose + fee + creatorFee;
-    if (sum < amount) {
-      fee += amount - sum;
-    }
-
-    throwView.holeType = holeType;
-    throwView.holeIndex = Number.isFinite(Number(outcome.hole_i)) ? Number(outcome.hole_i) : null;
-    throwView.endFrame = Number.isFinite(Number(outcome.endFrame)) ? Number(outcome.endFrame) : null;
-    finalFrame = Math.max(finalFrame, throwView.endFrame ?? 0);
-
-    mergeBaseAmount(throwView.returnedByAssetBase, asset, refund);
-    mergeKindBaseAmount(throwView.payoutKindsBase, "Return", asset, refund);
-    losersPoolByAsset.set(asset, (losersPoolByAsset.get(asset) ?? 0n) + lose);
-    void prize;
-    void fee;
-    void creatorFee;
-
-    if (holeType === 3) {
-      winnersByUser.set(user, [...(winnersByUser.get(user) ?? []), throwId]);
-      winnersWeightByUser.set(user, (winnersWeightByUser.get(user) ?? 0) + throwView.weightedUsdValue);
-      const userView = usersById.get(user);
-      if (userView) userView.winnerWeightUsd = winnersWeightByUser.get(user) ?? 0;
-      hasWinner = true;
+  function attribute(user:string,asset:string,total:bigint,kind:string,winnersOnly:boolean) {
+    const eligible=[...throwViews.values()].filter(t=>t.user===user&&(!winnersOnly||t.holeType===3));
+    const weights=new Map<string,bigint>();
+    for(const t of input.throws)if(eligible.some(v=>v.throwId===bytesToHex(t.id))){const v=uint(t.value_usd_e8);if(v>0n)weights.set(bytesToHex(t.id),v);}
+    if(!weights.size&&eligible.length)weights.set(eligible.map(t=>t.throwId).sort()[0],1n);
+    for(const [id,n]of distribute(total,weights)){
+      const view=throwViews.get(id)!;mergeBaseAmount(view.returnedByAssetBase,asset,n);mergeKindBaseAmount(view.payoutKindsBase,kind,asset,n);
     }
   }
-
-  if (hasWinner) {
-    const totalWinnerWeight = [...winnersWeightByUser.values()].reduce((sum, value) => sum + value, 0);
-    if (totalWinnerWeight > 0) {
-      for (const [asset, pool] of losersPoolByAsset.entries()) {
-        if (pool <= 0n) continue;
-        for (const [user, winnerWeight] of winnersWeightByUser.entries()) {
-          const userShare = BigInt(Math.floor(Number(pool) * (winnerWeight / totalWinnerWeight)));
-          if (userShare <= 0n) continue;
-          allocateAcrossThrows(
-            winnersByUser.get(user) ?? [],
-            throwViews,
-            userShare,
-            "WinnerShare",
-            asset,
-            (throwView) => throwView.weightedUsdValue,
-          );
-        }
-      }
-    }
-  } else if (noWinnerPolicy === "Refund") {
-    for (const throwView of throwViews.values()) {
-      const amount = bigintOrZero(throwView.amountBase);
-      throwView.returnedByAssetBase = {};
-      throwView.payoutKindsBase = {};
-      mergeBaseAmount(throwView.returnedByAssetBase, throwView.asset, amount);
-      mergeKindBaseAmount(throwView.payoutKindsBase, "Return", throwView.asset, amount);
-    }
-  } else {
-    const beneficiary = beneficiaryUserByPolicy(throwsById, noWinnerPolicy, throwViews);
-    if (beneficiary) {
-      const beneficiaryThrowIds = usersById.get(beneficiary)?.throwIds ?? [];
-      const weightOf = noWinnerPolicy === "BiggestBalls"
-        ? (throwView: SettledThrowView) => throwView.massUsd
-        : (throwView: SettledThrowView) => (noWinnerPolicy === "MostPlayed" ? throwView.massUsd : throwView.weightedUsdValue);
-      for (const [asset, pool] of losersPoolByAsset.entries()) {
-        if (pool <= 0n) continue;
-        allocateAcrossThrows(beneficiaryThrowIds, throwViews, pool, "Return", asset, weightOf);
-      }
-    }
+  for(const [key,amount]of plan.winners){const [user,asset]=key.split(":");attribute(user,asset,amount,"WinnerShare",true);}
+  if(plan.beneficiary)for(const [asset,pool]of plan.pools)attribute(plan.beneficiary,asset,pool,"Return",false);
+  for(const [user,weight]of plan.winnerWeights)usersById.get(user)!.winnerWeightUsd=Number(weight)/1e8;
+  for(const view of throwViews.values()){
+    for(const [asset,n]of Object.entries(view.returnedByAssetBase))view.returnedUsd+=baseToUsd(input,priceLookup,asset,view.priceEpoch,BigInt(n));
+    view.pnlUsd=view.returnedUsd-view.submissionValueUsd;
+    for(const [kind,amounts]of Object.entries(view.payoutKindsBase))view.payoutKindsUsd[kind]=Object.entries(amounts).reduce((sum,[a,n])=>sum+baseToUsd(input,priceLookup,a,view.priceEpoch,BigInt(n)),0);
+    const user=usersById.get(view.user)!;user.returnedUsd+=view.returnedUsd;
+    for(const [a,n]of Object.entries(view.returnedByAssetBase))mergeBaseAmount(user.returnedByAssetBase,a,BigInt(n));
   }
-
-  for (const throwView of throwViews.values()) {
-    let returnedUsd = 0;
-    for (const [asset, amountRaw] of Object.entries(throwView.returnedByAssetBase)) {
-      returnedUsd += baseToUsd(input, priceLookup, asset, throwView.priceEpoch, bigintOrZero(amountRaw));
-    }
-    throwView.returnedUsd = returnedUsd;
-    throwView.pnlUsd = returnedUsd - throwView.submissionValueUsd;
-
-    const payoutKindsUsd: Record<string, number> = {};
-    for (const [kind, perAsset] of Object.entries(throwView.payoutKindsBase)) {
-      payoutKindsUsd[kind] = Object.entries(perAsset).reduce((sum, [asset, amountRaw]) => {
-        return sum + baseToUsd(input, priceLookup, asset, throwView.priceEpoch, bigintOrZero(amountRaw));
-      }, 0);
-    }
-    throwView.payoutKindsUsd = payoutKindsUsd;
-  }
-
-  for (const userView of usersById.values()) {
-    userView.returnedByAssetBase = {};
-    userView.returnedUsd = 0;
-    for (const throwId of userView.throwIds) {
-      const throwView = throwViews.get(throwId);
-      if (!throwView) continue;
-      for (const [asset, amountRaw] of Object.entries(throwView.returnedByAssetBase)) {
-        mergeBaseAmount(userView.returnedByAssetBase, asset, bigintOrZero(amountRaw));
-      }
-      userView.returnedUsd += throwView.returnedUsd;
-    }
-    userView.pnlUsd = userView.returnedUsd - userView.stakeUsd;
-  }
-
-  return {
-    throwsById: throwViews,
-    usersById,
-    finalFrame,
-    hasWinner,
-    noWinnerPolicy,
-  };
+  for(const user of usersById.values())user.pnlUsd=user.returnedUsd-user.stakeUsd;
+  return {throwsById:throwViews,usersById,finalFrame,hasWinner:plan.hasWinner,noWinnerPolicy:parseNoWinnerPolicy(input.game.no_winner_policy)};
 }
 

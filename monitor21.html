@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>Collider V2: Agent Monitor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/assets/vendor/chart.umd.min.js"></script>
   <style>
     :root{
       --bg:#030612;
@@ -565,6 +565,7 @@
     .hps-badges{display:flex;gap:8px;flex-wrap:wrap}
     .pill.active-scope{border-color:rgba(255,230,109,.4);color:var(--yellow)}
     .view-hidden{display:none!important}
+    .points-view-frame{display:block;width:100%;min-height:900px;border:0;background:transparent}
     .field.wide{min-width:260px;flex:1 1 260px}
     .section-anchor{scroll-margin-top:18px}
 
@@ -653,7 +654,7 @@
     .onboarding-guide-summary strong{color:var(--text)}
     .onboarding-guide-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .onboarding-guide-note{font-size:12px;line-height:1.55;color:var(--muted)}
-    .manager-dock{position:fixed;right:18px;bottom:18px;width:min(440px,calc(100vw - 28px));max-height:calc(100vh - 30px);display:flex;flex-direction:column;overflow:hidden;z-index:1100;border-radius:22px;background:rgba(6,14,27,.97);transition:transform .24s ease,max-height .24s ease,box-shadow .24s ease,opacity .24s ease}
+    .manager-dock{position:fixed;right:36px;bottom:18px;width:min(820px,calc(100vw - 58px));max-height:calc(100vh - 30px);display:flex;flex-direction:column;overflow:hidden;z-index:1100;border-radius:22px;background:rgba(6,14,27,.97);transition:transform .24s ease,max-height .24s ease,box-shadow .24s ease,opacity .24s ease}
     .manager-dock.is-hidden{transform:translateX(calc(100% - 20px));opacity:.98;box-shadow:none;pointer-events:none}
     .manager-dock.is-hidden .manager-dock-head,.manager-dock.is-hidden .manager-dock-body{visibility:hidden}
     .manager-dock-head{padding:16px 18px 12px;border-bottom:1px solid rgba(82,230,255,.14);background:linear-gradient(180deg,rgba(18,40,71,.95),rgba(9,18,34,.92));display:flex;flex-direction:column;gap:10px}
@@ -775,7 +776,18 @@
       .scope-grid{grid-template-columns:1fr}
       #settingsModal .row{gap:12px}
     }
-  </style>
+  /* Each section owns its height; the dock body is the single outer scroll area. */
+.manager-dock-section{flex:0 0 auto!important;min-width:0;min-height:0!important;overflow:hidden}
+.manager-dock-section[data-manager-section="chat"] .manager-dock-log{flex:0 0 auto;min-height:120px;max-height:42vh}
+.manager-dock-section[data-manager-section="proposals"] .manager-proposals{flex:0 0 auto;min-height:0;max-height:30vh}
+.manager-dock-section-content{flex:0 0 auto!important}
+.manager-dock-section-head,.manager-proposal-head{flex-wrap:wrap}
+.manager-msg,.manager-proposal{flex-shrink:0}
+.manager-dock-body{flex:1 1 auto;min-height:0;scrollbar-gutter:stable}
+#bankChartPanel{grid-column:span 8;min-width:0}
+.bank-chart-frame{position:relative;height:230px;max-height:32vh}
+@media(max-width:760px){.manager-dock{right:28px;bottom:8px;width:calc(100vw - 36px);max-height:calc(100dvh - 16px)}.manager-dock-title{font-size:19px}.manager-dock-head-top{flex-wrap:wrap}#bankChartPanel{grid-column:1/-1}}
+</style>
 </head>
 <body>
 <div id="tauriTitlebar" class="tauri-titlebar is-hidden" aria-hidden="true">
@@ -799,12 +811,12 @@
 <div id="welcomeModal" class="modal-backdrop hidden" aria-hidden="true">
   <div class="modal-card" style="width:min(920px,94vw)">
     <div class="modal-head">
-      <h3>Welcome to Agent 1 Beta</h3>
+      <h3>Welcome to Agent1 RC1</h3>
       <button class="modal-close" id="welcomeModalClose" type="button">X</button>
     </div>
     <div id="welcomeModalBody" class="welcome-stack"></div>
     <div class="welcome-actions">
-      <button id="welcomeAutoLocalBtn" type="button">Auto Connect Local AI</button>
+      <button id="welcomeAutoLocalBtn" type="button">Connect AI</button>
       <button id="welcomeOpenSettingsBtn" type="button">Choose Play Style</button>
       <button id="welcomeDismissBtn" type="button">Start Watching</button>
     </div>
@@ -828,6 +840,7 @@
     <button id="navHonestBtn" type="button">Honest Score</button>
     <button id="navGamesBtn" type="button">Games Review</button>
     <button id="navBankBtn" type="button">Bank</button>
+    <button id="navPointsBtn" type="button">Points &amp; CLC</button>
     <button id="navSettingsBtn" type="button">Settings</button>
     <button id="navResolvedBtn" type="button">Throws Resolved</button>
   </div>
@@ -962,24 +975,27 @@
       </div>
     </div>
 
-    <div class="panel stat games-review view-hidden" id="statsTrackedPanel"><div class="k">Tracked Games</div><div id="gamesCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsLifetimeThrowsPanel"><div class="k">Lifetime Throws</div><div id="lifetimeThrowsCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsLifetimeResultsPanel"><div class="k">Scored Throws</div><div id="lifetimeResultsCount" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsTrackedPanel"><div class="k">Lifetime Games</div><div id="gamesCount" class="v">0</div></div>
     <div class="panel stat games-review view-hidden" id="statsResolvedPanel"><div class="k">Resolved Games</div><div id="resolvedGamesCount" class="v">0</div></div>
     <div class="panel stat games-review view-hidden" id="statsPendingPanel"><div class="k">Pending Throws</div><div id="pendingThrowsCount" class="v">0</div></div>
-    <div class="panel stat games-review view-hidden" id="statsPnlPanel"><div class="k">Total PnL USD</div><div id="pnlTotal" class="v">0</div></div>
-    <div class="panel stat games-review view-hidden" id="statsPendingUsdPanel"><div class="k">Pending USD</div><div id="pendingUsd" class="v">0</div></div>
-    <div class="panel stat games-review view-hidden" id="statsSystemPanel"><div class="k">Total In System</div><div id="inSystemUsd" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsPnlPanel"><div class="k">Recent PnL USD</div><div id="pnlTotal" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsPendingUsdPanel"><div class="k">Recent Pending USD</div><div id="pendingUsd" class="v">0</div></div>
+    <div class="panel stat games-review view-hidden" id="statsSystemPanel"><div class="k">Recent Total USD</div><div id="inSystemUsd" class="v">0</div></div>
 
     <div class="panel wide games-review view-hidden" id="gamesSection">
-      <div class="title2">Games</div>
+      <div class="title2">Recent Games <span class="muted">(newest 100 games)</span></div>
       <div class="table-wrap" style="max-height:430px">
         <table>
           <thead>
             <tr>
               <th>Game</th>
+              <th title="Map-ID preference, shared by all games on this map. 10 highest; 5 normal. Does not bypass safety checks.">Map / Priority</th>
               <th>Status</th>
               <th>Scans</th>
               <th>Candidates</th>
-              <th>Throws A/T</th>
+              <th title="Agent1 accepted throws for this game / total on-chain throws by all players">Agent A / Chain T</th>
               <th>Eligibility</th>
               <th>Sum Value A/T</th>
               <th>PnL USD</th>
@@ -997,11 +1013,15 @@
         <div class="row">
           <button id="gamesPrev">Prev</button>
           <button id="gamesNext">Next</button>
+          <label class="muted" for="gamesWindowLimit">Recent games</label>
+          <select id="gamesWindowLimit" aria-label="Games Review window"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option></select>
           <button id="clearSelection">Clear Selection</button>
           <button id="targetSelectedGameBtn" class="priority-target-btn is-hidden" type="button">Urgent Throw</button>
         </div>
         <div class="muted" id="gamesPageInfo">Page 1</div>
       </div>
+      <div class="muted" id="gameHistoryAuditNotice" aria-live="polite"></div>
+      <div class="muted" id="mapPriorityStatus" aria-live="polite">Map priority: 10 highest · 5 normal · 1 lowest. Shared by map ID; eligible games only.</div>
     </div>
 
     <div class="panel four games-review view-hidden" id="gamesReviewScoreboardPanel">
@@ -1019,12 +1039,13 @@
       <div class="row" style="margin-bottom:12px">
         <button id="bankDepositBtn" type="button">Deposit</button>
         <button id="bankWithdrawBtn" type="button">Withdraw</button>
-        <button id="bankOpenSettingsBtn" type="button">Request Test Tokens</button>
+        <button id="bankOpenSettingsBtn" type="button">Funding Instructions</button>
       </div>
+      <div id="bankDataNotice" class="muted" style="margin-bottom:10px"></div>
       <div class="table-wrap" style="max-height:320px">
         <table style="min-width:100%">
           <thead>
-            <tr><th>Asset</th><th>Current</th><th>Net</th><th>Pending</th><th>Out</th><th>In</th></tr>
+            <tr><th>Asset</th><th>Current Wallet</th><th>Play Net</th><th>Unsettled Stake</th><th>Staked Out</th><th>Returned In</th></tr>
           </thead>
           <tbody id="bankBody"></tbody>
           <tfoot id="bankFoot"></tfoot>
@@ -1033,8 +1054,9 @@
     </div>
 
     <div class="panel eight bank-view view-hidden" id="bankChartPanel">
-      <div class="title2">Balance & Asset Flow</div>
-      <canvas id="bankBalanceChart" height="220"></canvas>
+      <div class="title2">Collider L1 · Settled Balance Estimate</div>
+      <div id="bankChartNotice" class="muted">Up to 100 recent scored throws, projected backward from the current wallet balance; external funding and non-game operations are not reconstructed.</div>
+      <div class="bank-chart-frame"><canvas id="bankBalanceChart"></canvas></div>
     </div>
 
     <div class="panel four bank-view view-hidden" id="bankStrategyPanel">
@@ -1087,6 +1109,11 @@
     <div class="panel wide games-review view-hidden" id="gamesReviewAnalyticsPanel">
       <div class="title2">Selected Game Analytics</div>
       <div class="cards analytics-grid" id="analyticsCards"></div>
+    </div>
+
+    <div class="panel wide view-hidden" id="pointsSection">
+      <div class="title2">Points &amp; CLC</div>
+      <iframe id="pointsFrame" class="points-view-frame" src="/points-clc.html?embedded=1" title="Points and CLC wallet panel" loading="lazy"></iframe>
     </div>
 
 
@@ -1202,9 +1229,14 @@
 
 <script>
 
-let runs = [], throwsRows = [], results = [], settings = {}, managerState = null;
+let runs = [], throwsRows = [], results = [], settings = {}, managerState = null, historySummary = null;
+let mapPrioritySaving = false;
+let gameHistoryThrows = [], gameHistoryResults = [], gameHistoryRefreshAt = 0;
+let gameHistoryRequestInFlight = false;
+let selectedGameHistory = null, selectedGameHistoryLoading = false, selectedGameHistoryError = '';
 let gamesPage = 0;
 const GAMES_PAGE_SIZE = 12;
+let gamesWindowLimit = 100;
 let selectedGameId = null;
 let saveTimer = null;
 let profitChart = null;
@@ -1217,16 +1249,21 @@ let bonusPointsChart = null;
 let analyticsHoleMode = 'count';
 let analyticsPerspectiveMode = 'all';
 let bankBalanceChart = null;
+let bankChartFingerprint = null;
 let mainView = "startup";
 let mainViewPinnedByUser = false;
 let vmBalances = {};
 let vmBalancesUserHex = '';
+let vmBalancesLoaded = false;
+let vmBalancesError = '';
+let vmBalancesAsOf = '';
 let lastVmBalancesFetch = 0;
 let vmAssetPriceHints = {};
 let lastVmPriceHintsFetch = 0;
 let vmPriceHintsRequestInFlight = false;
 let liveGameStates = new Map();
 let lastVmGameStatesFetch = 0;
+let publicGameStateCursor = 0;
 let liveGameStateRefreshDone = false;
 let controlState = { mode: "regular", state: "live", lastAction: null, lastMessage: null };
 let lastControlFetch = 0;
@@ -1235,6 +1272,7 @@ let miniCharts = {};
 let predictionCommitArtifacts = new Map();
 let predictionRevealArtifacts = new Map();
 let artifactLoadInFlight = new Set();
+const MAX_PREDICTION_ARTIFACT_CACHE_ENTRIES = 160;
 let selectedGameChartMode = 'return_flow';
 let controlApiAvailable = false;
 let lastRefreshFingerprint = '';
@@ -1257,16 +1295,17 @@ const DEFAULT_HUMAN_FRONTEND_URL_TEMPLATE = "https://v2.cryptocollider.com:4430/
 let scoreScopeState = { mode:"all_data", startTs:null, endTs:null, previousGames:null, targetThrows:null, exclusive:false, label:"All Data" };
 let hpsLensViewMode = "raw";
 let localBaselineState = { active:false, startTs:null, targetThrows:24, label:"Local Baseline" };
-const MANAGER_LLM_PROVIDER_IDS = ["venice","openai","openrouter","google","anthropic","ollama","huggingface","local"];
+const MANAGER_LLM_PROVIDER_IDS = ["codex","venice","openai","openrouter","google","anthropic","ollama","huggingface","local"];
 const MANAGER_LLM_PROVIDER_LABELS = {
+  codex: "Codex (ChatGPT sign-in)",
   venice: "Venice",
-  openai: "OpenAI",
+  openai: "OpenAI-compatible",
   openrouter: "OpenRouter",
   google: "Google Gemini",
   anthropic: "Claude / Anthropic",
   ollama: "Ollama",
   huggingface: "Hugging Face",
-  local: "Local API",
+  local: "OpenAI-compatible",
 };
 const ONBOARDING_GUIDE_COLLAPSED_KEY = "cc_agent_monitor_onboarding_guide_collapsed_v1";
 const MANAGER_DOCK_MODE_KEY = "cc_agent_monitor_manager_dock_mode_v1";
@@ -1286,6 +1325,8 @@ let managerDockChatExpanded = null;
 let managerEventPrimed = false;
 let managerEventSeenKeys = new Set();
 let pendingManagerEventNotices = [];
+const MAX_MANAGER_EVENT_SEEN_KEYS = 512;
+const MAX_PENDING_MANAGER_EVENT_NOTICES = 128;
 let managerEventFlushInFlight = false;
 let managerEventCallouts = [];
 let managerEventCalloutTimers = new Map();
@@ -1588,9 +1629,30 @@ async function fetchJson(url, init, options){
     if (timer) clearTimeout(timer);
   }
 }
+const versionedJsonResponses = new Map();
+async function fetchVersionedJson(url, options){
+  const cached = versionedJsonResponses.get(url);
+  const timeoutMs = Number(options?.timeoutMs || 0);
+  const controller = timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const headers = cached?.etag ? { 'if-none-match': cached.etag } : {};
+    const response = await fetch(url, { cache:'no-store', headers, signal:controller?.signal });
+    if (response.status === 304 && cached) return cached.payload;
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(json?.error || ('HTTP ' + response.status));
+    versionedJsonResponses.set(url, { etag:response.headers.get('etag') || '', payload:json });
+    return json;
+  } catch (err) {
+    if (controller?.signal?.aborted) throw new Error('Request timed out after ' + timeoutMs + 'ms for ' + url);
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 async function postJson(url, payload){ return await fetchJson(url, { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify(payload ?? {}) }); }
 function managerLlmProviderNeedsApiKeyClient(providerId){
-  return providerId !== 'ollama' && providerId !== 'local';
+  return providerId !== 'ollama' && providerId !== 'local' && providerId !== 'codex';
 }
 
 function getManagerLlmStateClient(){
@@ -1886,7 +1948,7 @@ function renderManagerDock(){
       ? (draftProvider.apiKeyConfigured
         ? `Saved key ${draftProvider.apiKeyPreview || 'configured'}. Enter a new one only if you want to replace it.`
         : 'Enter an API key, save the connection, then the manager can start responding.')
-      : 'No API key is required here. Optional bearer tokens still work if your local gateway expects one.';
+      : activeProvider === 'codex' ? 'Uses your existing ChatGPT Codex sign-in. No API key, paid API fallback, shell tools or app tools.' : 'Use the API key required by your endpoint, or leave it blank for an unauthenticated local server.';
   const statusNote = llmState.lastError
     ? { tone: 'red', text: llmState.lastError }
     : managerLlmConfigDraftDirty
@@ -1895,7 +1957,10 @@ function renderManagerDock(){
         ? { tone: 'ok', text: llmState.lastSummary }
         : null;
 
-  const providerOptions = MANAGER_LLM_PROVIDER_IDS.map((providerId) => `<option value="${providerId}" ${providerId === activeProvider ? 'selected' : ''}>${esc(MANAGER_LLM_PROVIDER_LABELS[providerId] || providerId)}</option>`).join('');
+  const connectionProviders = ['venice','openrouter',activeProvider === 'openai' ? 'openai' : 'local','ollama'];
+  if(llmState?.config?.providers?.codex)connectionProviders.unshift('codex');
+  if (!connectionProviders.includes(activeProvider)) connectionProviders.push(activeProvider);
+  const providerOptions = connectionProviders.map((providerId) => `<option value="${providerId}" ${providerId === activeProvider ? 'selected' : ''}>${esc(MANAGER_LLM_PROVIDER_LABELS[providerId] || providerId)}</option>`).join('');
   const enabledOptions = [
     `<option value="true" ${draftProvider.enabled ? 'selected' : ''}>Enabled</option>`,
     `<option value="false" ${draftProvider.enabled ? '' : 'selected'}>Disabled</option>`
@@ -1997,12 +2062,12 @@ function renderManagerDock(){
             <label class="manager-field"><span>Provider State</span><select data-manager-provider-id="${escAttr(activeProvider)}" data-manager-provider-field="enabled">${enabledOptions}</select></label>
             <div class="manager-field"><span>Saved Key</span><div class="manager-dock-note">${esc(connectionNote)}</div></div>
             <label class="manager-field full"><span>Model</span><input type="text" value="${escAttr(draftProvider.model || '')}" data-manager-provider-id="${escAttr(activeProvider)}" data-manager-provider-field="model" placeholder="model id"></label>
-            <label class="manager-field full"><span>Endpoint</span><input type="text" value="${escAttr(draftProvider.endpointUrl || '')}" data-manager-provider-id="${escAttr(activeProvider)}" data-manager-provider-field="endpointUrl" placeholder="https://..."></label>
+            <label class="manager-field full"><span>Chat endpoint URL</span><input type="text" value="${escAttr(draftProvider.endpointUrl || '')}" data-manager-provider-id="${escAttr(activeProvider)}" data-manager-provider-field="endpointUrl" placeholder="https://your-provider/v1/chat/completions"></label>
             <label class="manager-field full"><span>API Key / Token</span><input type="password" value="${escAttr(draftProvider.apiKey || '')}" data-manager-provider-id="${escAttr(activeProvider)}" data-manager-provider-field="apiKey" placeholder="leave blank to keep saved key"></label>
           </div>
           <div class="manager-dock-actions">
             <button type="button" data-manager-save-config>Save Connection</button>
-            <button type="button" data-manager-auto-local ${managerLocalSetupState?.busy ? 'disabled' : ''}>Auto Connect Local</button>
+            <button type="button" data-manager-auto-local ${managerLocalSetupState?.busy ? 'disabled' : ''}>Detect Ollama</button>
             <button type="button" data-manager-reset-session>Reset Session</button>
             <button type="button" data-manager-clear-key="${escAttr(activeProvider)}">Clear Saved Key</button>
           </div>
@@ -2290,6 +2355,19 @@ async function ensureArtifactEntryLoaded(cache, entry){
   }
 }
 
+function trimMapOldest(cache, maxEntries){
+  while (cache.size > maxEntries) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey == null) break;
+    cache.delete(oldestKey);
+  }
+}
+
+function prunePredictionArtifactCaches(){
+  trimMapOldest(predictionCommitArtifacts, MAX_PREDICTION_ARTIFACT_CACHE_ENTRIES);
+  trimMapOldest(predictionRevealArtifacts, MAX_PREDICTION_ARTIFACT_CACHE_ENTRIES);
+}
+
 async function warmPredictionArtifacts(){
   const latestRows = buildLatestResultsByDecision();
   const scopedRows = scopeFilter(latestRows)
@@ -2311,6 +2389,7 @@ async function warmPredictionArtifacts(){
     ensureArtifactEntryLoaded(predictionCommitArtifacts, row?.predictionCommit),
     ensureArtifactEntryLoaded(predictionRevealArtifacts, row?.predictionReveal),
   ]));
+  prunePredictionArtifactCaches();
   if (loaded.some(Boolean)) renderAll();
 }
 
@@ -2551,15 +2630,24 @@ function pushManagerEventCallout(event){
 function queueManagerEventNotice(event){
   if (!event?.key || managerEventSeenKeys.has(event.key)) return;
   managerEventSeenKeys.add(event.key);
+  while (managerEventSeenKeys.size > MAX_MANAGER_EVENT_SEEN_KEYS) {
+    const oldestKey = managerEventSeenKeys.values().next().value;
+    if (oldestKey == null) break;
+    managerEventSeenKeys.delete(oldestKey);
+  }
   pendingManagerEventNotices.push({
     key: event.key,
     message: String(event.managerMessage || '').trim(),
     createdAt: event.createdAt || new Date().toISOString(),
   });
+  if (pendingManagerEventNotices.length > MAX_PENDING_MANAGER_EVENT_NOTICES) {
+    pendingManagerEventNotices.splice(0, pendingManagerEventNotices.length - MAX_PENDING_MANAGER_EVENT_NOTICES);
+  }
   if (managerDockMode === 'hidden') pushManagerEventCallout(event);
 }
 
 async function flushPendingManagerEventNotices(){
+  if (getManagerLlmStateClient()?.experiment?.active) {pendingManagerEventNotices.length=0;return;}
   if (managerEventFlushInFlight || !pendingManagerEventNotices.length) return;
   const llmState = getManagerLlmStateClient();
   if (!managerConnectionReadyFromState(llmState) || llmState?.busy || !managerHasAssistantReply(llmState)) return;
@@ -2669,32 +2757,10 @@ function buildSettledGameManagerEvent(game){
   };
 }
 
-function defaultLocalManagerRuntimeOptions(){
-  return [
-    { planId:'ollama', label:'Ollama', providerId:'ollama', model:'qwen3:8b', endpointUrl:'http://127.0.0.1:11434/api/chat', defaultPort:11434, description:'The easiest standalone path. Agent 1 can auto-connect here first and can auto-setup this runtime when nothing is running.', autoSetupSupported:true, installHint:'If nothing is listening, Agent 1 can try to install Ollama and pull a recommended Qwen model automatically.' },
-    { planId:'local-1234', label:'LM Studio / Local OpenAI API', providerId:'local', model:'local-model', endpointUrl:'http://127.0.0.1:1234/v1/chat/completions', defaultPort:1234, description:'For LM Studio, llama.cpp, and other lightweight OpenAI-compatible local gateways.', autoSetupSupported:false, installHint:'Start your local OpenAI-compatible server on port 1234, then press Auto Connect Local AI again.' },
-    { planId:'local-8000', label:'vLLM / TGI / self-hosted OpenAI API', providerId:'local', model:'local-model', endpointUrl:'http://127.0.0.1:8000/v1/chat/completions', defaultPort:8000, description:'For heavier self-hosted local or LAN runtimes that expose an OpenAI-compatible chat endpoint.', autoSetupSupported:false, installHint:'Run your local gateway on port 8000, then use Auto Connect Local AI to save the connection automatically.' },
-  ];
-}
-
-function getLocalManagerRuntimeOptions(snapshot = null){
-  const options = snapshot?.localSetup?.setupPlan?.options;
-  return Array.isArray(options) && options.length ? options : defaultLocalManagerRuntimeOptions();
-}
-
 function startupInfoButtonHtml(title, body){
   return `<button class="info-btn" type="button" data-info-title="${escAttr(title)}" data-info-body="${escAttr(body)}">?</button>`;
 }
 
-function buildLocalRuntimeCardsHtml(snapshot){
-  return getLocalManagerRuntimeOptions(snapshot).map((option) => {
-    const meta = [];
-    if (option?.defaultPort) meta.push(`:${option.defaultPort}`);
-    if (option?.model) meta.push(option.model);
-    meta.push(option?.autoSetupSupported ? 'Auto setup path' : 'Manual launch path');
-    return `<div class="startup-manager-runtime"><strong>${esc(option?.label || 'Local runtime')}</strong><div class="manager-dock-note">${esc(option?.description || '')}</div><div class="startup-manager-runtime-meta">${esc(meta.join('  |  '))}</div></div>`;
-  }).join('');
-}
 function buildStartupSharedPanelsHtml(snapshot){
   const onboarding = snapshot?.onboarding || {};
   const learning = onboarding?.humanLearning || settings?.humanLearning || {};
@@ -2707,45 +2773,32 @@ function buildStartupSharedPanelsHtml(snapshot){
   const starterStyleHtml = starterStyles.length
     ? `<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">${starterStyles.map((entry) => `<span class="pill">${esc(entry.promptLabel)} -> ${esc(entry.doctrineLabel)}</span>`).join('')}</div>`
     : '';
-  return `<div class="startup-support-grid welcome-grid"><div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Next After Setup</div><ol class="muted" style="margin:0;padding-left:18px;line-height:1.8"><li>let Baseline breathe for a few cycles so the beta environment proves itself cleanly</li><li>connect local AI first if you want zero-key onboarding and immediate co-management</li><li>use this startup prompt with the manager or yourself: <strong>${esc(snapshot.starterQuestion)}</strong></li><li>shift doctrine only after the first live signal is readable</li></ol></div><div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Human + AI Collaboration</div><div class="startup-collab-checks"><div class="startup-collab-check"><span class="tick">${learning?.enabled ? '&#10003;' : '&#8212;'}</span><span>${learning?.enabled ? 'Manual On' : 'Manual Off'}</span></div><div class="startup-collab-check"><span class="tick">${learning?.learnOwnManualThrows ? '&#10003;' : '&#8212;'}</span><span>${learning?.learnOwnManualThrows ? 'Own Address On' : 'Own Address Off'}</span></div></div><div class="muted">This means when you play V2 via the human frontend interface, using the address/account, this agent will copy and learn from your examples.</div><div class="muted" style="margin-top:8px">This combines with your chosen Agent 1 Persona / Doctrine and your Agent's custom strategy, to create its exact operating posture. Custom strategy is the named idea under test. Manual examples are suggestions, not blind copies: the planner still decides their ranking based on their deterministic simulation of each game in its precise current state.</div><div class="muted" style="margin-top:8px">Tracked manual-example addresses: <strong>${trackedAddresses.length}</strong>${trackedAddresses.length ? ` (${esc(trackedAddresses.slice(0, 3).map((entry) => shortHex(entry, 12)).join(', '))}${trackedAddresses.length > 3 ? ', ...' : ''})` : ''}.</div>${starterStyleHtml}</div></div>`;
+  return `<div class="startup-support-grid welcome-grid"><div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Next After Setup</div><ol class="muted" style="margin:0;padding-left:18px;line-height:1.8"><li>confirm the RC1 wallet, pinned network domain, and funding state before enabling live throws</li><li>connect your preferred AI provider in Connection Settings</li><li>use this startup prompt with the manager or yourself: <strong>${esc(snapshot.starterQuestion)}</strong></li><li>shift doctrine only after the first live signal is readable</li></ol></div><div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Human + AI Collaboration</div><div class="startup-collab-checks"><div class="startup-collab-check"><span class="tick">${learning?.enabled ? '&#10003;' : '&#8212;'}</span><span>${learning?.enabled ? 'Manual On' : 'Manual Off'}</span></div><div class="startup-collab-check"><span class="tick">${learning?.learnOwnManualThrows ? '&#10003;' : '&#8212;'}</span><span>${learning?.learnOwnManualThrows ? 'Own Address On' : 'Own Address Off'}</span></div></div><div class="muted">This means when you play V2 via the human frontend interface, using the address/account, this agent will copy and learn from your examples.</div><div class="muted" style="margin-top:8px">This combines with your chosen Agent 1 Persona / Doctrine and your Agent's custom strategy, to create its exact operating posture. Custom strategy is the named idea under test. Manual examples are suggestions, not blind copies: the planner still decides their ranking based on their deterministic simulation of each game in its precise current state.</div><div class="muted" style="margin-top:8px">Tracked manual-example addresses: <strong>${trackedAddresses.length}</strong>${trackedAddresses.length ? ` (${esc(trackedAddresses.slice(0, 3).map((entry) => shortHex(entry, 12)).join(', '))}${trackedAddresses.length > 3 ? ', ...' : ''})` : ''}.</div>${starterStyleHtml}</div></div>`;
 }
 
-async function autoSetupLocalManagerLlm(planId = null){
-  const snapshot = collectOnboardingSnapshot();
-  const options = getLocalManagerRuntimeOptions(snapshot);
-  const fallbackPlan = snapshot?.localSetup?.setupPlan?.recommendedPlanId || options[0]?.planId || 'ollama';
-  const chosenPlanId = String(planId || fallbackPlan).trim() || fallbackPlan;
-  setManagerLocalSetupState({ busy:true, tone:'warn', planId:chosenPlanId, message:'Agent 1 is setting up a local AI runtime. The first install and model pull can take a few minutes.', steps:['Preparing the local runtime plan...'] });
-  const payload = await postJson('/api/manager/llm/local-setup', { planId: chosenPlanId });
-  if (payload?.state) setManagerLlmStateClient(payload.state, true);
-  setManagerLocalSetupState({ busy:false, tone:payload?.ok === false ? 'red' : 'ok', message:String(payload?.message || payload?.error || 'Local AI setup finished.').trim(), steps:Array.isArray(payload?.steps) ? payload.steps : [], setupPlan:payload?.setupPlan || snapshot?.localSetup?.setupPlan || null, detected:payload?.detected || null, planId:chosenPlanId, error:payload?.ok === false ? String(payload?.error || 'Local AI setup failed') : null });
-  renderAll();
-  if (payload?.ok !== false) await maybeBootstrapManagerAfterConnection();
-  return payload;
+function openManagerConnection(){
+  managerDockConnectionExpanded = true;
+  setManagerDockMode('full');
+  renderManagerDock();
+  document.getElementById('welcomeModal')?.classList.add('hidden');
+  requestAnimationFrame(() => document.querySelector('[data-manager-section="connection"]')?.scrollIntoView({ behavior:'smooth', block:'nearest' }));
 }
-
-async function autoDetectManagerLlm(prefer = 'any'){
-  const payload = await postJson('/api/manager/llm/autodetect', { prefer });
-  if (payload?.state) setManagerLlmStateClient(payload.state, true);
-  if (payload?.setupPlan) setManagerLocalSetupState({ setupPlan:payload.setupPlan, tone:payload?.ok === false ? 'warn' : 'ok', message:String(payload?.message || payload?.error || '').trim(), steps:Array.isArray(payload?.steps) ? payload.steps : managerLocalSetupState.steps, detected:payload?.detected || null, error:payload?.ok === false ? String(payload?.error || 'No local runtime detected') : null }, false);
-  if (payload?.ok === false) {
+async function autoDetectManagerLlm(){
+  if (managerLocalSetupState.busy) return;
+  if (managerLlmConfigDraftDirty && !window.confirm('Replace unsaved connection edits with detected Ollama settings?')) return;
+  setManagerLocalSetupState({ busy:true, tone:'warn', message:'Checking Ollama on localhost:11434...' });
+  try {
+    const payload = await postJson('/api/manager/llm/autodetect', { prefer:'ollama' });
+    if (payload?.ok === false) throw new Error(payload?.error || 'Ollama unavailable');
+    if (payload?.state) setManagerLlmStateClient(payload.state, true);
+    setManagerLocalSetupState({ tone:'ok', message:payload?.detected?.label ? payload.detected.label + ' connected.' : 'Ollama connected.', steps:[], error:null }, false);
+    managerDockConnectionExpanded = true;
+  } catch (error) {
+    setManagerLocalSetupState({ tone:'warn', message:'Ollama was not detected. Start Ollama with an installed model, then retry, or choose a hosted provider.', steps:[], error:String(error?.message || error) }, false);
+  } finally {
+    setManagerLocalSetupState({ busy:false }, false);
     renderAll();
-    const recommendedPlanId = payload?.setupPlan?.recommendedPlanId || 'ollama';
-    const recommendedOption = (Array.isArray(payload?.setupPlan?.options) ? payload.setupPlan.options : []).find((option) => option?.planId === recommendedPlanId) || null;
-    if (recommendedOption?.autoSetupSupported) {
-      const shouldSetup = window.confirm(`No supported local manager runtime was detected on the default local ports.\n\nAgent 1 can try to auto-setup ${recommendedOption.label} now and pull ${recommendedOption.model || 'a recommended local model'} for the embedded manager.\n\nContinue?`);
-      if (shouldSetup) return await autoSetupLocalManagerLlm(recommendedPlanId);
-      setManagerLocalSetupState({ setupPlan:payload.setupPlan, tone:'warn', message:`No local runtime is live yet. Auto-setup for ${recommendedOption.label} is ready whenever you want it.`, steps:Array.isArray(payload?.steps) ? payload.steps : [], detected:null, error:String(payload?.error || '') });
-      renderAll();
-    }
-    return payload;
   }
-  setManagerLocalSetupState({ busy:false, tone:'ok', message:payload?.detected ? `${payload.detected.label} responded on its default local port and Agent 1 saved the connection automatically.` : 'A local runtime responded and the manager connection was saved automatically.', steps:['Checked the default local manager ports and found a live runtime.'], setupPlan:payload?.setupPlan || managerLocalSetupState?.setupPlan || null, detected:payload?.detected || null, error:null }, false);
-  managerDockConnectionExpanded = managerHasAssistantReply() ? false : true;
-  managerDockChatExpanded = true;
-  renderAll();
-  await maybeBootstrapManagerAfterConnection();
-  return payload;
 }
 
 function collectOnboardingSnapshot(){
@@ -2761,17 +2814,21 @@ function collectOnboardingSnapshot(){
   const llmState = getManagerLlmStateClient();
   const connectionReady = managerConnectionReadyFromState(llmState);
   const managerAwake = managerHasAssistantReply(llmState);
-  const tokenPending = !!onboarding?.requestedTestTokensAt && currentBalanceDisplay <= 0;
-  const tokenFailed = !!onboarding?.requestTestTokensFailedAt && currentBalanceDisplay <= 0;
+  const walletConfigured = !!onboarding?.walletConfigured;
+  const rpcConfigured = !!onboarding?.rpcConfigured;
+  const expectedNetworkDomain = String(onboarding?.expectedNetworkDomain || settings?.expectedNetworkDomain || '').trim();
+  const fundingStatus = String(onboarding?.fundingStatus || 'wallet_unconfigured').trim();
+  const amountConfigured = /^\d+$/.test(String(amountRaw)) && BigInt(String(amountRaw)) > 0n;
+  const rc1Configured = walletConfigured && rpcConfigured && !!expectedNetworkDomain && !!user && !!asset && amountConfigured;
   const starterQuestion = String(onboarding?.starterQuestion || 'How would you like me to play from here: baseline, careful, stubborn, exploratory, or hybrid?').trim();
   const startCommand = String(onboarding?.startCommand || 'npm start').trim() || 'npm start';
   const submittedThrows = (throwsRows || []).filter((row) => row?.submitted);
   const latestEligibilityCode = String(managerState?.eligibilityCode || '').trim() || String((runs[runs.length - 1] || {})?.eligibilityCode || '').trim() || '';
-  return { onboarding, user, asset, symbol, amountDisplay, currentBalanceDisplay, doctrine, llmState, connectionReady, managerAwake, tokenPending, tokenFailed, starterQuestion, startCommand, hasBootstrapIdentity: !!user && !!asset, submittedThrowsCount: submittedThrows.length, throwsStarted: submittedThrows.length > 0, latestSubmittedThrowAt: submittedThrows.length ? submittedThrows[submittedThrows.length - 1]?.ts || '' : '', latestEligibilityCode, welcomePending: !!onboarding?.welcomePending && !onboarding?.welcomeDismissedAt, localSetup: managerLocalSetupState };
+  return { onboarding, user, asset, symbol, amountDisplay, currentBalanceDisplay, doctrine, llmState, connectionReady, managerAwake, walletConfigured, rpcConfigured, expectedNetworkDomain, fundingStatus, starterQuestion, startCommand, hasBootstrapIdentity: rc1Configured, submittedThrowsCount: submittedThrows.length, throwsStarted: submittedThrows.length > 0, latestSubmittedThrowAt: submittedThrows.length ? submittedThrows[submittedThrows.length - 1]?.ts || '' : '', latestEligibilityCode, welcomePending: !!onboarding?.welcomePending && !onboarding?.welcomeDismissedAt, localSetup: managerLocalSetupState };
 }
 
 function onboardingGuideComplete(snapshot = collectOnboardingSnapshot()){
-  return !!snapshot.onboarding && snapshot.hasBootstrapIdentity && snapshot.currentBalanceDisplay > 0 && snapshot.throwsStarted && snapshot.managerAwake;
+  return !!snapshot.onboarding && snapshot.hasBootstrapIdentity && snapshot.fundingStatus === 'funded' && snapshot.throwsStarted && snapshot.managerAwake;
 }
 
 function maybeAlignMainViewToStartup(snapshot = collectOnboardingSnapshot()){
@@ -2808,31 +2865,43 @@ function renderOnboardingBanner(){
     root.innerHTML = '<div class="onboarding-guide-head"><div><div class="title2">Startup Guide</div><div class="onboarding-guide-title">Preparing the standalone Agent 1 startup rail</div><div class="onboarding-guide-sub">The manager snapshot is still warming up. This guide will switch on as soon as bootstrap and onboarding data arrive.</div></div></div>';
     return;
   }
-  const bankrollTone = snapshot.currentBalanceDisplay > 0 ? 'ok' : (snapshot.tokenFailed ? 'red' : 'warn');
-  const bankrollLabel = snapshot.currentBalanceDisplay > 0 ? `Test tokens visible: ${formatDisplayNumber(snapshot.currentBalanceDisplay)} ${snapshot.symbol || 'asset'}` : snapshot.tokenFailed ? 'Test-token request needs attention before beta play becomes trustworthy.' : snapshot.tokenPending ? 'mirrorDeposit submitted; waiting for Bank-page confirmation.' : 'Test tokens are still warming into view.';
-  const bankrollFoot = snapshot.currentBalanceDisplay > 0 ? `Current balance: ${formatDisplayNumber(snapshot.currentBalanceDisplay)} ${snapshot.symbol || 'asset'}` : snapshot.tokenPending ? `Requested at ${formatScopeDateTime(snapshot.onboarding?.requestedTestTokensAt)}.` : snapshot.tokenFailed ? String(snapshot.onboarding?.requestTestTokensFailure || 'The automatic token request failed.') : 'No confirmed starter balance yet.';
-  const throwsTone = snapshot.throwsStarted ? 'ok' : (snapshot.currentBalanceDisplay > 0 ? 'warn' : 'red');
-  const throwsLabel = snapshot.throwsStarted ? `${snapshot.submittedThrowsCount} submitted throw${snapshot.submittedThrowsCount === 1 ? '' : 's'} logged.` : snapshot.currentBalanceDisplay > 0 ? 'No submitted throws yet.' : 'Throws are still waiting on the starter bankroll.';
+  const bankrollTone = snapshot.fundingStatus === 'funded' ? 'ok' : (['rpc_incompatible', 'rpc_unconfigured', 'wallet_unconfigured'].includes(snapshot.fundingStatus) ? 'red' : 'warn');
+  const testnetFunding = snapshot.onboarding?.testnetAutoFunding;
+  const testnetFundingDetail = testnetFunding?.enabled
+    ? '<br><strong>Fuji auto-funding:</strong> ' + esc(testnetFunding.stage || 'CHECKING')
+      + (testnetFunding.detail ? ' / ' + esc(testnetFunding.detail) : '')
+      + (testnetFunding.depositTx ? ' · deposit ' + esc(shortHex(testnetFunding.depositTx, 12)) : '')
+      + (testnetFunding.error ? ' · ' + esc(testnetFunding.error) : '')
+    : '';
+  const fundingLabels = {
+    funded: `RC1 funds visible: ${formatDisplayNumber(snapshot.currentBalanceDisplay)} ${snapshot.symbol || 'asset'}`,
+    awaiting_funding: 'Wallet authenticated; awaiting external testnet funding.',
+    rpc_incompatible: 'Configured RPC failed the RC1 signed-auth probe.',
+    rpc_unconfigured: 'RC1 RPC is not configured.',
+    wallet_unconfigured: 'Signing wallet is not configured.',
+  };
+  const bankrollLabel = fundingLabels[snapshot.fundingStatus] || `Funding status: ${snapshot.fundingStatus}`;
+  const bankrollFoot = snapshot.fundingStatus === 'funded'
+    ? `Current selected-asset balance: ${formatDisplayNumber(snapshot.currentBalanceDisplay)} ${snapshot.symbol || 'asset'}`
+    : String(snapshot.onboarding?.fundingError || 'Fund the derived EVM wallet through the testnet faucet, ICM bridge, or operator provisioning path; Agent1 does not mint or mirror funds.');
+  const throwsTone = snapshot.throwsStarted ? 'ok' : (snapshot.fundingStatus === 'funded' ? 'warn' : 'red');
+  const throwsLabel = snapshot.throwsStarted ? `${snapshot.submittedThrowsCount} submitted throw${snapshot.submittedThrowsCount === 1 ? '' : 's'} logged.` : snapshot.fundingStatus === 'funded' ? 'No submitted throws yet.' : 'Throws are waiting on RC1 readiness and external funding.';
   const throwsFoot = snapshot.throwsStarted ? `Latest submitted throw: ${formatScopeDateTime(snapshot.latestSubmittedThrowAt)} | doctrine ${snapshot.doctrine}.` : `Latest gate: ${snapshot.latestEligibilityCode || 'warming up live scan'} | doctrine ${snapshot.doctrine}.`;
   const managerTone = snapshot.managerAwake ? 'ok' : (snapshot.connectionReady ? 'warn' : 'red');
-  const managerLabel = snapshot.managerAwake ? 'Embedded manager is awake inside Agent 1.' : snapshot.connectionReady ? 'Provider connection is saved; ask for the startup brief next.' : (snapshot.localSetup?.message || 'Auto Connect Local AI checks Ollama first, then local OpenAI-compatible runtimes.');
-  const localOptions = getLocalManagerRuntimeOptions(snapshot);
-  const recommendedPlanId = snapshot?.localSetup?.setupPlan?.recommendedPlanId || localOptions[0]?.planId || 'ollama';
-  const recommendedOption = localOptions.find((option) => option?.planId === recommendedPlanId) || localOptions[0] || null;
-  const autoSetupSupported = !!recommendedOption?.autoSetupSupported;
-  const localActionLabel = snapshot.localSetup?.busy ? 'Setting Up Local AI...' : (snapshot.connectionReady ? 'Re-check Local AI' : 'Auto Connect Local AI');
+  const managerLabel = snapshot.managerAwake ? 'Embedded manager is awake inside Agent 1.' : snapshot.connectionReady ? 'Provider connection is saved; ask for the startup brief next.' : (snapshot.localSetup?.message || 'Choose Venice, OpenRouter, OpenAI-compatible, or Ollama in Connection Settings.');
+  const localActionLabel = 'Connect AI';
   const collapsed = effectiveOnboardingGuideCollapsed();
   root.classList.toggle('is-collapsed', collapsed);
   if (collapsed) {
-    root.innerHTML = `<div class="onboarding-guide-head"><div><div class="title2">Startup Guide</div><div class="onboarding-guide-title">Agent 1 is standing by</div><div class="onboarding-guide-sub">The early launch steps are tucked away for now. Reopen this rail any time you want the startup checklist, the first-run brief, or the local-AI shortcut again.</div></div><div class="onboarding-guide-actions"><button type="button" data-onboarding-toggle="expand">Show Guide</button>${snapshot.connectionReady ? '<button type="button" data-manager-bootstrap>Startup Brief</button>' : '<button type="button" data-onboarding-action="auto-local">Auto Connect Local AI</button>'}<button type="button" data-onboarding-action="welcome">First-Run Brief</button></div></div><div class="onboarding-guide-summary"><strong>Bootstrap:</strong> ${snapshot.hasBootstrapIdentity ? `user ${esc(with0x(snapshot.user))}, asset ${esc(snapshot.symbol || shortHex(snapshot.asset))}, base throw ${esc(snapshot.amountDisplay)}` : 'still preparing'}<br><strong>Test Tokens:</strong> ${esc(bankrollLabel)}<br><strong>Throws:</strong> ${esc(throwsLabel)}<br><strong>Manager:</strong> ${esc(managerLabel)}<br><strong>Launch path:</strong> <code>${esc(snapshot.startCommand)}</code></div>`;
+    root.innerHTML = `<div class="onboarding-guide-head"><div><div class="title2">Startup Guide</div><div class="onboarding-guide-title">Agent 1 is standing by</div><div class="onboarding-guide-sub">The early launch steps are tucked away for now. Reopen this rail any time you want the startup checklist, the first-run brief, or the AI connection settings again.</div></div><div class="onboarding-guide-actions"><button type="button" data-onboarding-toggle="expand">Show Guide</button>${snapshot.connectionReady ? '<button type="button" data-manager-bootstrap>Startup Brief</button>' : '<button type="button" data-onboarding-action="manager-connect">Connect AI</button>'}<button type="button" data-onboarding-action="welcome">First-Run Brief</button></div></div><div class="onboarding-guide-summary"><strong>RC1 identity:</strong> ${snapshot.hasBootstrapIdentity ? `wallet user ${esc(with0x(snapshot.user))}, domain ${esc(shortHex(snapshot.expectedNetworkDomain))}, asset ${esc(snapshot.symbol || shortHex(snapshot.asset))}, base throw ${esc(snapshot.amountDisplay)}` : 'configuration incomplete'}<br><strong>Funding:</strong> ${esc(bankrollLabel)}<br><strong>Throws:</strong> ${esc(throwsLabel)}<br><strong>Manager:</strong> ${esc(managerLabel)}<br><strong>Launch path:</strong> <code>${esc(snapshot.startCommand)}</code></div>`;
     return;
   }
-  const step1 = buildOnboardingStepHtml({ compact:true, cardClass: snapshot.hasBootstrapIdentity ? 'is-ready' : 'is-pending', step:'Step 1', title:'Confirm Bootstrap', badgeTone:snapshot.hasBootstrapIdentity ? 'ok' : 'warn', badgeText:snapshot.hasBootstrapIdentity ? 'Complete' : 'Pending', bodyHtml:`Agent 1 seeds the local beta operator identity, starter asset, and base throw so the repo can stand up by itself instead of asking the operator to hand-build the first state. ${startupInfoButtonHtml('Confirm Bootstrap', 'Bootstrap proves the repo can stand up by itself: user, starter asset, and base throw should all arrive from the same owned startup path.')}`, footHtml:`<strong>User:</strong> ${snapshot.user ? esc(with0x(snapshot.user)) : 'not set'}<br><strong>Asset:</strong> ${esc(snapshot.symbol || shortHex(snapshot.asset))}<br><strong>Base throw:</strong> ${esc(snapshot.amountDisplay)} ${esc(snapshot.symbol || '')}` });
-  const step2 = buildOnboardingStepHtml({ compact:true, cardClass: snapshot.currentBalanceDisplay > 0 ? 'is-ready' : bankrollTone === 'red' ? 'is-warn' : 'is-pending', step:'Step 2', title:'Confirm Test Tokens', badgeTone:bankrollTone, badgeText:snapshot.currentBalanceDisplay > 0 ? 'Complete' : snapshot.tokenFailed ? 'Fix Needed' : 'Pending', bodyHtml:`The first live-proof funding moment is seeing the starter bankroll land in the monitor. Until then, treat the system as still warming into beta conditions. ${startupInfoButtonHtml('Confirm Test Tokens', 'The bootstrap path can request starter tokens automatically, but the guide should only mark this step ready after balances confirm inside the monitor itself.')}`, footHtml:`<strong>Status:</strong> ${esc(bankrollLabel)}<br><strong>Detail:</strong> ${esc(bankrollFoot)}` });
+  const step1 = buildOnboardingStepHtml({ compact:true, cardClass: snapshot.hasBootstrapIdentity ? 'is-ready' : 'is-pending', step:'Step 1', title:'Confirm RC1 Wallet + Domain', badgeTone:snapshot.hasBootstrapIdentity ? 'ok' : 'warn', badgeText:snapshot.hasBootstrapIdentity ? 'Complete' : 'Pending', bodyHtml:`Live writes are signed by the configured EVM wallet and verified against the pinned RC1 network domain before submission. ${startupInfoButtonHtml('Confirm RC1 Wallet + Domain', 'The derived canonical UserId, RPC auth context, network domain, asset, and exact base-unit amount must all be configured before live mode starts.')}`, footHtml:`<strong>Wallet user:</strong> ${snapshot.user ? esc(with0x(snapshot.user)) : 'not set'}<br><strong>Domain:</strong> ${snapshot.expectedNetworkDomain ? esc(with0x(snapshot.expectedNetworkDomain)) : 'not pinned'}<br><strong>Asset / base throw:</strong> ${esc(snapshot.symbol || shortHex(snapshot.asset))} / ${esc(snapshot.amountDisplay)}` });
+  const step2 = buildOnboardingStepHtml({ compact:true, cardClass: snapshot.fundingStatus === 'funded' ? 'is-ready' : bankrollTone === 'red' ? 'is-warn' : 'is-pending', step:'Step 2', title:'Confirm External Funding', badgeTone:bankrollTone, badgeText:snapshot.fundingStatus === 'funded' ? 'Complete' : bankrollTone === 'red' ? 'Fix Needed' : 'Pending', bodyHtml:`On the pinned Fuji RC1 testnet only, public startup can request the scoped external test-only faucet grant once for its own wallet, verify the receipts and deposit the exact grant into its Collider L1 account before play. Preserve the same profile and journals if funding is held. ${startupInfoButtonHtml('Confirm External Funding', 'The public RC1 quick start explicitly opts into one scoped test grant and its exact same-wallet approval/deposit. Outside that explicit opt-in, automatic funding is disabled by default. Readiness and receipt checks still apply. A hold is not permission to reset a journal, repeat funding or use an internal faucet.')}`, footHtml:`<strong>Status:</strong> ${esc(bankrollLabel)}<br><strong>Detail:</strong> ${esc(bankrollFoot)}${testnetFundingDetail}` });
   const step3 = buildOnboardingStepHtml({ compact:true, cardClass: snapshot.throwsStarted ? 'is-ready' : throwsTone === 'red' ? 'is-warn' : 'is-pending', step:'Step 3', title:'Throws Started (Baseline Setting)', badgeTone:throwsTone, badgeText:snapshot.throwsStarted ? 'Complete' : snapshot.currentBalanceDisplay > 0 ? 'Pending' : 'Waiting', bodyHtml:`Baseline should get the first clean proving cycles. Once throws start, the startup rail becomes a real live workstation instead of just a prepared shell. ${startupInfoButtonHtml('Throws Started', 'This step proves the runtime crossed from funded startup into actual live decision flow and gives the embedded manager real behavior to explain.')}`, footHtml:`<strong>Status:</strong> ${esc(throwsLabel)}<br><strong>Detail:</strong> ${esc(throwsFoot)}` });
-  const managerActions = `<button type="button" data-onboarding-action="auto-local" ${snapshot.llmState?.busy || snapshot.localSetup?.busy ? 'disabled' : ''}>${localActionLabel}</button>${autoSetupSupported ? `<button type="button" data-onboarding-action="auto-setup-local" ${snapshot.localSetup?.busy ? 'disabled' : ''}>${snapshot.localSetup?.busy ? 'Setting Up Local AI...' : 'Auto Setup Local AI'}</button>` : ''}${snapshot.connectionReady ? `<button type="button" data-manager-bootstrap ${(!!snapshot.llmState?.busy || !!managerLlmConfigDraftDirty) ? 'disabled' : ''}>${snapshot.managerAwake ? 'Ask Startup Brief Again' : 'Wake Embedded Manager'}</button>` : ''}<button type="button" data-onboarding-action="settings">Choose Play Style</button>`;
-  const step4 = buildOnboardingStepHtml({ wide:true, cardClass: snapshot.managerAwake ? 'is-ready' : snapshot.connectionReady ? 'is-pending' : 'is-warn', step:'Step 4', title:'Connect AI Co-Manager', badgeTone:managerTone, badgeText:snapshot.managerAwake ? 'Complete' : snapshot.connectionReady ? 'Saved' : 'Connect', bodyHtml:`Once connected, the co-manager becomes the permanent helper: explain the monitor, remove friction, guide doctrine, portfolio posture, asset selection, collaboration, and bounded self-improvement from inside Agent 1 itself. ${startupInfoButtonHtml('Connect AI Co-Manager', 'Auto Connect checks the default local manager ports and saves the matching provider automatically. If none are live, Agent 1 can offer an Ollama auto-setup path for the recommended local model.')}`, extraHtml:`<div class="startup-manager-grid"><div><div class="onboarding-step-note-list"><div class="onboarding-guide-summary"><strong>Status:</strong> ${esc(managerLabel)}<br><strong>Startup prompt:</strong> ${esc(snapshot.starterQuestion)}</div><div class="onboarding-guide-summary"><strong>Local ports checked:</strong> ${esc(localOptions.map((option) => `${option.label} :${option.defaultPort}`).join('  |  '))}<br><strong>Recommended auto-setup:</strong> ${esc(recommendedOption ? `${recommendedOption.label} with ${recommendedOption.model || 'its default model'}` : 'Ollama first')}</div></div></div></div>`, actionsHtml: managerActions, footHtml:'' });
-  root.innerHTML = `<div class="onboarding-guide-head"><div><div class="title2">Startup Guide</div><div class="onboarding-guide-title">Stand up Agent 1 as a standalone human + AI beta workstation</div><div class="onboarding-guide-sub">Keep these first steps visible until the bankroll is live, baseline has started throwing, and the embedded manager has introduced itself. After that, the guide collapses into a compact summary until you ask for it again.</div></div><div class="onboarding-guide-actions"><button type="button" data-onboarding-action="auto-local" ${snapshot.llmState?.busy || snapshot.localSetup?.busy ? 'disabled' : ''}>${localActionLabel}</button><button type="button" data-onboarding-action="welcome">First-Run Brief</button><button type="button" data-onboarding-toggle="collapse">Hide Guide</button></div></div><div class="onboarding-guide-pills"><span class="pill ${snapshot.hasBootstrapIdentity ? 'ok' : 'warn'}">${snapshot.hasBootstrapIdentity ? 'Bootstrap Complete' : 'Bootstrap Pending'}</span><span class="pill ${bankrollTone === 'ok' ? 'ok' : bankrollTone === 'red' ? 'red' : 'warn'}">${esc(bankrollLabel)}</span><span class="pill ${snapshot.throwsStarted ? 'ok' : 'warn'}">${esc(throwsLabel)}</span><span class="pill ${managerTone === 'ok' ? 'ok' : managerTone === 'red' ? 'red' : 'warn'}">${esc(managerLabel)}</span></div><div class="onboarding-guide-grid"><div class="onboarding-step-group-title">Setup Steps</div><div class="startup-guide-steps-triple">${step1}${step2}${step3}</div>${step4}${buildStartupSharedPanelsHtml(snapshot)}</div>`;
+  const managerActions = `<button type="button" data-onboarding-action="manager-connect">Connection Settings</button>${snapshot.connectionReady ? `<button type="button" data-manager-bootstrap ${snapshot.llmState?.busy || managerLlmConfigDraftDirty ? 'disabled' : ''}>Startup Brief</button>` : ''}`;
+  const step4 = buildOnboardingStepHtml({ wide:true, cardClass:snapshot.connectionReady ? 'is-ready' : 'is-pending', step:'Step 4', title:'Connect AI Manager', badgeTone:managerTone, badgeText:snapshot.connectionReady ? 'Connected' : 'Optional', bodyHtml:'Choose Venice, OpenRouter, an OpenAI-compatible endpoint, or detect an existing Ollama instance. Enter a model and API key when required, then save the connection.', extraHtml:`<div class="onboarding-guide-summary">${esc(managerLabel)}</div>`, actionsHtml:managerActions, footHtml:'' });
+  root.innerHTML = `<div class="onboarding-guide-head"><div><div class="title2">Startup Guide</div><div class="onboarding-guide-title">Start Agent1 on the public Fuji RC1 testnet</div><div class="onboarding-guide-sub">Keep these first steps visible until the bankroll is live, baseline has started throwing, and the embedded manager has introduced itself. After that, the guide collapses into a compact summary until you ask for it again.</div></div><div class="onboarding-guide-actions"><button type="button" data-onboarding-action="manager-connect" ${snapshot.llmState?.busy || snapshot.localSetup?.busy ? 'disabled' : ''}>${localActionLabel}</button><button type="button" data-onboarding-action="welcome">First-Run Brief</button><button type="button" data-onboarding-toggle="collapse">Hide Guide</button></div></div><div class="onboarding-guide-pills"><span class="pill ${snapshot.hasBootstrapIdentity ? 'ok' : 'warn'}">${snapshot.hasBootstrapIdentity ? 'RC1 Config Complete' : 'RC1 Config Pending'}</span><span class="pill ${bankrollTone === 'ok' ? 'ok' : bankrollTone === 'red' ? 'red' : 'warn'}">${esc(bankrollLabel)}</span><span class="pill ${snapshot.throwsStarted ? 'ok' : 'warn'}">${esc(throwsLabel)}</span><span class="pill ${managerTone === 'ok' ? 'ok' : managerTone === 'red' ? 'red' : 'warn'}">${esc(managerLabel)}</span></div><div class="onboarding-guide-grid"><div class="onboarding-step-group-title">Setup Steps</div><div class="startup-guide-steps-triple">${step1}${step2}${step3}</div>${step4}${buildStartupSharedPanelsHtml(snapshot)}</div>`;
 }
 
 function setSelectedGameChartMode(mode){
@@ -3272,7 +3341,11 @@ function parseStakeUsdLike(raw){
 function formatBaseUnits(amount, asset, metaMap){
   try{
     const display = parseBaseUnitsToDisplayNumber(amount, asset, metaMap);
-    return `${formatDisplayNumber(display)} ${symbolForAsset(asset, metaMap)}`;
+    const formatted = formatDisplayNumber(display);
+    if (formatted === '0' && BigInt(String(amount ?? '0')) !== 0n) {
+      return `${display < 0 ? '-' : ''}<0.00000001 ${symbolForAsset(asset, metaMap)}`;
+    }
+    return `${formatted} ${symbolForAsset(asset, metaMap)}`;
   }catch{
     return `${amount ?? "-"} ${symbolForAsset(asset, metaMap)}`;
   }
@@ -3322,6 +3395,12 @@ function resolvedOutputAssetsHtml(entry, metaMap){
   if (entry.outputSource === 'whole_game_user_total') {
     return `${assetsHtml}<div class="asset-flow-note">User-total settled outputs only. Current report does not attribute payouts to this individual throw yet.</div>`;
   }
+  if (entry.outputSource === 'legacy_throw_estimate') {
+    return `${assetsHtml}<div class="asset-flow-note">Historical local estimate, not verified VM credits. Excluded from exact deltas; bank totals use canonical game payouts.</div>`;
+  }
+  if (entry.outputSource === 'vm_integer_attribution') {
+    return `${assetsHtml}<div class="asset-flow-note">Integer attribution of verified user/game credits; the VM does not publish per-throw credits.</div>`;
+  }
   return assetsHtml;
 }
 
@@ -3370,6 +3449,8 @@ function extractRpcGameState(raw){
   const src = (raw.game && typeof raw.game === 'object' && raw.game.game_id != null) ? raw.game : raw;
   return {
     gameId: cleanHex(src.game_id || src.id || ''),
+    mapId: cleanHex(src.map_id || ''),
+    gameName: String(src.name || src.params?.name || ''),
     status: src.status != null ? Number(src.status) : null,
     stakeRaw: src.stake != null ? String(src.stake) : null,
     throwsCount: src.throws != null ? Number(src.throws) : null,
@@ -3384,7 +3465,13 @@ async function maybeRefreshVmGameStates(gameIds){
   if (now - lastVmGameStatesFetch < 4000) return;
   lastVmGameStatesFetch = now;
   try {
-    const requested = uniqueStrings(gameIds.map(cleanHex).filter(Boolean)).slice(0, 100);
+    let requested = uniqueStrings(gameIds.map(cleanHex).filter(Boolean)).slice(0, 100);
+    if(settings?.publicRc1 && requested.length){
+      const all = requested;
+      requested = Array.from({length:Math.min(4,all.length)},(_,i)=>all[(publicGameStateCursor+i)%all.length]);
+      publicGameStateCursor = (publicGameStateCursor + requested.length) % all.length;
+      if(selectedGameId) requested = uniqueStrings([cleanHex(selectedGameId), ...requested]);
+    }
     const requestedSet = new Set(requested);
     const previous = new Map(liveGameStates);
     const next = new Map();
@@ -3718,18 +3805,18 @@ function renderWelcomeModal(){
   if (settingsBtn) settingsBtn.textContent = 'Choose Play Style';
   if (dismissBtn) dismissBtn.textContent = 'Start Watching';
   if (!onboarding) {
-    body.innerHTML = '<div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Preparing Startup Guide</div><div class="muted">Agent 1 is still preparing the local beta environment. The monitor will open the startup guide as soon as the operator address, bankroll state, and doctrine handoff are ready to explain cleanly.</div></div>';
-    if (autoBtn) { autoBtn.textContent = 'Auto Connect Local AI'; autoBtn.disabled = true; }
+    body.innerHTML = '<div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">Preparing Startup Guide</div><div class="muted">Agent 1 is preparing the RC1 environment. The monitor will open the startup guide as soon as wallet, network-domain, funding, and doctrine state are ready to explain cleanly.</div></div>';
+    if (autoBtn) { autoBtn.textContent = 'Connect AI'; autoBtn.disabled = true; }
     return;
   }
   const welcomeStatusPills = [
-    `<span class="pill ${snapshot.hasBootstrapIdentity ? 'ok' : 'warn'}">${snapshot.hasBootstrapIdentity ? 'Bootstrap Complete' : 'Bootstrap Pending'}</span>`,
-    `<span class="pill ${snapshot.currentBalanceDisplay > 0 ? 'ok' : 'warn'}">${snapshot.currentBalanceDisplay > 0 ? 'Test Tokens Complete' : snapshot.tokenPending ? 'Test Tokens Pending' : 'Test Tokens Warming'}</span>`,
+    `<span class="pill ${snapshot.hasBootstrapIdentity ? 'ok' : 'warn'}">${snapshot.hasBootstrapIdentity ? 'RC1 Config Complete' : 'RC1 Config Pending'}</span>`,
+    `<span class="pill ${snapshot.fundingStatus === 'funded' ? 'ok' : 'warn'}">${snapshot.fundingStatus === 'funded' ? 'RC1 Funding Complete' : snapshot.fundingStatus === 'awaiting_funding' ? 'External Funding Pending' : 'Funding Setup Needed'}</span>`,
     `<span class="pill ${snapshot.throwsStarted ? 'ok' : 'warn'}">${snapshot.throwsStarted ? 'Throws Started' : 'Throws Pending'}</span>`,
     `<span class="pill ${snapshot.managerAwake ? 'ok' : snapshot.connectionReady ? 'warn' : ''}">${snapshot.managerAwake ? 'Manager Awake' : snapshot.connectionReady ? 'Manager Saved' : 'Manager Not Connected'}</span>`
   ].join('');
-  body.innerHTML = `<div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">You Are Here</div><div class="welcome-intro">Agent 1 can now become a standalone human + AI beta workstation. Bootstrap already handled the local operator identity; the next unlock is connecting the embedded manager so the app can explain itself and guide the rest of setup from inside the monitor.</div><div class="welcome-steps"><span class="welcome-step">1. Confirm Bootstrap</span><span class="welcome-step">2. Confirm Test Tokens</span><span class="welcome-step">3. Throws Started (Baseline Setting)</span><span class="welcome-step">4. Connect AI Co-Manager</span></div><div class="row" style="margin-top:14px;gap:8px;align-items:center;flex-wrap:wrap">${welcomeStatusPills}<span class="pill">Doctrine: ${esc(snapshot.doctrine)}</span><span class="pill">Base Throw: ${esc(snapshot.amountDisplay)} ${esc(snapshot.symbol || '')}</span></div></div>`;
-  if (autoBtn) { autoBtn.textContent = snapshot.localSetup?.busy ? 'Setting Up Local AI...' : snapshot.managerAwake ? 'Ask Startup Brief Again' : snapshot.connectionReady ? 'Wake Embedded Manager' : 'Auto Connect Local AI'; autoBtn.disabled = !!snapshot.llmState?.busy || !!snapshot.localSetup?.busy; autoBtn.setAttribute('title', snapshot.managerAwake ? 'Ask the co-manager to restate the startup brief.' : snapshot.connectionReady ? 'Send the startup brief to the saved co-manager connection.' : 'Check the default local AI ports first, then offer auto-setup if nothing is running.'); }
+  body.innerHTML = `<div class="panel welcome-panel"><div class="title2" style="margin-bottom:10px">You Are Here</div><div class="welcome-intro">Agent 1 is now a public Fuji RC1 human + AI workstation. Confirm the signing wallet, pinned network domain, authorized funding, and then connect the embedded manager for guided operation.</div><div class="welcome-steps"><span class="welcome-step">1. Confirm RC1 Wallet + Domain</span><span class="welcome-step">2. Confirm External Funding</span><span class="welcome-step">3. Throws Started (Baseline Setting)</span><span class="welcome-step">4. Connect AI Co-Manager</span></div><div class="row" style="margin-top:14px;gap:8px;align-items:center;flex-wrap:wrap">${welcomeStatusPills}<span class="pill">Doctrine: ${esc(snapshot.doctrine)}</span><span class="pill">Base Throw: ${esc(snapshot.amountDisplay)} ${esc(snapshot.symbol || '')}</span></div></div>`;
+  if (autoBtn) { autoBtn.textContent = 'Connect AI'; autoBtn.disabled = false; autoBtn.title = 'Choose a provider or detect Ollama in Connection Settings.'; }
 }
 
 async function persistWelcomeDismissed(){
@@ -3993,9 +4080,10 @@ function isPredictionScaleCorrupt(row){
   const ratio = Math.max(predictedUsd / expectedUsd, expectedUsd / predictedUsd);
   return Number.isFinite(ratio) && ratio >= 50;
 }
-function getPredictedRunByGame(){
+function getPredictedRunByGame(runRows = runs, throwRows = throwsRows){
   return latestByKey(
-    (runs || []).filter((r) => r?.prediction?.pnlUsd != null && r?.gameId && !isPredictionScaleCorrupt(r)),
+    [...(runRows || []), ...(throwRows || [])]
+      .filter((r) => r?.prediction?.pnlUsd != null && r?.gameId && !isPredictionScaleCorrupt(r)),
     (r) => cleanHex(r.gameId),
   );
 }
@@ -4066,14 +4154,16 @@ function hasPositiveBaseAmountMap(obj){
 }
 function resultRowOutputAssetMap(row){
   const direct = row?.actual?.throwMatch?.returned_by_asset;
-  const directIsExact = Boolean(row?.actual?.throwMatch?.returned_by_asset_exact);
+  const provenance = row?.actual?.throwMatch?.returned_by_asset_source;
+  const directIsExact = Boolean(row?.actual?.throwMatch?.returned_by_asset_exact)
+    && ['vm_integer_attribution', 'canonical_throw_payouts'].includes(provenance);
   if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
     const map = normalizeBaseAmountMap(direct);
     if (directIsExact) {
-      return { source:'throw_match', map, exact:true };
+      return { source:provenance, map, exact:true };
     }
     if (hasPositiveBaseAmountMap(map)) {
-      return { source:'throw_match', map, exact:true };
+      return { source:'legacy_throw_estimate', map, exact:false };
     }
   }
   const payoutRows = resultRowPayoutRowsForThrow(row);
@@ -4164,13 +4254,14 @@ function buildResolvedDeltaRows(rows, metaMap = null, games = []){
   return out;
 }
 function setMainView(mode, opts = {}){
-  if (!['startup','honest','games','bank','resolved'].includes(mode)) return;
+  if (!['startup','honest','games','bank','points','resolved'].includes(mode)) return;
   mainView = mode;
   if (opts.auto) mainViewPinnedByUser = false;
   else if (opts.manual !== false) mainViewPinnedByUser = true;
   const startup = document.getElementById('startupSection');
   const honest = document.getElementById('honestySection');
   const resolved = document.getElementById('resolvedSection');
+  const points = document.getElementById('pointsSection');
   const reviewIds = ['statsTrackedPanel','statsResolvedPanel','statsPendingPanel','statsPnlPanel','statsPendingUsdPanel','statsSystemPanel','gamesSection','gamesReviewScoreboardPanel','gamesReviewHealthPanel','gamesReviewProfitPanel','gamesReviewPositionPanel','selectedSection','gamesReviewAnalyticsPanel'];
   const bankIds = ['bankSection','bankChartPanel','bankStrategyPanel'];
   const showReview = mode === 'games';
@@ -4178,10 +4269,11 @@ function setMainView(mode, opts = {}){
   if (startup) startup.classList.toggle('view-hidden', mode !== 'startup');
   if (honest) honest.classList.toggle('view-hidden', mode !== 'honest');
   if (resolved) resolved.classList.toggle('view-hidden', mode !== 'resolved');
+  if (points) points.classList.toggle('view-hidden', mode !== 'points');
   reviewIds.forEach(id => { const el=document.getElementById(id); if (el) el.classList.toggle('view-hidden', !showReview); });
   bankIds.forEach(id => { const el=document.getElementById(id); if (el) el.classList.toggle('view-hidden', !showBank); });
   document.querySelectorAll('.nav button').forEach(btn => btn.classList.toggle('active-nav', false));
-  const active = mode === 'startup' ? 'navStartupBtn' : mode === 'honest' ? 'navHonestBtn' : mode === 'games' ? 'navGamesBtn' : mode === 'bank' ? 'navBankBtn' : mode === 'resolved' ? 'navResolvedBtn' : null;
+  const active = mode === 'startup' ? 'navStartupBtn' : mode === 'honest' ? 'navHonestBtn' : mode === 'games' ? 'navGamesBtn' : mode === 'bank' ? 'navBankBtn' : mode === 'points' ? 'navPointsBtn' : mode === 'resolved' ? 'navResolvedBtn' : null;
   const activeEl = active ? document.getElementById(active) : null;
   if (activeEl) activeEl.classList.add('active-nav');
   document.body.classList.toggle('startup-view-active', mode === 'startup');
@@ -5033,7 +5125,7 @@ function renderHonestPerformance(games, metaMap){
   document.getElementById('hpsPredictedProfit').textContent = predictedProfitTotal == null ? 'Waiting' : formatUsd(predictedProfitTotal);
   document.getElementById('hpsPredictedProfit').className = 'hps-value';
   document.getElementById('hpsPredictedProfitMeta').textContent = predictedProfitTotal == null
-    ? (hpsProfitRows.length ? errorText('missing latest run-level predicted pnl rows for settled games in scope') : 'Waiting for your first settled game.')
+    ? errorText('missing latest run-level predicted pnl rows for settled games in scope')
     : `${predictedProfitRows.length} games / ${formatUsd(predictedProfitTotal / Math.max(predictedProfitRows.length, 1))} per game`;
 
   document.getElementById('hpsActualProfit').textContent = formatUsd(actualProfitTotal, '$0');
@@ -5303,9 +5395,9 @@ function mergeResultRows(preferred, fallback){
   if (fallbackTs > preferredTs && fallback?.ts) merged.ts = fallback.ts;
   return merged;
 }
-function buildLatestResultsByDecision(){
+function buildLatestResultsByDecision(rows = results){
   const map = new Map();
-  for (const row of results) {
+  for (const row of rows) {
     const key = row?.decisionId;
     if (!key) continue;
     const prev = map.get(key);
@@ -5516,16 +5608,28 @@ function pendingUsdForThrow(t, metaMap){
   return parseBaseUnitsToDisplayNumber(p.amount || "0", asset, metaMap) * price;
 }
 
+let publicMonitorReads = 0;
+const publicMonitorReadWaiters = [];
 async function rpcCall(url, method, params = []){
-  const res = await fetch(url, {
+  const publicRead = !!settings?.publicRc1;
+  if(publicRead){
+    if(publicMonitorReadWaiters.length >= 16) throw Error('Public monitor read queue full; retry next refresh');
+    if(publicMonitorReads >= 2) await new Promise(resolve => publicMonitorReadWaiters.push(resolve));
+    else publicMonitorReads++;
+  }
+  try {
+  const res = await fetch(publicRead ? '/api/public-rpc/read' : url, {
     method: 'POST',
     headers: { 'content-type':'application/json' },
-    body: JSON.stringify({ jsonrpc:'2.0', id: Date.now(), method, params }),
+    body: JSON.stringify(publicRead ? {method,params} : { jsonrpc:'2.0', id: Date.now(), method, params }),
     cache: 'no-store'
   });
   const json = await res.json();
   if (json.error) throw new Error(json.error.message || 'rpc failed');
   return json.result;
+  } finally {
+    if(publicRead){const next = publicMonitorReadWaiters.shift();if(next) next();else publicMonitorReads--;}
+  }
 }
 
 async function maybeRefreshVmBalances(){
@@ -5534,21 +5638,34 @@ async function maybeRefreshVmBalances(){
     || cleanHex(settings?.user || '');
   if (!settings?.rpc || !targetUser) return;
   const now = Date.now();
-  if (vmBalancesUserHex && vmBalancesUserHex !== targetUser) vmBalances = {};
+  if (vmBalancesUserHex && vmBalancesUserHex !== targetUser) {
+    vmBalances = {};
+    vmBalancesLoaded = false;
+    vmBalancesAsOf = '';
+  }
   if (vmBalancesUserHex === targetUser && now - lastVmBalancesFetch < 10000) return;
   lastVmBalancesFetch = now;
   try {
-    const raw = await rpcCall(settings.rpc, 'colliderV2.getBalances', [with0x(targetUser)]);
+    const response = await fetchJson('/api/bank/balances', null, { timeoutMs: 6000 });
+    if (cleanHex(response?.user || '') !== targetUser) throw new Error('Bank wallet identity mismatch');
+    const raw = response?.balances;
     if (raw && typeof raw === 'object') {
       const norm = {};
       for (const [k,v] of Object.entries(raw)) norm[cleanHex(k)] = String(v ?? '0');
       vmBalances = norm;
       vmBalancesUserHex = targetUser;
+      vmBalancesLoaded = true;
+      vmBalancesError = '';
+      vmBalancesAsOf = String(response?.asOf || '');
     } else {
-      vmBalances = {};
-      vmBalancesUserHex = targetUser;
+      throw new Error('Bank balance response is missing balances');
     }
   } catch (err) {
+    vmBalances = {};
+    vmBalancesUserHex = targetUser;
+    vmBalancesLoaded = false;
+    vmBalancesError = String(err?.message || err);
+    vmBalancesAsOf = '';
     console.warn('getBalances failed', targetUser, err);
   }
 }
@@ -5613,67 +5730,14 @@ function syncPrimaryAmountField(resetValue = false){
     amountEl.value = baseAmount == null || baseAmount === '' ? '' : formatDisplayNumber(parseBaseUnitsToDisplayNumber(baseAmount, asset, metaMap));
   }
 }
-function randomHexId(byteLength = 32){
-  const count = Math.max(1, Number(byteLength) || 32);
-  const bytes = new Uint8Array(count);
-  crypto.getRandomValues(bytes);
-  return [...bytes].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-function resolveMirrorDepositAsset(metaMap, games){
-  const currentAssets = Object.entries(vmBalances || {})
-    .map(([asset, amount]) => ({ asset: cleanHex(asset), amount: String(amount || '0') }))
-    .filter(item => item.asset && BigInt(item.amount || '0') > 0n);
-  const pricedCurrent = currentAssets
-    .map(item => ({ ...item, price: lookupAssetUsdPrice(item.asset, metaMap, { games }) }))
-    .filter(item => Number.isFinite(item.price) && item.price > 0);
-  if (!pricedCurrent.length) return null;
-  return pricedCurrent[Math.floor(Math.random() * pricedCurrent.length)];
-}
-async function requestMirrorTestTokens(){
-  await maybeRefreshLiveAssetMeta(true);
-  const btn = document.getElementById('bankOpenSettingsBtn');
+function showRc1FundingInstructions(){
   const hint = document.getElementById('bankStrategyHint');
-  const metaMap = buildAssetMetaMap();
-  const games = buildGamesIndex(metaMap);
-  const chosen = resolveMirrorDepositAsset(metaMap, games);
-  if (!chosen?.asset || !Number.isFinite(chosen.price) || chosen.price <= 0) {
-    if (hint) hint.textContent = 'Request Test Tokens failed: no currently-held asset has a precise internal USD price yet.';
-    return;
-  }
-  const user = with0x(currentConfiguredUserHex() || settings?.user || '');
-  const rpc = settings?.rpc || '';
-  if (!user || !rpc) {
-    if (hint) hint.textContent = 'Request Test Tokens failed: RPC URL or user ID is missing from settings.';
-    return;
-  }
-  const amountDisplay = 1000 / Number(chosen.price);
-  const amountBase = displayUnitsToBaseUnitsString(amountDisplay, chosen.asset, metaMap);
-  if (!amountBase || amountBase === '0') {
-    if (hint) hint.textContent = 'Request Test Tokens failed: unable to convert the chosen asset amount into base units.';
-    return;
-  }
-  const originalText = btn?.textContent || 'Request Test Tokens';
-  const noticeId = randomHexId(32);
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Requesting...';
-  }
-  try {
-    await rpcCall(rpc, 'colliderV2.mirrorDeposit', [with0x(chosen.asset), user, amountBase, with0x(noticeId)]);
-    const symbol = symbolForAsset(chosen.asset, metaMap);
-    const approxUnits = formatDisplayNumber(parseBaseUnitsToDisplayNumber(amountBase, chosen.asset, metaMap));
-    if (hint) hint.textContent = `Token request submitted: about ${approxUnits} ${symbol} (~$1000) via mirrorDeposit. Waiting for balance confirmation.`;
-    await maybeRefreshVmBalances();
-    renderAll();
-  } catch (err) {
-    console.error('mirrorDeposit failed', err);
-    if (hint) hint.textContent = `Request Test Tokens failed: ${String(err?.message || err)}`;
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  }
+  const onboarding = managerState?.onboarding || {};
+  const address = String(onboarding?.evmAddress || settings?.expectedEvmAddress || '').trim();
+  const message = address
+    ? `Fund ${address} through the RC1 testnet faucet, ICM bridge, or operator provisioning path. Agent1 will detect the balance automatically and cannot invoke privileged mint or mirror methods.`
+    : 'Configure the Agent1 signing wallet first. Then fund its derived EVM address through the RC1 testnet faucet, ICM bridge, or operator provisioning path.';
+  if (hint) hint.textContent = message;
 }
 
 function reserveAssetId(metaMap){
@@ -5914,6 +5978,7 @@ function shouldDisplayGameRow(g){
   if (Number(g?.agentPendingThrows || 0) > 0) return true;
   if (g?.hasFreshLiveState) return true;
   if (g?.hasFreshEligibilitySnapshot) return true;
+  if (g?.hasFullHistorySummary) return true;
   return false;
 }
 
@@ -5921,11 +5986,18 @@ function buildGamesIndex(metaMap){
   const map = new Map();
   const now = Date.now();
   const freshnessCutoff = now - freshnessWindowMs();
-  const latestRunsByGame = latestByKey(runs, r => cleanHex(r?.gameId || ''));
-  const latestThrowsByDecision = latestByKey(throwsRows, t => t?.decisionId);
-  const latestResults = buildLatestResultsByDecision();
+  const fullSelected = selectedGameHistory?.gameId === selectedGameId ? selectedGameHistory : null;
+  const selectedRunKeys = new Set((fullSelected?.runs || []).map(row => `${row?.ts || ''}|${cleanHex(row?.gameId || '')}`));
+  const gameRuns = fullSelected
+    ? [...fullSelected.runs, ...runs.filter(row => cleanHex(row?.gameId || '') !== selectedGameId || !selectedRunKeys.has(`${row?.ts || ''}|${selectedGameId}`))]
+    : runs;
+  const gameThrows = [...(fullSelected?.throws || []), ...gameHistoryThrows, ...throwsRows];
+  const gameResults = [...(fullSelected?.results || []), ...gameHistoryResults, ...results];
+  const latestRunsByGame = latestByKey(gameRuns, r => cleanHex(r?.gameId || ''));
+  const latestThrowsByDecision = latestByKey(gameThrows, t => t?.decisionId || t?.signedIntent?.nonce?.toString());
+  const latestResults = buildLatestResultsByDecision(gameResults);
   const latestResultByGame = latestByKey(latestResults, r => cleanHex(r?.gameId || ''));
-  const predictedRunsByGame = getPredictedRunByGame();
+  const predictedRunsByGame = getPredictedRunByGame(gameRuns, gameThrows);
   const resolvedDecisionIds = new Set(latestResults.map(r => r?.decisionId).filter(Boolean));
   const latestPerGameSnapshots = new Map();
 
@@ -5933,6 +6005,8 @@ function buildGamesIndex(metaMap){
     if (!map.has(gameId)) {
       map.set(gameId, {
         gameId,
+        mapId: null,
+        gameName: '',
         scans: 0,
         candidateObservedSum: 0,
         agentSubmittedThrows: 0,
@@ -5947,6 +6021,7 @@ function buildGamesIndex(metaMap){
         pnlUsd: null,
         predictedPnlUsd: null,
         stakeUsd: null,
+        totalStakeUsd: null,
         returnedUsd: null,
         pendingUsd: 0,
         points: 0,
@@ -5987,7 +6062,18 @@ function buildGamesIndex(metaMap){
     return map.get(gameId);
   };
 
-  for (const r of runs) {
+  const completeGameSummaries = Array.isArray(historySummary?.recentGames) ? historySummary.recentGames : [];
+  const summariesByGame = new Map();
+  for (const summary of completeGameSummaries) {
+    const gid = cleanHex(summary?.gameId || '');
+    if (!gid) continue;
+    summariesByGame.set(gid, summary);
+    const g = ensure(gid);
+    g.hasFullHistorySummary = true;
+    if (freshTimestamp(summary?.lastSeenTs) >= freshTimestamp(g.lastSeenTs)) g.lastSeenTs = summary.lastSeenTs;
+  }
+
+  for (const r of gameRuns) {
     const gid = cleanHex(r?.gameId || '');
     if (gid) {
       const g = ensure(gid);
@@ -6032,6 +6118,8 @@ function buildGamesIndex(metaMap){
   for (const [gid, snapshot] of latestPerGameSnapshots.entries()) {
     const g = ensure(gid);
     const item = snapshot.item || {};
+    if (item.mapId) g.mapId = cleanHex(item.mapId);
+    if (item.gameName) g.gameName = String(item.gameName);
     const sourceRow = snapshot.row || {};
     g.latestEligibilitySnapshotTs = snapshot.ts || g.latestEligibilitySnapshotTs;
     g.latestPerGameEligible = item?.eligible == null ? g.latestPerGameEligible : !!item.eligible;
@@ -6077,8 +6165,11 @@ function buildGamesIndex(metaMap){
   }
 
   for (const [gid, g] of map.entries()) {
+    const summary = summariesByGame.get(gid);
     const live = liveGameStates.get(gid);
     const canonical = latestResultByGame.get(gid) || null;
+    if (live?.mapId) g.mapId = cleanHex(live.mapId);
+    if (live?.gameName) g.gameName = String(live.gameName);
     const predRun = predictedRunsByGame.get(gid) || null;
     const hasFreshLive = liveStateIsFresh(live, now);
     const liveStatus = hasFreshLive && live?.status != null ? Number(live.status) : null;
@@ -6086,8 +6177,14 @@ function buildGamesIndex(metaMap){
     const canonicalStatus = Number.isFinite(canonicalStatusValue) ? canonicalStatusValue : null;
     g.canonicalResult = canonical;
     g.resolvedCount = g.rowsResults.length;
-    g.agentSubmittedThrows = g.submittedDecisionIds.size;
-    g.agentPendingThrows = [...g.submittedDecisionIds].filter(id => !resolvedDecisionIds.has(id)).length;
+    g.agentSubmittedThrows = summary ? Number(summary.accepted || 0) : g.submittedDecisionIds.size;
+    g.agentPendingThrows = summary
+      ? Math.max(0, Number(summary.accepted || 0) - Number(summary.scored || 0))
+      : [...g.submittedDecisionIds].filter(id => !resolvedDecisionIds.has(id)).length;
+    if (summary) {
+      g.scans = Number(summary.scans || 0);
+      g.candidateObservedSum = Number(summary.candidates || 0);
+    }
     g.hasFreshEligibilitySnapshot = freshTimestamp(g.latestEligibilitySnapshotTs) >= freshnessCutoff;
     g.hasFreshLiveState = hasFreshLive;
 
@@ -6119,6 +6216,11 @@ function buildGamesIndex(metaMap){
 
     if (canonical) {
       const wg = canonical?.actual?.wholeGame || {};
+      const canonicalStakeUsd = Number(wg?.stake_usd);
+      if (Number.isFinite(canonicalStakeUsd) && canonicalStakeUsd >= 0) g.totalStakeUsd = canonicalStakeUsd;
+      const canonicalThrowCount = Object.values(wg?.hole_type_counts || {})
+        .reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+      if (canonicalThrowCount > 0) g.totalThrows = canonicalThrowCount;
       const configuredUser = getConfiguredUserScore(wg?.per_user_scoreboard, { gameId: gid, row: canonical });
       g.userPlayed = !!configuredUser;
       if (configuredUser) {
@@ -6144,13 +6246,16 @@ function buildGamesIndex(metaMap){
     } else if (hasPositiveBaseAmountMap(liveInputsByAsset)) {
       g.inputsByAsset = liveInputsByAsset;
     }
+    if (summary?.inputsByAsset && hasPositiveBaseAmountMap(summary.inputsByAsset)) {
+      g.inputsByAsset = summary.inputsByAsset;
+    }
 
-    if (Number.isFinite(liveStatus) && liveStatus < 2) {
-      g.latestStatus = liveStatus;
-    } else if (Number.isFinite(canonicalStatus) && canonicalStatus >= 2) {
+    // A stored result follows a precise settled game report. An older/open RPC
+    // snapshot must never move that game back into the active column.
+    if (Number.isFinite(canonicalStatus) && canonicalStatus >= 2) {
       g.latestStatus = canonicalStatus;
-    } else if (canonical) {
-      g.latestStatus = 2;
+    } else if (Number(summary?.resolved || 0) > 0 || canonical) {
+      g.latestStatus = 4;
     } else if (Number.isFinite(liveStatus)) {
       g.latestStatus = liveStatus;
     } else if (g.latestStatus != null) {
@@ -6190,8 +6295,8 @@ const eligibilityReasonMeta = {
   CLOSED: { code:'CLOSED', tone:'tone-neutral', title:'Game Closed', summary:'This game is already closed, finalized, or settled. No new throw window exists here.', clickable:false },
   PLAYED: { code:'PLAYED', tone:'tone-ok', title:'Throw Already Played', summary:'The agent already used this game\'s current live throw opportunity.', clickable:false },
   'WAIT/CD': { code:'WAIT/CD', tone:'tone-warn', title:'Cooldown Active', summary:'The live-throw cooldown is still active, so the agent must wait before submitting again.' },
-  'CAP/G': { code:'CAP/G', tone:'tone-warn', title:'Per-Game Cap Reached', summary:'The per-game throw cap stopped another live throw in this game.' },
-  'CAP/S': { code:'CAP/S', tone:'tone-warn', title:'Session Cap Reached', summary:'The session-wide throw cap stopped another live throw.' },
+  'CAP/G': { code:'CAP/G', tone:'tone-warn', title:'Agent1 Per-Game Throw Count Cap', summary:'Agent1 reached its current-session count limit for this game; this is not a throw-size limit.' },
+  'CAP/S': { code:'CAP/S', tone:'tone-warn', title:'Agent1 Session Throw Count Cap', summary:'The session-wide count limit stopped play, even if this particular game has no throws; this is not a throw-size limit.' },
   'NO-CAND/PX': { code:'NO-CAND/PX', tone:'tone-info', title:'Missing Price Basis', summary:'The cycle could not derive a precise USD price basis for this game, so honest value scoring never started.' },
   'NO-CAND/ALW': { code:'NO-CAND/ALW', tone:'tone-neutral', title:'Asset Not Allowed', summary:'This game only produced candidate assets that are outside the current allow-list.' },
   'NO-CAND/BLK': { code:'NO-CAND/BLK', tone:'tone-neutral', title:'Asset Blocked', summary:'This game only produced candidate assets that are currently blocked.' },
@@ -6217,8 +6322,14 @@ function eligibilityCodeForReason(reasonKey){
   const map = {
     ready: 'READY',
     cooldown: 'WAIT/CD',
+    per_game_cap: 'CAP/G',
     max_throws_per_game: 'CAP/G',
+    max_g: 'CAP/G',
+    cap_g: 'CAP/G',
+    session_cap: 'CAP/S',
     max_throws_per_session: 'CAP/S',
+    max_s: 'CAP/S',
+    cap_s: 'CAP/S',
     missing_price_basis: 'NO-CAND/PX',
     asset_not_allowed: 'NO-CAND/ALW',
     asset_blocked: 'NO-CAND/BLK',
@@ -6341,6 +6452,17 @@ function buildEligibilityInfo(reasonKey, ctx = {}){
 
   const displayCode = eligibilityCodeForReason(reasonKey);
   const meta = eligibilityReasonMeta[displayCode] || { code:displayCode || 'CHECK', tone:'tone-info', title:'Eligibility Detail', summary:`Latest eligibility state: <code>${esc(displayCode || 'CHECK')}</code>.` };
+  if (displayCode === 'CAP/G' || displayCode === 'CAP/S' || displayCode === 'NO-CAND/MAX$') {
+    const cap = displayCode === 'CAP/G' ? Number(ctx.configuredMaxThrowsPerGame) : Number(ctx.configuredMaxThrowsPerSession);
+    const maxUsd = Number(ctx.configuredMaxThrowUsd);
+    const detail = displayCode === 'CAP/G'
+      ? `Current-session Agent1 limit: <code>${Number.isFinite(cap) ? esc(String(cap)) : '?'}</code> throws in this game. The table's first number counts accepted Agent1 throws for this game; the second is the all-player on-chain game count.`
+      : displayCode === 'CAP/S'
+        ? `Automatic-session limit: <code>${Number.isFinite(cap) ? esc(String(cap)) : '?'}</code> Agent1 throws across all games. This game's own count can be zero.`
+        : `A generated candidate exceeded the configured <code>${Number.isFinite(maxUsd) ? '$' + esc(formatDisplayNumber(maxUsd)) : 'unknown'}</code> maximum per throw. This filters that amount, not the game's throw count; smaller candidates may still qualify.`;
+    return { code:meta.code, tone:meta.tone, title:meta.title,
+      body:`<div class="eligibility-help"><div class="eligibility-help-lead">${meta.summary}</div><p>${detail}</p></div>`, clickable:true };
+  }
   const perGameReasons = Array.isArray(ctx.perGameReasons) ? ctx.perGameReasons.filter(Boolean) : [];
   const globalReasons = Array.isArray(ctx.globalReasons) ? ctx.globalReasons.filter(Boolean) : [];
   const filterReasonCounts = ctx.filterReasonCounts && typeof ctx.filterReasonCounts === 'object' ? ctx.filterReasonCounts : {};
@@ -6469,6 +6591,8 @@ function eligibilitySignal(g){
     gameMinThrowUsd: parseStakeUsdLike(g.latestMinThrow),
     configuredMinThrowUsd: settings?.minThrowUsd,
     configuredMaxThrowUsd: settings?.maxThrowUsd,
+    configuredMaxThrowsPerGame: settings?.maxThrowsPerGame,
+    configuredMaxThrowsPerSession: settings?.maxThrowsPerSession,
     configuredMaxGameExposureUsd: settings?.maxGameExposureUsd,
     currentAgentExposureUsd: estimateLiveAgentExposureUsd(g),
     currentGameStakeUsd: parseStakeUsdLike(g.latestStakeRaw)
@@ -6504,12 +6628,50 @@ function updateTopStats(games){
   const pending = games.reduce((s,g)=>s+Number(g.pendingUsd||0),0);
   const pendingCount = games.reduce((s,g)=>s+Number(g.agentPendingThrows||0),0);
 
-  document.getElementById('gamesCount').textContent = String(games.length);
-  document.getElementById('resolvedGamesCount').textContent = String(games.filter(g=>Number(g.latestStatus ?? -1) >= 2 || g.resolvedCount>0).length);
-  document.getElementById('pendingThrowsCount').textContent = String(pendingCount);
+  const lifetimeThrows = Number(historySummary?.throws?.accepted ?? throwsRows.filter(row=>row?.submitted === true && row?.signedIntent?.status === 'throw_accepted').length);
+  const lifetimeResults = Number(historySummary?.results?.scored ?? results.filter(row=>Number.isFinite(Number(row?.honestScore?.honestScore))).length);
+  const lifetimeGames = Number(historySummary?.throws?.games ?? games.length);
+  const lifetimeResolvedGames = Number(historySummary?.results?.games ?? games.filter(g=>Number(g.latestStatus ?? -1) >= 2 || g.resolvedCount>0).length);
+  document.getElementById('lifetimeThrowsCount').textContent = String(lifetimeThrows);
+  document.getElementById('lifetimeResultsCount').textContent = String(lifetimeResults);
+  document.getElementById('gamesCount').textContent = String(lifetimeGames);
+  document.getElementById('resolvedGamesCount').textContent = String(lifetimeResolvedGames);
+  document.getElementById('pendingThrowsCount').textContent = String(Number(historySummary?.pendingAcceptedThrows ?? pendingCount));
   document.getElementById('pnlTotal').textContent = formatDisplayNumber(pnl);
   document.getElementById('pendingUsd').textContent = formatDisplayNumber(pending);
   document.getElementById('inSystemUsd').textContent = formatDisplayNumber(pnl + pending);
+}
+
+function mapPriorityControlHtml(game){
+  const id = cleanHex(game?.mapId || '');
+  if (!/^[0-9a-f]{64}$/.test(id)) return '<span class="muted">Map ID unavailable</span>';
+  const priority = Number(settings?.mapPriorities?.[id] ?? 5);
+  const options = Array.from({length:10}, (_,i) => i + 1).map(value =>
+    `<option value="${value}" ${value === priority ? 'selected' : ''}>${value}${value === 10 ? ' — highest' : value === 5 ? ' — normal' : ''}</option>`).join('');
+  return `<div title="${escAttr(id)}">${esc(game?.gameName || shortHex(id,12))}</div><select class="map-priority-select" data-map-id="${id}" aria-label="Map priority for ${escAttr(game?.gameName || id)}" title="10 highest; 5 normal. Applies to every game with this map ID; risk limits stay active." ${mapPrioritySaving ? 'disabled' : ''}>${options}</select><div class="muted" title="${id}">${esc(shortHex(id,12))}</div>`;
+}
+
+async function saveMapPriority(mapId, priority){
+  if (mapPrioritySaving) return;
+  mapPrioritySaving = true;
+  document.querySelectorAll('.map-priority-select').forEach(select => { select.disabled = true; });
+  const status = document.getElementById('mapPriorityStatus');
+  try {
+    const response = await fetch('/api/settings/map-priority', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({mapId,priority})});
+    const saved = await response.json();
+    if (!response.ok || !saved.ok) throw Error(saved.error || `HTTP ${response.status}`);
+    settings = saved.settings;
+    if (managerState) managerState = {...managerState, settings, runtime:{...managerState.runtime, mapPriorities:settings.mapPriorities}};
+    status.textContent = saved.runtimeSyncPending || saved.runtimeSyncError
+      ? 'Priority saved, but live synchronization failed. Not confirmed active; retry after checking the agent connection.'
+      : `Map priority ${priority} active for ${shortHex(mapId,12)} — all games on this map; safety limits unchanged.`;
+  } catch (error) {
+    status.textContent = `Map priority was not confirmed: ${String(error?.message || error)}`;
+  } finally {
+    mapPrioritySaving = false;
+    if (document.activeElement?.matches?.('.map-priority-select')) document.activeElement.blur();
+    renderAll();
+  }
 }
 
 function renderGames(games, metaMap){
@@ -6520,12 +6682,16 @@ function renderGames(games, metaMap){
   const pageRows = games.slice(start, start + GAMES_PAGE_SIZE);
 
   patchTableBody('gamesBody', pageRows, g => g.gameId, (tr, g) => {
+    if (tr.contains(document.activeElement) && document.activeElement?.matches?.('.map-priority-select')) return;
     tr.className = `game-row ${selectedGameId === g.gameId ? 'active' : ''}`;
     tr.onclick = () => {
       selectedGameId = g.gameId;
+      selectedGameHistory = null;
+      selectedGameHistoryError = '';
       document.getElementById('selectionBadge').innerHTML = `VIEWING SELECTED GAME: ${gameRefHtml(g.gameId)}`;
       setMainView('games');
       renderAll();
+      void refreshSelectedGameHistory(g.gameId);
     };
 
     try {
@@ -6534,27 +6700,32 @@ function renderGames(games, metaMap){
         : null;
       const userStakeUsd = g.stakeUsd == null ? Number(configuredUserScore?.stake_usd ?? NaN) : Number(g.stakeUsd);
       const userPnlUsd = Number.isFinite(Number(g.pnlUsd)) ? Number(g.pnlUsd) : Number(configuredUserScore?.pnl_usd ?? NaN);
-      const openStakeDisplay = g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake');
+      const gameStakeDisplay = g.totalStakeUsd != null && Number.isFinite(Number(g.totalStakeUsd))
+        ? `$${formatDisplayNumber(g.totalStakeUsd)}`
+        : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-');
       const agentValueUsd = Number.isFinite(userStakeUsd)
         ? userStakeUsd
         : Object.entries(g.inputsByAsset || {}).reduce((sum, [asset, amount]) => {
             const usd = knownUsdValueForAssetAmount(amount, asset, metaMap, { games, game: g, scope: 'user' });
             return Number.isFinite(usd) ? sum + usd : sum;
           }, 0);
-      const sumValueDisplay = `${Number.isFinite(agentValueUsd) ? `$${formatDisplayNumber(agentValueUsd)}` : '-'} / ${openStakeDisplay}`;
+      const sumValueDisplay = `${Number.isFinite(agentValueUsd) ? `$${formatDisplayNumber(agentValueUsd)}` : '-'} / ${gameStakeDisplay}`;
       const pnlDisplay = Number.isFinite(userPnlUsd) ? `$${formatDisplayNumber(userPnlUsd)}` : '-';
-      const predDisplay = g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${formatDisplayNumber(g.predictedPnlUsd)}`);
+      const predDisplay = g.agentSubmittedThrows === 0 || g.predictedPnlUsd == null || !Number.isFinite(Number(g.predictedPnlUsd))
+        ? '-'
+        : `$${formatDisplayNumber(g.predictedPnlUsd)}`;
 
       tr.innerHTML = `
 <td>${gameRefHtml(g.gameId)}</td>
+        <td>${mapPriorityControlHtml(g)}</td>
         <td>${statusChipHtml(g)}</td>
         <td>${g.scans}</td>
         <td>${g.candidateObservedSum}</td>
-        <td>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</td>
+        <td title="Agent1 accepted throws for this game / all players' on-chain game throws">${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</td>
         <td>${eligibilityChipHtml(g)}</td>
         <td>${sumValueDisplay}</td>
         <td class="${Number.isFinite(userPnlUsd) ? (userPnlUsd >= 0 ? 'ok' : 'pink') : ''}">${pnlDisplay}</td>
-        <td class="${Number(g.predictedPnlUsd) >= 0 ? 'ok' : 'pink'}">${predDisplay}</td>
+        <td class="${g.predictedPnlUsd != null && Number.isFinite(Number(g.predictedPnlUsd)) ? (Number(g.predictedPnlUsd) >= 0 ? 'ok' : 'pink') : ''}">${predDisplay}</td>
         <td>${g.points}</td>
         <td>${objectEntriesDisplayUnitsHtml(g.inputsByAsset, metaMap, { copy:false })}</td>
         <td>${objectEntriesDisplayUnitsHtml(g.outputsByAsset, metaMap, { copy:false })}</td>
@@ -6567,6 +6738,7 @@ function renderGames(games, metaMap){
       });
       tr.innerHTML = `
 <td>${gameRefHtml(g?.gameId || '')}</td>
+        <td>${mapPriorityControlHtml(g)}</td>
         <td>${statusChipHtml(g)}</td>
         <td>${Number(g?.scans || 0)}</td>
         <td>${Number(g?.candidateObservedSum || 0)}</td>
@@ -6583,7 +6755,18 @@ function renderGames(games, metaMap){
     }
   });
 
-  document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages}`;
+  document.querySelectorAll('#gamesBody .map-priority-select').forEach(select => {
+    select.onclick = event => event.stopPropagation();
+    select.onkeydown = event => event.stopPropagation();
+    select.onchange = event => { event.stopPropagation(); void saveMapPriority(select.dataset.mapId, Number(select.value)); };
+  });
+  document.getElementById('gamesPageInfo').textContent = `Page ${gamesPage + 1} / ${totalPages} · ${games.length} recent games`;
+  const historyNotice = document.getElementById('gameHistoryAuditNotice');
+  if (historyNotice) historyNotice.textContent = !selectedGameId ? ''
+    : selectedGameHistory?.gameId === selectedGameId ? 'Complete stored run, throw, and result audit loaded for this game.'
+    : selectedGameHistoryLoading ? 'Loading complete stored history for the selected game…'
+    : selectedGameHistoryError ? `Complete scan-by-scan history is unavailable (${selectedGameHistoryError}). If this is HTTP 404, the running monitor backend needs the updated history API.`
+    : 'Complete stored history has not yet loaded for the selected game.';
   updateTargetSelectedGameButton(games);
 }
 function updateTargetSelectedGameButton(games){
@@ -6641,7 +6824,15 @@ function renderBankStrategySummary(metaMap){
 function renderBankChart(games, metaMap){
   const canvas = document.getElementById('bankBalanceChart');
   if (!canvas) return;
-  if (bankBalanceChart) { try { bankBalanceChart.destroy(); } catch {} bankBalanceChart = null; }
+
+  const notice = document.getElementById('bankChartNotice');
+  if (!vmBalancesLoaded) {
+    canvas.style.display = "none";
+    if (notice) notice.textContent = 'Current wallet balance unavailable; the recent balance estimate is hidden rather than drawn from zero.';
+    return;
+  }
+  canvas.style.display = '';
+  if (notice) notice.textContent = 'Up to 100 recent scored throws, projected backward from the current wallet balance; external funding and non-game operations are not reconstructed.';
   const deltaRows = buildResolvedDeltaRows(buildLatestResultsByDecision()).slice().sort((a,b)=>new Date(a.row?.ts||0)-new Date(b.row?.ts||0));
   const totalNet = {};
   for (const dr of deltaRows){
@@ -6685,7 +6876,11 @@ function renderBankChart(games, metaMap){
 
   const chartAssets = assets.filter(asset => series[asset].some(value => Number(value) > 0));
   const colors = chartColors(Math.max(chartAssets.length, 1));
-  bankBalanceChart = new Chart(canvas, {
+  const nextData = {labels, series, chartAssets, totalUsdSeries};
+  const fingerprint = JSON.stringify(nextData);
+  if (bankBalanceChart && bankChartFingerprint === fingerprint) return;
+  bankChartFingerprint = fingerprint;
+  const config = {
     type:'bar',
     data:{
       labels,
@@ -6713,6 +6908,7 @@ function renderBankChart(games, metaMap){
     },
     options:{
       responsive:true,
+      maintainAspectRatio:false, animation:false,
       interaction:{ mode:'index', intersect:false },
       plugins:{ legend:{ labels:{ color:'#d9ecff' } } },
       scales:{
@@ -6720,36 +6916,37 @@ function renderBankChart(games, metaMap){
         y:{ ticks:{ color:'#88a4c6', callback:(v)=>`$${compactTickLabel(v)}` }, title:{ display:true, text:'Estimated USD Value', color:'#88a4c6' }, stacked:true, grid:{ color:'rgba(82,230,255,.08)' } }
       }
     }
-  });
+  };
+  if (bankBalanceChart) {bankBalanceChart.data=config.data;bankBalanceChart.options=config.options;bankBalanceChart.update("none");}
+  else bankBalanceChart=new Chart(canvas,config);
 }
 
 function renderBank(games, metaMap){
-  const inByAsset = {};
-  const outByAsset = {};
-  const pendingByAsset = {};
-
-  for (const g of games) {
-    for (const [k,v] of Object.entries(g.inputsByAsset || {})) inByAsset[cleanHex(k)] = (BigInt(inByAsset[cleanHex(k)] || '0') + BigInt(String(v || '0'))).toString();
-    for (const [k,v] of Object.entries(g.outputsByAsset || {})) outByAsset[cleanHex(k)] = (BigInt(outByAsset[cleanHex(k)] || '0') + BigInt(String(v || '0'))).toString();
-  }
-
-  for (const g of games) {
-    if ((g.agentPendingThrows ?? 0) === 0) continue;
-    for (const t of g.rowsThrows) {
-      if (!t?.submitted) continue;
-      const p = t.payload || {};
-      const asset = cleanHex(p.asset || '');
-      pendingByAsset[asset] = (BigInt(pendingByAsset[asset] || '0') + BigInt(String(p.amount || '0'))).toString();
-    }
-  }
-
+  const bank = historySummary?.bank || null;
+  const inByAsset = bank?.inByAsset || {};
+  const outByAsset = bank?.outByAsset || {};
+  const pendingByAsset = bank?.pendingByAsset || {};
   const normBalances = {};
-  for (const [k,v] of Object.entries(vmBalances || {})) normBalances[cleanHex(k)] = String(v || '0');
+  if (vmBalancesLoaded) {
+    for (const [k,v] of Object.entries(vmBalances || {})) normBalances[cleanHex(k)] = String(v ?? '0');
+  }
 
-  const assets = [...new Set([...Object.keys(inByAsset), ...Object.keys(outByAsset), ...Object.keys(pendingByAsset), ...Object.keys(normBalances)])];
+  const assets = [...new Set([...Object.keys(inByAsset), ...Object.keys(outByAsset), ...Object.keys(pendingByAsset), ...Object.keys(normBalances)].map(cleanHex).filter(Boolean))];
+  const notice = document.getElementById('bankDataNotice');
+  if (notice) {
+    const notes = [];
+    if (!vmBalancesLoaded) notes.push(`Current wallet balance unavailable${vmBalancesError ? ` (${vmBalancesError})` : ''}; no zero balance is inferred.`);
+    else if (vmBalancesAsOf) notes.push(`Wallet balance read at ${vmBalancesAsOf}.`);
+    if (!bank) notes.push('Full-history play flow is unavailable from this running monitor backend.');
+    else {
+      notes.push('Play flow covers accepted throws and exact returns in this data directory; it excludes deposits, withdrawals, points conversion and tournament fees.');
+      if (Number(bank.unverifiedReturnDecisions || 0) > 0) notes.push(`${bank.unverifiedReturnDecisions} resolved throw returns lack an exact asset map, so Returned In and Play Net are lower bounds.`);
+    }
+    notice.textContent = notes.join(' ');
+  }
   const bankFoot = document.getElementById('bankFoot');
   if (!assets.length) {
-    document.getElementById('bankBody').innerHTML = `<tr><td colspan="6" class="muted">No asset flow yet</td></tr>`;
+    document.getElementById('bankBody').innerHTML = `<tr><td colspan="6" class="muted">${bank && vmBalancesLoaded ? 'No wallet assets or play flow yet' : 'Bank data unavailable; waiting for the monitor backend'}</td></tr>`;
     if (bankFoot) bankFoot.innerHTML = '';
     return;
   }
@@ -6768,19 +6965,21 @@ function renderBank(games, metaMap){
     const outAmt = outByAsset[asset] || '0';
     const pendingAmt = pendingByAsset[asset] || '0';
     const currentAmt = normBalances[asset] || '0';
-    const net = (BigInt(outAmt) - BigInt(inAmt)).toString();
-    addUsd('current', asset, currentAmt);
-    addUsd('net', asset, net);
-    addUsd('pending', asset, pendingAmt);
-    addUsd('out', asset, outAmt);
-    addUsd('in', asset, inAmt);
+    const playNet = (BigInt(inAmt) - BigInt(outAmt)).toString();
+    if (vmBalancesLoaded) addUsd('current', asset, currentAmt);
+    if (bank) {
+      addUsd('net', asset, playNet);
+      addUsd('pending', asset, pendingAmt);
+      addUsd('out', asset, outAmt);
+      addUsd('in', asset, inAmt);
+    }
     tr.innerHTML = `
       <td>${assetLabelHtml(asset, metaMap, { showShortHex:true })}</td>
-      <td>${formatBaseUnits(currentAmt, asset, metaMap)}</td>
-      <td>${formatBaseUnits(net, asset, metaMap)}</td>
-      <td>${formatBaseUnits(pendingAmt, asset, metaMap)}</td>
-      <td>${formatBaseUnits(outAmt, asset, metaMap)}</td>
-      <td>${formatBaseUnits(inAmt, asset, metaMap)}</td>
+      <td>${vmBalancesLoaded ? formatBaseUnits(currentAmt, asset, metaMap) : '—'}</td>
+      <td>${bank ? formatBaseUnits(playNet, asset, metaMap) : '—'}</td>
+      <td>${bank ? formatBaseUnits(pendingAmt, asset, metaMap) : '—'}</td>
+      <td>${bank ? formatBaseUnits(outAmt, asset, metaMap) : '—'}</td>
+      <td>${bank ? formatBaseUnits(inAmt, asset, metaMap) : '—'}</td>
     `;
   });
 
@@ -6788,12 +6987,12 @@ function renderBank(games, metaMap){
     bankFoot.style.display = '';
     bankFoot.innerHTML = `
       <tr class="bank-total-row">
-        <td>Sum USD</td>
-        <td>$${formatDisplayNumber(usdTotals.current)}</td>
-        <td>$${formatDisplayNumber(usdTotals.net)}</td>
-        <td>$${formatDisplayNumber(usdTotals.pending)}</td>
-        <td>$${formatDisplayNumber(usdTotals.out)}</td>
-        <td>$${formatDisplayNumber(usdTotals.in)}</td>
+        <td title="Only assets with a known current USD price are included">Known-price USD</td>
+        <td>${vmBalancesLoaded ? '$' + formatDisplayNumber(usdTotals.current) : '—'}</td>
+        <td>${bank ? '$' + formatDisplayNumber(usdTotals.net) : '—'}</td>
+        <td>${bank ? '$' + formatDisplayNumber(usdTotals.pending) : '—'}</td>
+        <td>${bank ? '$' + formatDisplayNumber(usdTotals.out) : '—'}</td>
+        <td>${bank ? '$' + formatDisplayNumber(usdTotals.in) : '—'}</td>
       </tr>
     `;
   }
@@ -6827,9 +7026,9 @@ function renderScoreboard(games, metaMap){
     <div class="muted">Candidates</div><div>${g.candidateObservedSum}</div>
     <div class="muted">Agent Throws</div><div>${g.totalThrows == null ? `${g.agentSubmittedThrows} / ?` : `${g.agentSubmittedThrows} / ${g.totalThrows}`}</div>
     <div class="muted">Pending Throws</div><div>${g.agentPendingThrows}</div>
-    <div class="muted">Game Total</div><div>${Number(g.latestStatus ?? -1) >= 2 ? (g.userPlayed && g.stakeUsd != null ? `$${fmtNum(g.stakeUsd,2)}` : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-')) : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : errorText('missing game.stake'))}</div>
+    <div class="muted">Game Total</div><div>${g.totalStakeUsd != null && Number.isFinite(Number(g.totalStakeUsd)) ? `$${formatDisplayNumber(g.totalStakeUsd)}` : (g.latestStakeRaw != null ? formatStakeUsdLike(g.latestStakeRaw) : '-')}</div>
     <div class="muted">PnL</div><div class="${Number(g.pnlUsd)>=0 ? 'ok':'pink'}">${g.userPlayed ? (g.pnlUsd == null ? errorText('missing per_user_scoreboard pnl_usd') : `$${fmtNum(g.pnlUsd,2)}`) : '-'}</div>
-    <div class="muted">Predicted PnL</div><div>${g.agentSubmittedThrows === 0 ? '-' : (g.predictedPnlUsd == null ? errorText('missing run.prediction.pnlUsd') : `$${fmtNum(g.predictedPnlUsd,2)}`)}</div>
+    <div class="muted">Predicted PnL</div><div>${g.agentSubmittedThrows === 0 || g.predictedPnlUsd == null || !Number.isFinite(Number(g.predictedPnlUsd)) ? '-' : `$${formatDisplayNumber(g.predictedPnlUsd)}`}</div>
     <div class="muted">Points</div><div>${g.points}</div>
 
   `;
@@ -6842,7 +7041,7 @@ function renderHealth(games, metaMap){
     <div class="muted">Runs Logged</div><div>${runs.length}</div>
     <div class="muted">Throws Logged</div><div>${throwsRows.length}</div>
     <div class="muted">Results Logged</div><div>${results.length}</div>
-    <div class="muted">Tracked Games</div><div>${games.length}</div>
+    <div class="muted">Recent Games In Window</div><div>${games.length}</div>
     <div class="muted">Configured Asset</div><div>${configuredAsset}</div>
     <div class="muted">Poll ms</div><div>${settings.pollMs ?? '-'}</div>
     <div class="muted">Max Throws / Game</div><div>${settings.maxThrowsPerGame ?? '-'}</div>
@@ -7785,7 +7984,7 @@ function renderAll(){
   resetDataDiagnostics();
   const metaMap = buildAssetMetaMap();
   const games = buildGamesIndex(metaMap);
-  const reviewGames = games.filter(shouldDisplayGameRow);
+  const reviewGames = games.filter(shouldDisplayGameRow).slice(0, gamesWindowLimit);
   refreshHumanFrontendStatusLink();
   maybeAlignMainViewToStartup();
   renderOnboardingBanner();
@@ -7796,6 +7995,7 @@ function renderAll(){
 
   if (selectedGameId && !reviewGames.find(g => g.gameId === selectedGameId)) {
     selectedGameId = null;
+    selectedGameHistory = null;
     document.getElementById("selectionBadge").innerHTML = "VIEWING ALL GAMES";
   }
 
@@ -7820,7 +8020,7 @@ function renderAll(){
   }
   void flushPendingManagerEventNotices();
 }
-function buildRefreshFingerprint(nextRuns, nextThrowsRows, nextResults, nextManagerState){
+function buildRefreshFingerprint(nextRuns, nextThrowsRows, nextResults, nextManagerState, nextHistorySummary = historySummary){
   const latestRun = nextRuns[nextRuns.length - 1] || null;
   const latestThrow = nextThrowsRows[nextThrowsRows.length - 1] || null;
   const latestResult = nextResults[nextResults.length - 1] || null;
@@ -7828,6 +8028,10 @@ function buildRefreshFingerprint(nextRuns, nextThrowsRows, nextResults, nextMana
     runCount: nextRuns.length,
     throwCount: nextThrowsRows.length,
     resultCount: nextResults.length,
+    lifetimeThrows: nextHistorySummary?.throws?.accepted ?? null,
+    lifetimeResults: nextHistorySummary?.results?.scored ?? null,
+    lifetimeGames: nextHistorySummary?.throws?.games ?? null,
+    lifetimeResolvedGames: nextHistorySummary?.results?.games ?? null,
     latestRunTs: latestRun?.ts || '',
     latestThrowTs: latestThrow?.ts || '',
     latestResultTs: latestResult?.ts || '',
@@ -7858,6 +8062,8 @@ function buildVmRefreshFingerprint(){
     .map(([gameId, state]) => ({
       gameId,
       status: state?.status ?? null,
+      mapId: state?.mapId ?? null,
+      gameName: state?.gameName ?? null,
       stakeRaw: state?.stakeRaw ?? null,
       throwsCount: state?.throwsCount ?? null,
       throwMinValue: state?.throwMinValue ?? null,
@@ -7879,7 +8085,8 @@ function buildVmRefreshFingerprint(){
       .map(([asset, hint]) => [cleanHex(asset), { epoch: Number(hint?.epoch ?? 0), usdPerDisplay: Number(Number(hint?.usdPerDisplay ?? 0).toFixed(12)) }])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
   );
-  return JSON.stringify({ balances, liveRows, priceHints, assetMeta });
+  return JSON.stringify({ balances, balancesLoaded: vmBalancesLoaded, balancesError: vmBalancesError,
+    liveRows, priceHints, assetMeta });
 }
 
 function hasRenderableMonitorData(){
@@ -7926,18 +8133,22 @@ async function refresh(){
   try {
     if (!monitorInitialDataReady) setMonitorLoading(true, 'Agent is preparing environment, onboarding the local operator, and loading recent logs...');
     try{
-      const [nextRuns, nextThrowsRows, nextResults] = await Promise.all([
-        fetchJson('/api/logs/runs', null, { timeoutMs: 6000 }),
-        fetchJson('/api/logs/throws', null, { timeoutMs: 6000 }),
-        fetchJson('/api/logs/results', null, { timeoutMs: 6000 })
+      const [nextRuns, nextThrowsRows, nextResults, nextHistorySummary] = await Promise.all([
+        fetchVersionedJson('/api/logs/runs?limit=100', { timeoutMs: 6000 }),
+        fetchVersionedJson('/api/logs/throws?limit=100', { timeoutMs: 6000 }),
+        fetchVersionedJson('/api/logs/results?limit=100', { timeoutMs: 6000 }),
+        fetchJson('/api/history/summary', null, { timeoutMs: 6000 })
       ]);
 
       runs = nextRuns;
       throwsRows = nextThrowsRows;
       results = nextResults;
+      historySummary = nextHistorySummary;
+      void refreshGameHistoryWindow();
+      prunePredictionArtifactCaches();
       processManagerRuntimeEvents(buildAssetMetaMap(), buildGamesIndex(buildAssetMetaMap()));
 
-      const nextFingerprint = buildRefreshFingerprint(runs, throwsRows, results, managerState);
+      const nextFingerprint = buildRefreshFingerprint(runs, throwsRows, results, managerState, historySummary);
       if (nextFingerprint !== lastRefreshFingerprint) {
         lastRefreshFingerprint = nextFingerprint;
         renderAll();
@@ -8003,6 +8214,51 @@ async function refresh(){
   const meta = document.getElementById('bankReserveSliderMeta');
   if (meta) meta.textContent = asset ? `${formatDisplayNumber(pct)}% of current ${symbolForAsset(asset, metaMap)} balance` : 'Set a configured asset to enable reserve slider control.';
   scheduleSave();
+}
+
+async function refreshGameHistoryWindow(){
+  if (gameHistoryRequestInFlight || Date.now() < gameHistoryRefreshAt) return;
+  gameHistoryRequestInFlight = true;
+  try {
+    // At the RC1 per-game cap of 11, 1,600 rows cover at least the latest 100 played games.
+    // The full-history per-game summary remains authoritative once the updated server is running.
+    const [nextThrows, nextResults] = await Promise.all([
+      fetchVersionedJson('/api/logs/throws?limit=1600', { timeoutMs: 15000 }),
+      fetchVersionedJson('/api/logs/results?limit=1600', { timeoutMs: 15000 })
+    ]);
+    gameHistoryThrows = Array.isArray(nextThrows) ? nextThrows : [];
+    gameHistoryResults = Array.isArray(nextResults) ? nextResults : [];
+    gameHistoryRefreshAt = Date.now() + 30000;
+    if (monitorInitialDataReady) renderAll();
+  } catch (error) {
+    gameHistoryRefreshAt = Date.now() + 5000;
+    console.warn('Games Review history window refresh failed', error);
+  } finally {
+    gameHistoryRequestInFlight = false;
+  }
+}
+
+async function refreshSelectedGameHistory(gameId){
+  const requestedGameId = cleanHex(gameId || '');
+  if (!requestedGameId) return;
+  selectedGameHistoryLoading = true;
+  selectedGameHistoryError = '';
+  try {
+    const history = await fetchJson(`/api/history/game?gameId=${encodeURIComponent(requestedGameId)}`, null, { timeoutMs: 15000 });
+    if (selectedGameId !== requestedGameId) return;
+    if (cleanHex(history?.gameId || '') !== requestedGameId ||
+        !Array.isArray(history?.runs) || !Array.isArray(history?.throws) || !Array.isArray(history?.results)) {
+      throw new Error('invalid game-history response');
+    }
+    selectedGameHistory = history;
+  } catch (error) {
+    if (selectedGameId === requestedGameId) selectedGameHistoryError = String(error?.message || error || 'unavailable');
+  } finally {
+    if (selectedGameId === requestedGameId) {
+      selectedGameHistoryLoading = false;
+      renderAll();
+    }
+  }
 }
 
 function syncInlineReserveSlider(sourceEl){
@@ -8083,7 +8339,14 @@ if (navStartupBtn) navStartupBtn.addEventListener('click', () => setMainView('st
 document.getElementById('navHonestBtn').addEventListener('click', () => setMainView('honest'));
 document.getElementById('navGamesBtn').addEventListener('click', () => setMainView('games'));
 document.getElementById('navBankBtn').addEventListener('click', () => setMainView('bank'));
-document.getElementById('bankOpenSettingsBtn').addEventListener('click', () => { requestMirrorTestTokens().catch(console.error); });
+document.getElementById('navPointsBtn').addEventListener('click', () => setMainView('points'));
+window.addEventListener('message', event => {
+  const frame = document.getElementById('pointsFrame');
+  if (event.origin !== window.location.origin || event.source !== frame?.contentWindow || event.data?.type !== 'agent1-points-height') return;
+  const height = Number(event.data.height);
+  if (Number.isFinite(height) && height >= 400 && height <= 12000) frame.style.height = `${Math.ceil(height + 8)}px`;
+});
+document.getElementById('bankOpenSettingsBtn').addEventListener('click', () => { showRc1FundingInstructions(); });
 document.getElementById('bankQuickSettingsBtn').addEventListener('click', openSettingsModal);
 document.getElementById('navResolvedBtn').addEventListener('click', () => setMainView('resolved'));
 const navSettingsBtn = document.getElementById('navSettingsBtn');
@@ -8095,7 +8358,7 @@ document.getElementById('welcomeModalClose').addEventListener('click', () => { d
 document.getElementById('welcomeDismissBtn').addEventListener('click', () => { dismissWelcomeModal(false).catch(console.error); });
 document.getElementById('welcomeOpenSettingsBtn').addEventListener('click', () => { dismissWelcomeModal(true).catch(console.error); });
 const welcomeAutoLocalBtn = document.getElementById('welcomeAutoLocalBtn');
-if (welcomeAutoLocalBtn) welcomeAutoLocalBtn.addEventListener('click', () => { const snapshot = collectOnboardingSnapshot(); const work = snapshot.managerAwake || snapshot.connectionReady ? sendManagerBootstrapPrompt() : autoDetectManagerLlm('any'); Promise.resolve(work).then(() => { if (!document.getElementById('welcomeModal')?.classList.contains('hidden')) renderWelcomeModal(); }).catch(console.error); });
+if (welcomeAutoLocalBtn) welcomeAutoLocalBtn.addEventListener('click', openManagerConnection);
 document.getElementById('welcomeModal').addEventListener('click', (e) => { if (e.target.id === 'welcomeModal') dismissWelcomeModal(false).catch(console.error); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!document.getElementById('welcomeModal')?.classList.contains('hidden')) { dismissWelcomeModal(false).catch(console.error); return; } closeSettingsModal(); closeKpiInfo(); closeBaselineResetModal(); } });
 document.querySelectorAll('[data-kpi-info]').forEach(btn => btn.addEventListener('click', () => openKpiInfo(btn.getAttribute('data-kpi-info'))));
@@ -8130,12 +8393,18 @@ document.getElementById("gamesPrev").addEventListener("click", () => {
   renderAll();
 });
 document.getElementById("gamesNext").addEventListener("click", () => {
-  const totalPages = Math.max(1, Math.ceil(buildGamesIndex(buildAssetMetaMap()).filter(shouldDisplayGameRow).length / GAMES_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(buildGamesIndex(buildAssetMetaMap()).filter(shouldDisplayGameRow).slice(0, gamesWindowLimit).length / GAMES_PAGE_SIZE));
   gamesPage = Math.min(totalPages - 1, gamesPage + 1);
+  renderAll();
+});
+document.getElementById("gamesWindowLimit").addEventListener("change", (event) => {
+  gamesWindowLimit = [25, 50, 100].includes(Number(event.target.value)) ? Number(event.target.value) : 100;
+  gamesPage = 0;
   renderAll();
 });
 document.getElementById("clearSelection").addEventListener("click", () => {
   selectedGameId = null;
+  selectedGameHistory = null;
   document.getElementById("selectionBadge").innerHTML = "VIEWING ALL GAMES";
   renderAll();
 });
@@ -8189,8 +8458,7 @@ document.addEventListener('click', (e) => {
   if (onboardingActionBtn) {
     e.preventDefault();
     const action = String(onboardingActionBtn.getAttribute('data-onboarding-action') || '').trim();
-    if (action === 'auto-local') autoDetectManagerLlm('any').catch(console.error);
-    if (action === 'auto-setup-local') autoSetupLocalManagerLlm().catch(console.error);
+    if (action === 'manager-connect') openManagerConnection();
     if (action === 'settings') openSettingsModal();
     if (action === 'welcome') maybeShowWelcomeModal(true);
     return;
@@ -8246,7 +8514,7 @@ document.addEventListener('click', (e) => {
   const bootstrapBtn = e.target.closest('[data-manager-bootstrap]');
   if (bootstrapBtn) { e.preventDefault(); sendManagerBootstrapPrompt().catch(console.error); return; }
   const autoLocalBtn = e.target.closest('[data-manager-auto-local]');
-  if (autoLocalBtn) { e.preventDefault(); autoDetectManagerLlm('any').catch(console.error); return; }
+  if (autoLocalBtn) { e.preventDefault(); autoDetectManagerLlm().catch(console.error); return; }
 });
 
 document.addEventListener('input', (e) => {
@@ -8307,5 +8575,9 @@ setMonitorLoading(true, 'Agent is preparing environment, loading settings, and w
 loadSettings().then(refresh).catch((err) => { console.error(err); setMonitorLoading(false); });
 setInterval(refresh, 2000);
 </script>
+<script src="/bank-wallet.js"></script>
+<script src="/agent-name.js"></script>
+<script src="/explorer-publishing.js"></script>
+<script src="/doctrine-guide.js"></script>
 </body>
 </html>

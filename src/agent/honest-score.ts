@@ -199,6 +199,7 @@ export function computeTemporalCertaintyBreach(params: {
 }
 
 function buildActualThrowMap(params: {
+  holeRules?: unknown;
   report: unknown;
   settledInput: SimRunInput;
 }): {
@@ -213,6 +214,8 @@ function buildActualThrowMap(params: {
   const outcomesRaw = Array.isArray(root.outcomes_raw) ? root.outcomes_raw : [];
   const priceLookup = buildPriceLookupFromGameReport(report);
   const settlement = buildScenarioSettlementView({
+    holeRules: params.holeRules,
+    canonicalPayouts: root.payouts_raw,
     input: {
       ...settledInput,
       throws: throwsRaw,
@@ -486,6 +489,7 @@ function buildTemporalHistory(params: {
 }
 
 export function buildPredictionRevealBundle(params: {
+  holeRules?: unknown;
   createdAt: string;
   sessionId: string;
   decisionId: string;
@@ -510,7 +514,7 @@ export function buildPredictionRevealBundle(params: {
     history = [],
   } = params;
   const snapshot = commit.snapshots[0];
-  const actual = buildActualThrowMap({ report, settledInput });
+  const actual = buildActualThrowMap({ report, settledInput, holeRules: params.holeRules });
   const botUserHex = cleanHex(botUser);
 
   const temporalHistory = buildTemporalHistory({

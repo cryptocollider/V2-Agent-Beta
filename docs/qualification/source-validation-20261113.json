@@ -1,0 +1,147 @@
+{
+  "schema": "agent1.rc1.source-validation.v1",
+  "status": "passed",
+  "sourceFingerprintSha256": "37a4e55603e080b200f9070a9acaa09931d55b50dc1b303fb84c71c3e55f1d25",
+  "version": "0.2.0-rc1.1",
+  "seedVersion": "2026-11-13.research.v2",
+  "checkedAt": "2026-11-14T18:45:42.736Z",
+  "platform": "win32",
+  "node": "v24.21.0",
+  "npm": "11.19.0",
+  "cleanChecks": {
+    "dependencyInstall": "npm ci --no-audit --no-fund passed",
+    "typecheck": "passed",
+    "build": "passed",
+    "tests": 335,
+    "passed": 335,
+    "failed": 0,
+    "manifestAndAssetChecks": {
+      "ok": true,
+      "version": "0.2.0-rc1.1",
+      "seedVersion": "2026-11-13.research.v2",
+      "manifestFiles": 298,
+      "wasmVerified": true,
+      "chartVerified": true,
+      "privateContentFindings": 0
+    },
+    "helpOnlyStart": "passed; no profile initialized",
+    "gitTreeExport": "passed with core.autocrlf=true; pinned fixture and manifest bytes preserved by .gitattributes"
+  },
+  "browser": {
+    "scope": "Headless signer-free monitor with empty isolated settings. No live account, claim, model inference, financial form submission or chain action. Backend data unavailable is expected in this fixture.",
+    "engine": "isolated Brave headless",
+    "uncaughtExceptions": 0,
+    "externalScriptRequests": 0,
+    "routes": [
+      {
+        "route": "/",
+        "status": 200
+      },
+      {
+        "route": "/points-clc.html",
+        "status": 200
+      },
+      {
+        "route": "/research.html",
+        "status": 200
+      },
+      {
+        "route": "/bank-wallet.js",
+        "status": 200
+      },
+      {
+        "route": "/doctrine-guide.js",
+        "status": 200
+      },
+      {
+        "route": "/assets/vendor/chart.umd.min.js",
+        "status": 200
+      },
+      {
+        "route": "/api/doctrines",
+        "status": 200
+      },
+      {
+        "route": "/api/manager/research",
+        "status": 200
+      }
+    ],
+    "viewports": [
+      {
+        "width": 1600,
+        "height": 1100,
+        "manager": {
+          "id": "managerDock",
+          "x": 734,
+          "y": 183,
+          "width": 820,
+          "height": 899,
+          "display": "flex"
+        }
+      },
+      {
+        "width": 800,
+        "height": 1000,
+        "manager": {
+          "id": "managerDock",
+          "x": 12,
+          "y": 408,
+          "width": 766,
+          "height": 580,
+          "display": "flex"
+        }
+      }
+    ],
+    "visualReview": "Expanded desktop manager panels are separate; compact drawer is scrollable and within the viewport. Bank and research pages/assets are bundled.",
+    "checkedAt": "2026-11-13T14:28:18.158Z"
+  },
+  "publicServiceCheck": {
+    "method": "GET only; no claim, wallet initialization, signing, conversion, withdrawal or live model inference",
+    "checks": [
+      {
+        "name": "gateway",
+        "http": 200,
+        "mode": "authenticated_client",
+        "signingEnabled": true
+      },
+      {
+        "name": "readiness",
+        "http": 503,
+        "ready": false,
+        "mode": "readiness_shadow",
+        "reasons": [
+          "Feed unavailable"
+        ],
+        "signingEnabled": false
+      },
+      {
+        "name": "faucet",
+        "http": 503,
+        "ready": false
+      }
+    ],
+    "checkedAt": "2026-11-13T14:28:18.158Z"
+  },
+  "reviewedUpstreamCommit": "44e448ab3640dae059804c00bb79b1e911817933",
+  "latestUpstreamCommit": "44e448ab3640dae059804c00bb79b1e911817933",
+  "upstreamStillMatches": true,
+  "remainingGates": [
+    "Fresh live external-faucet-to-play-to-password-withdrawal onboarding not executed; funding readiness/faucet currently held.",
+    "Node22 and Ubuntu checks are defined in CI; this local clean qualification used Windows and the Node version above.",
+    "No desktop installer qualification or GitHub publication was performed.",
+    "Experiment snapshots retain their recorded unsettled counts and are not proof of a superior doctrine."
+  ],
+  "documentationRevision": {
+    "checkedAt": "2026-11-14T18:45:42.736Z",
+    "originalReadmeCommit": "44e448ab3640dae059804c00bb79b1e911817933",
+    "originalImageIntroAndStructurePreserved": true,
+    "humanNoteRemoved": true,
+    "conciseDoctrineSummaryAdded": true,
+    "priorQualifiedSourceFingerprintSha256": "b9eef6a227f23de4b0310d47b71ae18ca5ec6ed82447c1e12c43b2c88d8551c4",
+    "runtimeSourceChanged": false,
+    "packagingChanges": [
+      ".gitattributes disables EOL conversion to preserve pinned bytes",
+      "release-policy includes and requires .gitattributes"
+    ]
+  }
+}

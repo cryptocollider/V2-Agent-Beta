@@ -99,3 +99,5 @@ export function shuffleCandidates<T>(arr: T[], seed = Date.now()): T[] {
 
   return out;
 }
+
+export function reserveManagerCandidateBudget(candidates:Candidate[],maximum:number):Candidate[]{return [...candidates.filter(c=>c.source==='manager'),...candidates.filter(c=>c.source!=='manager')].slice(0,Math.max(0,maximum));}

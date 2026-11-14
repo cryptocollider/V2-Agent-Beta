@@ -14,6 +14,7 @@ export type AgentPolicy = {
   maxGameExposureUsd?: number;
   minThrowUsd?: number;
   maxThrowUsd?: number;
+  maxSingleThrowBase?: string;
 
   smallBigRatio?: SmallBigRatioPolicy;
   avoidAllIn?: boolean;
@@ -27,6 +28,7 @@ export type AgentPolicy = {
   humanLearningMaxSeeds?: number;
 
   allowedAssets?: string[];
+  mapPriorities?: Record<string, number>;
   blockedAssets?: string[];
   keepAssets?: string[];
   disposeAssets?: string[];
@@ -47,5 +49,6 @@ export const DEFAULT_POLICY: AgentPolicy = {
   maxThrowsPerGame: 23,
   maxThrowsPerSession: 500,
   minMillisBetweenLiveThrows: 20000,
+  maxSingleThrowBase: "0",
   notes: [],
 };

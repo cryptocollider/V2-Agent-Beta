@@ -1,0 +1,34 @@
+﻿{
+  "name": "collider-agent-claw",
+  "version": "0.1.0",
+  "description": "Local Collider V2 manager plugin for auditing settings and controlling tactical overlays through the monitor API.",
+  "author": {
+    "name": "CJ"
+  },
+  "keywords": [
+    "collider",
+    "manager",
+    "monitor",
+    "simulation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Collider Agent Claw",
+    "shortDescription": "Audit and manage Collider through the local API.",
+    "longDescription": "Inspect exact settings implementation state, review eligibility diagnostics, supervise HPS v2 commit/reveal data, and manage tactical overlays or manager candidate programs without bypassing the deterministic sim core.",
+    "developerName": "CJ",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect Collider manager state and explain the exact blockers.",
+      "Review ranked candidates and summarize base vs adjusted predictions.",
+      "Create a manager candidate program with future scenarios for one game.",
+      "Review the latest HPS reveal coverage and explain which layers are actually active."
+    ],
+    "brandColor": "#0EA5E9"
+  }
+}
+

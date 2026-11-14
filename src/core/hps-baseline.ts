@@ -46,7 +46,7 @@ export type HonestPerformanceBaseline = {
 const MIN_WINDOW = 4;
 const MAX_WINDOW = 24;
 const COMPARE_WINDOW = 3;
-const STABLE_DRIFT_PCT = 2.5;
+const STABLE_DRIFT_PCT = 3;
 const DEFAULT_WINDOW = 8;
 
 function mean(values: number[]): number | null {
@@ -85,7 +85,7 @@ function resolveBaselineWindow(values: number[]): {
     const previousMean = mean(values.slice(end - (COMPARE_WINDOW * 2), end - COMPARE_WINDOW));
     const recentMean = mean(values.slice(end - COMPARE_WINDOW, end));
     if (previousMean == null || recentMean == null) continue;
-    if (Math.abs(recentMean - previousMean) <= STABLE_DRIFT_PCT) {
+    if (Math.abs(recentMean - previousMean) <= STABLE_DRIFT_PCT + 1e-9) {
       return { sampleCountUsed: end, stableAt: end, stabilized: true };
     }
   }

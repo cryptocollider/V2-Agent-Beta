@@ -1,5 +1,7 @@
 # Collider V2 Strategy Implications
 
+Updated doctrine seed: 2026-11-11.theses.v1. Read doctrine-packs.md for the competing theses. The historical rules below are reference defaults, not universal live facts; re-check the current game/map and canonical input. V1 intuition transfers as a question to test, not an assumed V2 edge.
+
 Use this reference when choosing settings, overlays, target games, or manager candidate sets.
 
 ## Start from what is actually controllable
@@ -34,6 +36,8 @@ No-winner policy changes whether `nobody wins` is harmless, defensive, or strate
 - `BiggestLoser` makes high-value losing exposure dangerous if the manager is not the likely beneficiary.
 - `BiggestBalls` can reward sheer throw size even when no winner appears.
 - `MostPlayed` rewards sustained game presence.
+
+RC1 MostPlayed ranks total submitted value, not number of throws; volume only helps when its actual economics justify the cost.
 
 That means the manager should evaluate a candidate in both winner and no-winner worlds when the board looks thin.
 

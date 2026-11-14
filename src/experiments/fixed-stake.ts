@@ -1,0 +1,1 @@
+export function fixedStakeMatches(candidate:{asset:string;amount:string},pin:{asset:string;amount:string}){return String(candidate.asset).replace(/^0x/,'').toLowerCase()===pin.asset.replace(/^0x/,'').toLowerCase()&&String(candidate.amount)===pin.amount;}

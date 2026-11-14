@@ -5,6 +5,7 @@ import {
 } from "./prediction-settlement.js";
 
 export type ExpectedThrowSummary = {
+  throwId?: string;
   payload?: {
     asset?: string;
     amount?: string;
@@ -51,6 +52,7 @@ export type MatchedResultSummary = {
     amount?: string;
     returned_by_asset?: Record<string, string>;
     returned_by_asset_exact?: boolean;
+    returned_by_asset_source?: "vm_integer_attribution" | "canonical_throw_payouts";
     value_usd_e8?: string;
     mass_usd?: number;
     hole_type?: number;
@@ -192,6 +194,7 @@ function chooseClosestExpectedThrow(
 
   let best: Record<string, any> | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
+  let tied = false;
 
   for (const t of pool) {
     const gaps = [
@@ -208,10 +211,13 @@ function chooseClosestExpectedThrow(
     if (score < bestScore) {
       bestScore = score;
       best = t;
+      tied = false;
+    } else if (score === bestScore) {
+      tied = true;
     }
   }
 
-  return bestScore <= 1.75 ? best : null;
+  return !tied && bestScore <= 1.75 ? best : null;
 }
 
 function assetHexFromUnknown(v: unknown): string {
@@ -272,6 +278,7 @@ export function matchReportToSubmittedThrow(
   botUserHex: string,
   expected?: ExpectedThrowSummary,
   settledInput?: SimRunInput,
+  holeRules?: unknown,
 ): MatchedResultSummary {
   const r = report as Record<string, any>;
   const userHex = cleanHex(botUserHex);
@@ -319,9 +326,16 @@ export function matchReportToSubmittedThrow(
 
   const userThrows = throwsRaw.filter((t) => sameHexish(t.user, userHex));
 
-  if (expectedPayload) {
+  if (expected?.throwId) {
+    matchedThrow = userThrows.find(t => sameHexish(t.id, expected.throwId)) ?? null;
+    if (matchedThrow && expectedPayload && (!sameHexish(matchedThrow.asset, expectedAsset) || str(matchedThrow.amount) !== expectedAmount)) matchedThrow = null;
+  } else if (expectedPayload) {
+    const identical = userThrows.filter(t => sameHexish(t.asset, expectedAsset) && str(t.amount) === expectedAmount
+      && approxSame(num(t.init_pose?.pos?.x), expectedX, 0.5) && approxSame(num(t.init_pose?.pos?.y), expectedY, 0.5)
+      && approxSame(num(t.init_pose?.angle_rad), expectedAngle, 0.01) && approxSame(num(t.init_linvel?.x), expectedVx, 1)
+      && approxSame(num(t.init_linvel?.y), expectedVy, 1) && approxSame(num(t.init_angvel), expectedAngVel, 0.5));
     matchedThrow =
-      userThrows.find((t) =>
+      (identical.length > 1 ? null : userThrows.find((t) =>
         sameHexish(t.asset, expectedAsset) &&
         str(t.amount) === expectedAmount &&
         approxSame(num(t.init_pose?.pos?.x), expectedX, 0.5) &&
@@ -330,14 +344,14 @@ export function matchReportToSubmittedThrow(
         approxSame(num(t.init_linvel?.x), expectedVx, 1.0) &&
         approxSame(num(t.init_linvel?.y), expectedVy, 1.0) &&
         approxSame(num(t.init_angvel), expectedAngVel, 0.5)
-      ) ?? chooseClosestExpectedThrow(userThrows, expectedPayload);
+      ) ?? chooseClosestExpectedThrow(userThrows, expectedPayload));
   }
 
-  if (!matchedThrow && !expectedPayload && userThrows.length === 1) {
+  if (!matchedThrow && !expected?.throwId && !expectedPayload && userThrows.length === 1) {
     matchedThrow = userThrows[0];
   }
 
-  const matchedThrowIdHex = matchedThrow ? bytesToHex(matchedThrow.id) : "";
+  const matchedThrowIdHex = matchedThrow ? assetHexFromUnknown(matchedThrow.id) : "";
   const matchedOutcome =
     outcomesRaw.find((o) => sameHexish(o.throw_id, matchedThrowIdHex)) ?? null;
 
@@ -356,6 +370,8 @@ export function matchReportToSubmittedThrow(
     try {
       const priceLookup = buildPriceLookupFromGameReport(report);
       const settlement = buildScenarioSettlementView({
+        holeRules,
+        canonicalPayouts: r.payouts_raw,
         input: {
           ...settledInput,
           throws: throwsRaw as ThrowRecord[],
@@ -511,6 +527,7 @@ export function matchReportToSubmittedThrow(
       amount: str(matchedThrow.amount),
       returned_by_asset: matchedOutputsByAsset,
       returned_by_asset_exact: exactMatchedOutputsByAsset != null || hasAnyPositiveBaseAmount(matchedOutputsByAsset),
+      returned_by_asset_source: exactMatchedOutputsByAsset != null ? "vm_integer_attribution" : "canonical_throw_payouts",
       value_usd_e8: str(matchedThrow.value_usd_e8),
       mass_usd: num(matchedThrow.mass_usd),
       hole_type: matchedOutcome ? num(matchedOutcome.hole_type) : undefined,

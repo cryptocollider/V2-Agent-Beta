@@ -19,6 +19,10 @@ For first-contact manager sessions, also read these startup references before to
 - `references/doctrine-packs.md`
 - `references/manager-reporting.md`
 
+## Public RC1 release boundary
+
+Use README.md and docs/RC1_QUICKSTART.md for the current public profile. Historical reference examples do not authorize random wallet identities, mirrorDeposit, an internal faucet, funding, conversion, withdrawal, tournament creation or a restart. The public start command is an explicit one-use test-grant opt-in; never reset or replay its journal. Each instance owns a distinct encrypted wallet and only one signer. Read pending flags and public receipts; never request or expose keys, passwords, salts or raw signed transactions. Proposals and a configured AI provider do not grant financial or cap-changing authority. Preserve user risk limits, explain waits, and reconcile confirmed non-throw wallet operations separately from accepted throw counts. Keep HPS, delivery ACK and actual retention separate.
+
 ## Workflow
 
 1. Read `GET /api/manager/state` first. Treat it as the source of truth for `settings`, `runtime`, `onboarding`, resolved `profile`, `control`, `audit`, `overlay`, `managerCandidateSet`, `latestEligibility`, `eligibilityCode`, `latestCandidates`, and the lightweight `honestPerformance` summary. Inspect `onboarding.startCommand`, `onboarding.starterQuestion`, and `onboarding.starterStyles` before presenting first-contact guidance to the human.

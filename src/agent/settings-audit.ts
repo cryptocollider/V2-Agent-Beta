@@ -20,6 +20,7 @@ export type SettingsAuditKey = keyof Pick<
   | "riskMode"
   | "copySlammerWhenSameHoleType"
   | "allowedAssets"
+  | "mapPriorities"
   | "blockedAssets"
   | "reserveBalanceBase"
   | "targetBalanceUsd"
@@ -46,6 +47,11 @@ export type SettingsAuditReport = {
 type AuditTemplate = Omit<SettingsAuditEntry, "currentValue">;
 
 const AUDIT_TEMPLATES: AuditTemplate[] = [
+  {
+    key: "mapPriorities", state: "implemented",
+    summary: "Map-ID priorities 1–10 rank eligible games first (10 highest, default 5); equal priorities retain fair rotation and all risk gates.",
+    evidence: ["Games Review map-priority control", "persisted/runtime settings", "evaluateGamesForEligibility"], gaps: [],
+  },
   {
     key: "asset",
     state: "implemented",

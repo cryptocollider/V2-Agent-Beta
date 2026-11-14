@@ -31,7 +31,10 @@ export async function invokeVeniceProvider(request: ManagerProviderRequest): Pro
         type: "json_object",
       },
       stream: false,
+      max_tokens:request.config.maxOutputTokens??768,
     }),
+    redirect:"error",
+    signal:AbortSignal.timeout(45000),
   });
 
   const json = await response.json().catch(() => null);

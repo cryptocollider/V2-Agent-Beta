@@ -1,3 +1,4 @@
+export type ManagerAdviceEvidence={policyId:string|null;proposed:number;eligible:number;simulated:number;scoreAffected:number;selectedChanged:boolean};
 import crypto from "node:crypto";
 import type { PredictionSummary } from "../agent/prediction-log.js";
 import { cleanHex } from "../agent/eligibility.js";
@@ -30,6 +31,7 @@ export type ManagerTacticalOverlay = {
   pnlBiasUsd?: number;
   winnerValuePctBias?: number;
   candidateScoreDeltas?: Record<string, number>;
+  candidateSet?: ManagerCandidateSet;
   expiresAt?: string | null;
   notes?: string[];
 };
@@ -104,6 +106,8 @@ export type RankedCandidateContext = {
     active: boolean;
     scoreDelta: number;
     adjustments: OverlayAdjustment[];
+    policyId?: string | null;
+    withoutOverlayWinnerHash?: string | null;
   };
 };
 
@@ -114,7 +118,9 @@ export type LatestCandidateContext = {
   winnerCandidateHash: string | null;
   overlay: ManagerTacticalOverlay | null;
   managerCandidateSet: ManagerCandidateSet | null;
+  managerAdvice?: ManagerAdviceEvidence;
   candidates: RankedCandidateContext[];
+  researchCandidates?: RankedCandidateContext[];
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -163,6 +169,7 @@ export function normalizeManagerTacticalOverlay(input: Partial<ManagerTacticalOv
     pnlBiasUsd: Number.isFinite(Number(input.pnlBiasUsd)) ? Number(input.pnlBiasUsd) : 0,
     winnerValuePctBias: Number.isFinite(Number(input.winnerValuePctBias)) ? Number(input.winnerValuePctBias) : 0,
     candidateScoreDeltas: { ...(input.candidateScoreDeltas ?? {}) },
+    candidateSet: input.candidateSet ? normalizeManagerCandidateSet(input.candidateSet) : undefined,
     expiresAt: input.expiresAt ?? null,
     notes: cleanNotes(input.notes),
   };

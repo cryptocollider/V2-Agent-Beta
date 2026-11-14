@@ -1,0 +1,3 @@
+# Preserve exact release bytes, including canonical JSON fixtures and hash manifests.
+# Disabling EOL conversion leaves normal text diffs enabled.
+* -text

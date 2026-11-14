@@ -30,6 +30,7 @@ export async function invokeOpenAiProvider(request: ManagerProviderRequest): Pro
     },
     body: JSON.stringify({
       model: request.config.model,
+      max_output_tokens:request.config.maxOutputTokens??768,
       input: [
         { role: "system", content: request.systemPrompt },
         ...request.messages.map((message) => ({
@@ -38,6 +39,8 @@ export async function invokeOpenAiProvider(request: ManagerProviderRequest): Pro
         })),
       ],
     }),
+    redirect:"error",
+    signal:AbortSignal.timeout(45000),
   });
 
   const json = await response.json().catch(() => null);

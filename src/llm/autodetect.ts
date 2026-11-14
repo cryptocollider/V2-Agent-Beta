@@ -116,8 +116,10 @@ export async function autoDetectLocalManagerProvider(prefer: PreferMode = "any")
     }
   }
 
-  const localCandidates = await detectLocalCompat();
-  if (localCandidates.length) candidates.push(...localCandidates);
+  if (prefer !== "ollama") {
+    const localCandidates = await detectLocalCompat();
+    if (localCandidates.length) candidates.push(...localCandidates);
+  }
 
   return {
     selected: selectCandidate(candidates, prefer),

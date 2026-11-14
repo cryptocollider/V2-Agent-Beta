@@ -1,3 +1,5 @@
+> Current RC1 evidence reporting: use the versioned doctrine-packs.md and docs/DOCTRINE_STARTERS.md for current behavior. Preserve explicit human limits. Record proposed/simulated/selected/accepted/settled separately, keep pending outcomes unknown, and distinguish delivery ACK, verified HPS and actual retention. Older examples below are starting questions, not current deployment instructions or proof of an edge.
+
 # Manager Reporting and Human Collaboration
 
 Use this reference when the manager needs to report progress, explain strategy, or involve the human in decisions.

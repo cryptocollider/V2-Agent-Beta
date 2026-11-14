@@ -1,3 +1,6 @@
+import {bindCandidateAdvice} from '../strategy/advice-binding.js';
+import {normalizeManagerTacticalOverlay} from '../strategy/tactical-overlay.js';
+import {doctrinePrompt,doctrineIntent} from '../core/doctrine-knowledge.js';
 import { invokeManagerProvider } from "./registry.js";
 import {
   managerLlmProviderNeedsApiKey,
@@ -105,14 +108,16 @@ function compactManagerState(snapshot: ManagerStateSnapshotForLlm): Record<strin
       predictedPnlUsd: candidate?.prediction?.pnlUsd ?? candidate?.basePrediction?.pnlUsd ?? null,
       adjustedScore: candidate?.adjustedScore ?? null,
       baseScore: candidate?.baseScore ?? null,
-      amount: candidate?.payload?.amount ?? null,
-      asset: candidate?.payload?.asset ?? null,
+      amount: candidate?.candidate?.amount ?? candidate?.payload?.amount ?? candidate?.amount ?? null,
+      asset: candidate?.candidate?.asset ?? candidate?.payload?.asset ?? candidate?.asset ?? null,
+      control: candidate?.candidate ? Object.fromEntries(['x','y','angleDeg','speedPct','spinPct','source'].map(k=>[k,candidate.candidate[k]])) : null,
     }))
     : [];
   const unifiedMaxThrowUsd = settings.maxThrowUsd ?? settings.maxSingleThrowUsd ?? null;
   return {
     generatedAt: snapshot.generatedAt,
-    profile: snapshot.profile ?? null,
+    profile: snapshot.profile ? Object.fromEntries(['doctrinePack','doctrineLabel','doctrineSummary','goalWeights','goalWeightsPct','effective','knowledgeVersion'].map(k=>[k,snapshot.profile?.[k]??null])) : null,
+    doctrineIntent: (()=>{const eligibility=snapshot.latestEligibility as any,game=eligibility?.perGame?.find((g:any)=>g.gameId===eligibility.selectedGameId);return doctrineIntent(snapshot.profile?.doctrinePack??settings.doctrinePack,{ownThrows:game?.ownAcceptedThrows,maxThrowsPerGame:Number(settings.maxThrowsPerGame)||null,gameOpen:game?.status===0,projectedGamePnlUsd:game?.gameId===(latestCandidates as any)?.gameId?(latestCandidates as any)?.candidates?.[0]?.basePrediction?.pnlUsd??null:null});})(),
     onboarding: snapshot.onboarding ?? null,
     control: snapshot.control ?? null,
     settings: {
@@ -155,13 +160,28 @@ function compactManagerState(snapshot: ManagerStateSnapshotForLlm): Record<strin
 }
 
 export function parseManagerChatResponse(rawText: string): ParsedManagerChatResponse {
-  const parsed = JSON.parse(extractJsonObject(rawText)) as Record<string, unknown>;
-  const reply = String(parsed.reply ?? parsed.message ?? parsed.response ?? "").trim();
-  if (!reply) throw new Error("Manager response JSON is missing a reply.");
+  const raw = String(rawText ?? "").trim();
+  if (!raw) throw new Error("Empty manager response.");
+
+  try {
+    const parsed = JSON.parse(extractJsonObject(raw)) as Record<string, unknown>;
+    const reply = String(parsed.reply ?? parsed.message ?? parsed.response ?? "").trim();
+    if (reply) {
+      return {
+        reply,
+        summary: String(parsed.summary ?? "").trim() || null,
+        proposals: normalizeProposals(parsed.proposals),
+      };
+    }
+  } catch {
+    // Some local and OpenAI-compatible providers ignore JSON response guidance.
+    // Their text is still useful, but unstructured text must never create actions.
+  }
+
   return {
-    reply,
-    summary: String(parsed.summary ?? "").trim() || null,
-    proposals: normalizeProposals(parsed.proposals),
+    reply: raw,
+    summary: null,
+    proposals: [],
   };
 }
 
@@ -189,27 +209,27 @@ function toPersistedActions(proposals: ManagerChatProposal[]): ManagerLlmAction[
   }));
 }
 
+export function bindManagerProposal(proposal:ManagerChatProposal,snapshot:ManagerStateSnapshotForLlm):ManagerChatProposal {if(proposal.kind!=='overlay'||!proposal.payload?.candidateScoreDeltas)return proposal;const rows=(snapshot.latestCandidates as any)?.candidates??[];const candidates=rows.map((c:any)=>({...c,...(c.candidate??{}),candidateHash:c.candidateHash}));const original=proposal.payload;const normalized=normalizeManagerTacticalOverlay({...original,id:'manager-advice',updatedAt:new Date().toISOString(),candidateSet:undefined});const bound=bindCandidateAdvice(normalized,candidates);return {...proposal,payload:{...original,candidateScoreDeltas:bound.candidateScoreDeltas,candidateSet:bound.candidateSet}};}
+
+export function buildManagerSystemPrompt(snapshot:ManagerStateSnapshotForLlm):string{return [buildSupportSeed(),doctrinePrompt(snapshot.profile?.doctrinePack??snapshot.settings?.doctrinePack),'Current Agent 1 manager snapshot (JSON):',JSON.stringify(compactManagerState(snapshot),null,2)].join('\n');}
+
 export async function runManagerConversation(args: {
   provider: LlmProviderId;
   config: ManagerLlmConfig;
   history: ManagerLlmChatMessage[];
   snapshot: ManagerStateSnapshotForLlm;
 }): Promise<{ reply: string; summary: string | null; actions: ManagerLlmAction[] }> {
-  const providerConfig = args.config.providers[args.provider];
+  const configured = args.config.providers[args.provider];
+  const providerConfig = {...configured,apiKey:configured.apiKey||(configured.apiKeyEnv?process.env[configured.apiKeyEnv]??null:null)};
   if (!providerConfig.enabled) throw new Error(`${args.provider} is disabled.`);
   if (managerLlmProviderNeedsApiKey(args.provider) && !providerConfig.apiKey) {
     throw new Error(`${args.provider} is missing an API key.`);
   }
   if (!providerConfig.model) throw new Error(`${args.provider} is missing a model id.`);
 
-  const systemPrompt = [
-    buildSupportSeed(),
-    "",
-    "Current Agent 1 manager snapshot (JSON):",
-    JSON.stringify(compactManagerState(args.snapshot), null, 2),
-  ].join("\n");
+  const systemPrompt = buildManagerSystemPrompt(args.snapshot);
 
-  const providerResult = await invokeManagerProvider(args.provider, {
+  const providerCall = invokeManagerProvider(args.provider, {
     config: providerConfig,
     systemPrompt,
     messages: args.history.slice(-10).map((message) => ({
@@ -217,11 +237,27 @@ export async function runManagerConversation(args: {
       content: message.content,
     })),
   });
+  const providerResult = await new Promise<Awaited<typeof providerCall>>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${args.provider} manager request timed out after 120 seconds.`)),
+      120_000,
+    );
+    providerCall.then(
+      (result) => {
+        clearTimeout(timer);
+        resolve(result);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 
   const parsed = parseManagerChatResponse(providerResult.text);
   return {
     reply: parsed.reply,
     summary: parsed.summary,
-    actions: toPersistedActions(parsed.proposals),
+    actions: toPersistedActions(parsed.proposals.map(p=>bindManagerProposal(p,args.snapshot))),
   };
 }

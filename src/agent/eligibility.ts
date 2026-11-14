@@ -1,9 +1,11 @@
 import type { GameListItem, SimRunInput } from "../collider/types.js";
-import { defaultDecimalsForAsset } from "../core/assets-meta.js";
-import { BETA_USDC_ASSET } from "../core/settings.js";
+import { decimalIntegerToApproxNumber } from "../core/exact.js";
+import { canonicalMapId, mapPriority } from "../core/map-priority.js";
+import { canonicalValueE8, minimumAmountForUsd } from "../core/price-basis.js";
 import type { AgentPolicy } from "../policy/schema.js";
 
 export type EligibilityReasonCode =
+  | "fixed_stake_mismatch"
   | "cooldown"
   | "per_game_cap"
   | "session_cap"
@@ -17,6 +19,7 @@ export type EligibilityReasonCode =
   | "below_game_min_throw"
   | "below_min_throw_usd"
   | "above_max_throw_usd"
+  | "above_max_throw_base"
   | "above_max_single_throw_usd"
   | "above_game_exposure"
   | "no_candidates_after_filter"
@@ -34,7 +37,12 @@ export type SessionEligibilityContext = {
 };
 
 export type GameEligibilityEntry = {
+  ownAcceptedThrows?: number|null;
+  remainingThrowSlots?: number|null;
   gameId: string;
+  mapId?: string | null;
+  gameName?: string;
+  mapPriority?: number;
   eligible: boolean;
   reasons: EligibilityReasonCode[];
   throws: number;
@@ -117,6 +125,13 @@ export function parseStakeUsdLike(raw: string | number | null | undefined): numb
   return Math.abs(n) >= 100000 ? n / 1e8 : n;
 }
 
+export function parseUsdE8(raw: string | number | null | undefined): number {
+  const value = String(raw ?? "").trim();
+  if (!/^\d+$/.test(value)) return Number.POSITIVE_INFINITY;
+  const units = Number(value);
+  return Number.isFinite(units) ? units / 1e8 : Number.POSITIVE_INFINITY;
+}
+
 function findBalanceBase(balances: Record<string, string> | undefined, assetHex: string): bigint {
   if (!balances) return 0n;
   const normalized = cleanHex(assetHex);
@@ -146,8 +161,8 @@ function estimateRecordedThrowUsd(
   simInput: SimRunInput,
   priceHintsUsdPerBase?: Record<string, number>,
 ): number | null {
-  const rawUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0);
-  if (Number.isFinite(rawUsd) && rawUsd > 0) return rawUsd / 1e8;
+  const rawUsd = decimalIntegerToApproxNumber((throwRecord as { value_usd_e8?: unknown }).value_usd_e8);
+  if (rawUsd != null && rawUsd > 0) return rawUsd / 1e8;
   const amount = String((throwRecord as { amount?: unknown }).amount ?? "0");
   const assetHex = normalizeAssetHex((throwRecord as { asset?: unknown }).asset);
   return assetHex ? estimateCandidateUsd(amount, assetHex, simInput, priceHintsUsdPerBase) : null;
@@ -172,35 +187,25 @@ function hintedUsdPerBase(priceHintsUsdPerBase: Record<string, number> | undefin
   return Number.isFinite(hinted) && hinted > 0 ? hinted : null;
 }
 
-function simAssetDecimals(simInput: SimRunInput, assetHex: string): number {
-  const normalized = cleanHex(assetHex);
-  const match = (simInput.assets || []).find((asset) => normalizeAssetHex((asset as { asset?: unknown }).asset) === normalized);
-  const decimals = Number((match as { decimals?: unknown } | undefined)?.decimals);
-  return Number.isFinite(decimals) && decimals >= 0 ? decimals : defaultDecimalsForAsset(normalized);
-}
-
-function stableAssetUsdPerBaseFallback(simInput: SimRunInput, assetHex: string): number | null {
-  const normalized = cleanHex(assetHex);
-  if (normalized !== cleanHex(BETA_USDC_ASSET)) return null;
-  const perBase = 1 / Math.pow(10, simAssetDecimals(simInput, normalized));
-  return Number.isFinite(perBase) && perBase > 0 ? perBase : null;
-}
-
 export function estimateAssetUsdPerBaseUnit(
   simInput: SimRunInput,
   assetHex: string,
   priceHintsUsdPerBase?: Record<string, number>,
 ): number | null {
   const target = cleanHex(assetHex);
+  // A supplied map is an authoritative current-price allowlist, including an empty one.
+  // Only callers without a live-price source may infer prices from historical throws.
+  if (priceHintsUsdPerBase !== undefined) return hintedUsdPerBase(priceHintsUsdPerBase, target);
   let bestEpoch = -1;
   let bestPerBase: number | null = null;
 
   for (const throwRecord of simInput.throws || []) {
     if (normalizeAssetHex((throwRecord as { asset?: unknown }).asset) !== target) continue;
     const epoch = Number((throwRecord as { price_epoch?: unknown }).price_epoch ?? 0);
-    const amountBase = Number((throwRecord as { amount?: unknown }).amount ?? 0);
-    const valueUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0) / 1e8;
-    if (!(amountBase > 0) || !Number.isFinite(valueUsd) || valueUsd <= 0) continue;
+    const amountBase = decimalIntegerToApproxNumber((throwRecord as { amount?: unknown }).amount);
+    const valueUsdE8 = decimalIntegerToApproxNumber((throwRecord as { value_usd_e8?: unknown }).value_usd_e8);
+    const valueUsd = valueUsdE8 == null ? null : valueUsdE8 / 1e8;
+    if (amountBase == null || !(amountBase > 0) || valueUsd == null || valueUsd <= 0) continue;
     if (epoch >= bestEpoch) {
       bestEpoch = epoch;
       bestPerBase = valueUsd / amountBase;
@@ -211,10 +216,7 @@ export function estimateAssetUsdPerBaseUnit(
     return bestPerBase;
   }
 
-  const hinted = hintedUsdPerBase(priceHintsUsdPerBase, target);
-  if (hinted != null) return hinted;
-
-  return stableAssetUsdPerBaseFallback(simInput, target);
+  return hintedUsdPerBase(priceHintsUsdPerBase, target);
 }
 
 export function estimateCandidateUsd(
@@ -223,9 +225,11 @@ export function estimateCandidateUsd(
   simInput: SimRunInput,
   priceHintsUsdPerBase?: Record<string, number>,
 ): number | null {
+  const exact = canonicalValueE8(amountBase, priceHintsUsdPerBase, assetHex);
+  if (exact != null) return Number(exact) / 1e8;
   const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex, priceHintsUsdPerBase);
-  const amount = Number(amountBase || 0);
-  if (perBase == null || !Number.isFinite(amount)) return null;
+  const amount = decimalIntegerToApproxNumber(amountBase);
+  if (perBase == null || amount == null) return null;
   return amount * perBase;
 }
 
@@ -235,6 +239,8 @@ export function estimateBaseAmountForUsd(
   usd: number,
   priceHintsUsdPerBase?: Record<string, number>,
 ): string | null {
+  const exact = minimumAmountForUsd(usd, priceHintsUsdPerBase, assetHex);
+  if (exact != null) return exact;
   const perBase = estimateAssetUsdPerBaseUnit(simInput, assetHex, priceHintsUsdPerBase);
   if (perBase == null || perBase <= 0 || !Number.isFinite(usd) || usd <= 0) return null;
   const out = Math.max(1, Math.round(usd / perBase));
@@ -303,8 +309,15 @@ export function evaluateGamesForEligibility(
     if (policy.minGameStakeUsd != null && stakeUsd < policy.minGameStakeUsd) {
       reasons.push("below_min_game_stake");
     }
+    const maxThrowUsd = resolveUnifiedMaxThrowUsd(policy);
+    if (maxThrowUsd != null && parseUsdE8(game.throw_min_value) > maxThrowUsd) reasons.push("above_max_throw_usd");
     return {
       gameId: game.game_id,
+      ownAcceptedThrows: sessionContext ? (sessionContext.sessionThrowCounts?.[game.game_id]??0) : null,
+      remainingThrowSlots: sessionContext?.maxThrowsPerGame!=null ? Math.max(0,sessionContext.maxThrowsPerGame-(sessionContext.sessionThrowCounts?.[game.game_id]??0)) : null,
+      mapId: canonicalMapId(game.map_id),
+      gameName: game.name,
+      mapPriority: mapPriority(game.map_id, policy.mapPriorities),
       eligible: reasons.length === 0,
       reasons,
       throws: game.throws,
@@ -321,6 +334,8 @@ export function evaluateGamesForEligibility(
   });
 
   const selectedGame = eligibleGames.sort((a, b) => {
+    const priorityDifference = mapPriority(b.map_id, policy.mapPriorities) - mapPriority(a.map_id, policy.mapPriorities);
+    if (priorityDifference) return priorityDifference;
     const aTouch = sessionContext?.recentGameTouches?.[a.game_id] ?? 0;
     const bTouch = sessionContext?.recentGameTouches?.[b.game_id] ?? 0;
     if (aTouch !== bTouch) return aTouch - bTouch;
@@ -355,8 +370,9 @@ export function buildAssetPlanningResult(params: {
   const disposeAssets = new Set(normalizeAssetList(policy.disposeAssets));
 
   const reserveBase = parseBaseAmount(policy.reserveBalanceBase || "0");
+  const maxSingleThrowBase = parseBaseAmount(policy.maxSingleThrowBase || "0");
   const fallbackUsd = estimateCandidateUsd(defaultAmount, defaultAsset, simInput, priceHintsUsdPerBase);
-  const gameMinThrowUsd = chosenGame ? parseStakeUsdLike(chosenGame.throw_min_value) : null;
+  const gameMinThrowUsd = chosenGame ? parseUsdE8(chosenGame.throw_min_value) : null;
   const { targets: requestedUsdTargets, reasons: targetReasons } = buildUsdTargets(policy, fallbackUsd, gameMinThrowUsd);
 
   const candidateUniverse = new Set<string>([cleanHex(defaultAsset)]);
@@ -392,6 +408,10 @@ export function buildAssetPlanningResult(params: {
     const usableAmounts: string[] = [];
     for (const amount of generatedAmounts) {
       const amountBase = parseBaseAmount(amount);
+      if (maxSingleThrowBase > 0n && amountBase > maxSingleThrowBase) {
+        reasons.push("above_max_throw_base");
+        continue;
+      }
       if (balanceBase - amountBase >= reserveBase) {
         usableAmounts.push(amount);
         if (allowed && !blocked) {
@@ -449,6 +469,9 @@ export function buildAssetPlanningResult(params: {
   if (assetAmountPairs.length === 0 && entries.some((entry) => entry.reasons.includes("below_game_min_throw"))) {
     globalReasons.push("below_game_min_throw");
   }
+  if (assetAmountPairs.length === 0 && entries.some((entry) => entry.reasons.includes("above_max_throw_base"))) {
+    globalReasons.push("above_max_throw_base");
+  }
 
   return {
     entries,
@@ -479,11 +502,13 @@ export function getCandidateFilterReasons(params: {
   const balanceBase = findBalanceBase(balances, candidateAsset);
   const reserveBase = parseBaseAmount(policy.reserveBalanceBase || "0");
   const amountBase = parseBaseAmount(candidate.amount);
+  const maxSingleThrowBase = parseBaseAmount(policy.maxSingleThrowBase || "0");
 
   if (balanceBase <= reserveBase) reasons.push("reserve_balance");
   if (balanceBase - amountBase < reserveBase) reasons.push("no_balance_for_amounts");
+  if (maxSingleThrowBase > 0n && amountBase > maxSingleThrowBase) reasons.push("above_max_throw_base");
 
-  const gameMinThrowUsd = parseStakeUsdLike(chosenGame.throw_min_value);
+  const gameMinThrowUsd = parseUsdE8(chosenGame.throw_min_value);
 
   const candidateUsd = estimateCandidateUsd(candidate.amount, candidate.asset, simInput, priceHintsUsdPerBase);
   if (candidateUsd == null) {
@@ -519,6 +544,11 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   const reasons = new Set(snapshot.globalReasons);
   const counts = snapshot.candidateFilterSummary.reasonCounts;
 
+  if (
+    snapshot.candidateFilterSummary.totalEligibleCandidates > 0
+    && snapshot.candidateFilterSummary.plannedCandidates > 0
+  ) return "READY";
+
   if (reasons.has("target_balance")) return "TARGET/BAL";
   if (reasons.has("target_profit")) return "TARGET/PNL";
   if (reasons.has("session_cap")) return "MAX/S";
@@ -527,7 +557,7 @@ export function buildEligibilityCompactCode(snapshot: LatestEligibilitySnapshot 
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("per_game_cap"))) return "MAX/G";
   if (reasons.has("reserve_balance") || reasons.has("no_balance_for_amounts")) return "NO-CAND/BAL";
   if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd || counts.above_max_single_throw_usd) return "NO-CAND/MIN";
-  if (counts.above_game_exposure) return "NO-CAND/RISK";
+  if (reasons.has("above_max_throw_base") || counts.above_max_throw_base || counts.above_game_exposure) return "NO-CAND/RISK";
   if (reasons.has("planner_failure")) return "NO-CAND/PLAN";
   if (reasons.has("search_budget_stop")) return "NO-CAND/SEARCH";
   if (reasons.has("missing_price_basis") || reasons.has("asset_blocked") || reasons.has("asset_not_allowed")) return "NO-CAND/FILTER";

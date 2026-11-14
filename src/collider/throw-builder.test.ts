@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { AgentControlThrow, QueueScenario, SimRunInput } from "./types.js";
 import { buildSyntheticThrowRecord } from "./throw-builder.js";
+import { attachExactPriceBases } from "../core/price-basis.js";
 
 const assetUsdc = "01".repeat(32);
 const assetAvax = "05".repeat(32);
@@ -138,4 +139,21 @@ test("synthetic throw valuation uses explicit price hints when no same-asset thr
 
   assert.equal(String(synthetic.value_usd_e8), "200000000");
   assert.equal(Number(synthetic.mass_usd), 2.3);
+});
+
+test("explicit current-price allowlist cannot fall back to an old template when a feed is unusable", () => {
+  const input = makeSimInput();
+  const control: AgentControlThrow = { x: 10, y: 10, angleDeg: 0, speedPct: 50, spinPct: 0,
+    asset: assetAvax, amount: "125000000000000000" };
+  assert.throws(() => buildSyntheticThrowRecord(gameId, control, input, botUser, scenario, {}), /usable current asset price/);
+  const preview = buildSyntheticThrowRecord(gameId, control, input, botUser, scenario, { [assetAvax]: 8e-18 });
+  assert.equal(preview.value_usd_e8, "100000000");
+});
+
+test("live oracle valuation floors USD-e8 exactly and pins its epoch at the $10 boundary",()=>{
+  const input=makeSimInput(),hints=attachExactPriceBases({[assetAvax]:1.8e-15},{[assetAvax]:{priceE8:'180000000000',decimals:18,epoch:7}});
+  const control:AgentControlThrow={x:10,y:10,angleDeg:0,speedPct:50,spinPct:0,asset:assetAvax,amount:'5555555555555555'};
+  assert.equal(buildSyntheticThrowRecord(gameId,control,input,botUser,scenario,hints).value_usd_e8,'999999999');
+  const exact=buildSyntheticThrowRecord(gameId,{...control,amount:'5555555555555556'},input,botUser,scenario,hints);
+  assert.equal(exact.value_usd_e8,'1000000000');assert.equal(exact.price_epoch,7);
 });

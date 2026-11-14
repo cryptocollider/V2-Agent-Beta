@@ -36,7 +36,12 @@ export async function invokeOpenRouterProvider(request: ManagerProviderRequest):
         })),
       ],
       stream: false,
+      max_tokens: request.config.maxOutputTokens??768,
+      temperature:0.2,
+      ...((request.config.model.endsWith(":free")||request.config.model==="openrouter/free")?{provider:{allow_fallbacks:false,max_price:{prompt:0,completion:0}}}:{}),
     }),
+    redirect:"error",
+    signal:AbortSignal.timeout(45000),
   });
 
   const json = await response.json().catch(() => null);

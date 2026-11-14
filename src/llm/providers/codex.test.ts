@@ -1,0 +1,23 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {writeFile,access} from "node:fs/promises";
+import path from "node:path";
+import {invokeCodexProvider,codexManagerArgs,type CodexRunner} from "./codex.js";
+import {managerLlmProviderNeedsApiKey,type ManagerProviderRequest} from "../types.js";
+const request:ManagerProviderRequest={config:{enabled:true,model:"default",endpointUrl:"codex://chatgpt",apiKey:null},systemPrompt:"Public snapshot only",messages:[{role:"user",content:"Choose one bounded overlay."}]};
+test("Codex manager uses ChatGPT auth, strict JSON and no-tool invocation without an API key",async()=>{
+  let dir="",calls=0;const runner:CodexRunner=async(_exe,args,cwd,input)=>{calls++;dir=cwd;if(args[0]==="login")return {code:0,stdout:"Logged in using ChatGPT",stderr:""};assert.ok(input.includes("Do not call tools"));assert.ok(args.includes("--ignore-user-config"));assert.ok(args.includes("read-only"));assert.ok(!args.includes("--model"));for(const feature of ["shell_tool","unified_exec","apps","multi_agent"])assert.ok(args.includes(feature));await writeFile(path.join(cwd,"response.json"),JSON.stringify({reply:"Ready",summary:"One advice",proposals:[{kind:"overlay",title:"Preference",why:"Goal",payloadJson:'{"candidateScoreDeltas":{"abc":100}}'}]}));return {code:0,stdout:JSON.stringify({type:"turn.completed",usage:{input_tokens:100,output_tokens:50}}),stderr:""};};
+  const r=await invokeCodexProvider(request,runner);assert.equal(calls,2);assert.equal(r.provider,"codex");assert.equal(r.usage?.authMode,"chatgpt");assert.equal(JSON.parse(r.text).proposals[0].payload.candidateScoreDeltas.abc,100);assert.equal(managerLlmProviderNeedsApiKey("codex"),false);await assert.rejects(access(dir));
+});
+test("API-key Codex authentication is rejected without invoking inference or paid fallback",async()=>{
+  let calls=0;await assert.rejects(invokeCodexProvider(request,async()=>{calls++;return {code:0,stdout:"Logged in using an API key",stderr:""};}),/ChatGPT sign-in/);assert.equal(calls,1);
+});
+test("manager rejects a CLI turn that attempts tools",async()=>{
+  await assert.rejects(invokeCodexProvider(request,async(_e,args,cwd)=>{if(args[0]==="login")return {code:0,stdout:"Logged in using ChatGPT",stderr:""};await writeFile(path.join(cwd,"response.json"),'{}');return {code:0,stdout:JSON.stringify({type:"item.completed",item:{type:"command_execution"}}),stderr:""};}),/attempted tools/);
+});
+test("Codex manager input is bounded and never starts inference for an oversized snapshot",async()=>{
+  let calls=0;await assert.rejects(invokeCodexProvider({...request,systemPrompt:"x".repeat(49000)},async()=>{calls++;return {code:0,stdout:"Logged in using ChatGPT",stderr:""};}),/input exceeds/);assert.equal(calls,1);assert.ok(codexManagerArgs('C:/temp',"default").includes('project_doc_max_bytes=0'));
+});
+
+test("temporary cleanup failure preserves valid inference and never masks the original inference failure",async()=>{let left="",options:any;const runner:CodexRunner=async(_e,args,cwd)=>{left=cwd;if(args[0]==="login")return {code:0,stdout:"Logged in using ChatGPT",stderr:""};await writeFile(path.join(cwd,"response.json"),JSON.stringify({reply:"Preserved",summary:null,proposals:[]}));return {code:0,stdout:"",stderr:""};};const remove=async(_dir:any,o:any)=>{options=o;throw Object.assign(Error("locked"),{code:"EBUSY"});};try{const response=await invokeCodexProvider(request,runner,remove as any);assert.equal(JSON.parse(response.text).reply,"Preserved");assert.match(String(response.usage?.cleanupWarning),/preserved/);assert.equal(options.maxRetries,5);}finally{await import('node:fs/promises').then(m=>m.rm(left,{recursive:true,force:true}));}try{await assert.rejects(invokeCodexProvider(request,async(_e,_a,cwd)=>{left=cwd;throw Error("original inference failure");},remove as any),/original inference failure/);}finally{await import('node:fs/promises').then(m=>m.rm(left,{recursive:true,force:true}));}});
+test('medium manager reasoning is explicit and accurately reported without changing the no-tool boundary',async()=>{assert.ok(codexManagerArgs('C:/temp','gpt-6.1-terra','medium').includes('model_reasoning_effort="medium"'));const r=await invokeCodexProvider({...request,config:{...request.config,reasoningEffort:'medium'}},async(_e,args,cwd)=>{if(args[0]==='login')return{code:0,stdout:'Logged in using ChatGPT',stderr:''};assert.ok(args.includes('model_reasoning_effort="medium"'));await writeFile(path.join(cwd,'response.json'),JSON.stringify({reply:'Research only',summary:null,proposals:[]}));return{code:0,stdout:'',stderr:''};});assert.equal(r.usage?.reasoningEffort,'medium');});

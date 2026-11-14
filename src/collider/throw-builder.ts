@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { decimalIntegerToApproxNumber } from "../core/exact.js";
+import { canonicalValueE8, exactPriceBasis } from "../core/price-basis.js";
 import type {
     AgentControlThrow,
     Hex32,
@@ -210,7 +212,7 @@ import type {
   ): string {
     const amountBase = BigInt(amountBaseStr);
     if (Number.isFinite(usdPerBaseHint) && Number(usdPerBaseHint) > 0) {
-      const estimatedUsd = Number(amountBaseStr) * Number(usdPerBaseHint);
+      const estimatedUsd = (decimalIntegerToApproxNumber(amountBaseStr) ?? 0) * Number(usdPerBaseHint);
       if (Number.isFinite(estimatedUsd) && estimatedUsd >= 0) {
         return String(Math.max(0, Math.round(estimatedUsd * 1e8)));
       }
@@ -256,8 +258,12 @@ import type {
     const assetMassScale = assetMeta?.mass_scale ?? 1;
     const gameMassScale = simInput.game?.mass_scale ?? 1;
     const usdPerBaseHint = priceHintsUsdPerBase?.[assetHex] ?? null;
+    if (priceHintsUsdPerBase !== undefined && (!Number.isFinite(usdPerBaseHint) || Number(usdPerBaseHint) <= 0)) {
+      throw new Error("hypothetical throw requires a usable current asset price");
+    }
 
-    const valueUsdE8 = estimateValueUsdE8FromTemplate(control.amount, template, usdPerBaseHint);
+    const valueUsdE8 = canonicalValueE8(control.amount, priceHintsUsdPerBase, assetHex)?.toString()
+      ?? estimateValueUsdE8FromTemplate(control.amount, template, usdPerBaseHint);
     const massUsd = estimateMassUsd(valueUsdE8, assetMassScale, gameMassScale);
   
     previewThrow.asset = assetBytes as unknown as ThrowRecord["asset"];
@@ -266,6 +272,8 @@ import type {
   
     previewThrow.amount = String(control.amount);
     previewThrow.value_usd_e8 = valueUsdE8;
+    const exactPrice = exactPriceBasis(priceHintsUsdPerBase, assetHex);
+    if (exactPrice) previewThrow.price_epoch = exactPrice.epoch;
     previewThrow.mass_usd = massUsd;
   
     previewThrow.init_pose = deepClone(place.init_pose);

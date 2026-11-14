@@ -1,3 +1,4 @@
+import {DOCTRINE_SEEDS,DOCTRINE_KNOWLEDGE_VERSION,doctrineSeed,type DoctrineSeed} from './doctrine-knowledge.js';
 import type { RiskMode } from "../policy/schema.js";
 import type { AgentSettings } from "./settings.js";
 
@@ -32,6 +33,8 @@ export type ResolvedAgentProfile = {
   doctrinePack: DoctrinePackId;
   doctrineLabel: string;
   doctrineSummary: string;
+  knowledgeVersion: string;
+  doctrineSeed: DoctrineSeed;
   goalWeights: GoalWeights;
   goalWeightsPct: GoalWeights;
   effective: {
@@ -75,82 +78,50 @@ export const DOCTRINE_PACK_PRESETS: Record<DoctrinePackId, DoctrinePackPreset> =
   nutjob: {
     id: "nutjob",
     label: "NutJob",
-    summary: "Explore weird lines, test strange boards, and push discovery harder than comfort.",
+    summary: DOCTRINE_SEEDS.nutjob.thesis,
     defaults: {
       riskMode: "aggressive",
       customStrategy: "nutjob_discovery",
       copySlammerWhenSameHoleType: false,
     },
-    goalWeights: {
-      profitMaxing: 0.14,
-      ladderMaxing: 0.16,
-      selfAwarenessMaxing: 0.18,
-      discoveryMapping: 0.52,
-    },
-    notes: [
-      "Bias toward novelty and board discovery.",
-      "Best when the manager wants to map the space instead of polishing one local optimum.",
-    ],
+    goalWeights: {"profitMaxing":0.1,"ladderMaxing":0.1,"selfAwarenessMaxing":0.15,"discoveryMapping":0.65},
+    notes: [...DOCTRINE_SEEDS.nutjob.beliefs, DOCTRINE_SEEDS.nutjob.search, DOCTRINE_SEEDS.nutjob.recovery],
   },
   tough_nut: {
     id: "tough_nut",
     label: "ToughNut",
-    summary: "Refuse to lose. Keep leaning on live boards that can still be saved, borrow proven winner lines when useful, and trade comfort for survival time.",
+    summary: DOCTRINE_SEEDS.tough_nut.thesis,
     defaults: {
-      riskMode: "aggressive",
+      riskMode: "balanced",
       customStrategy: "toughnut_never_lose",
       copySlammerWhenSameHoleType: true,
     },
-    goalWeights: {
-      profitMaxing: 0.52,
-      ladderMaxing: 0.2,
-      selfAwarenessMaxing: 0.2,
-      discoveryMapping: 0.08,
-    },
-    notes: [
-      "Built around not accepting a losing projection while the board is still alive.",
-      "Defaults to the ToughNut never-lose hook while still enabling historical winner seeds.",
-    ],
+    goalWeights: {"profitMaxing":0.65,"ladderMaxing":0.1,"selfAwarenessMaxing":0.2,"discoveryMapping":0.05},
+    notes: [...DOCTRINE_SEEDS.tough_nut.beliefs, DOCTRINE_SEEDS.tough_nut.search, DOCTRINE_SEEDS.tough_nut.recovery],
   },
   peanut: {
     id: "peanut",
     label: "Peanut",
-    summary: "Play small, stay alive, and optimize for repeatable discipline before bravado.",
+    summary: DOCTRINE_SEEDS.peanut.thesis,
     defaults: {
       riskMode: "defensive",
       customStrategy: "peanut_safe_flow",
       copySlammerWhenSameHoleType: false,
     },
-    goalWeights: {
-      profitMaxing: 0.38,
-      ladderMaxing: 0.18,
-      selfAwarenessMaxing: 0.28,
-      discoveryMapping: 0.16,
-    },
-    notes: [
-      "Bias toward survivability and clean calibration.",
-      "Useful when bankroll protection matters more than frontier exploration.",
-    ],
+    goalWeights: {"profitMaxing":0.15,"ladderMaxing":0.65,"selfAwarenessMaxing":0.15,"discoveryMapping":0.05},
+    notes: [...DOCTRINE_SEEDS.peanut.beliefs, DOCTRINE_SEEDS.peanut.search, DOCTRINE_SEEDS.peanut.recovery],
   },
   prof_deez_nutz: {
     id: "prof_deez_nutz",
     label: "Prof DeezNutz",
-    summary: "Meta-manager doctrine. Watch the whole board, compare personas, and compose hybrid strategies.",
+    summary: DOCTRINE_SEEDS.prof_deez_nutz.thesis,
     defaults: {
       riskMode: "balanced",
       customStrategy: "prof_meta_rotator",
       copySlammerWhenSameHoleType: false,
     },
-    goalWeights: {
-      profitMaxing: 0.24,
-      ladderMaxing: 0.18,
-      selfAwarenessMaxing: 0.22,
-      discoveryMapping: 0.36,
-    },
-    notes: [
-      "Best when the manager is reasoning across multiple sub-styles instead of committing to one.",
-      "Designed for system-level learning and composition rather than one-dimensional aggression.",
-    ],
+    goalWeights: {"profitMaxing":0.15,"ladderMaxing":0.1,"selfAwarenessMaxing":0.65,"discoveryMapping":0.1},
+    notes: [...DOCTRINE_SEEDS.prof_deez_nutz.beliefs, DOCTRINE_SEEDS.prof_deez_nutz.search, DOCTRINE_SEEDS.prof_deez_nutz.recovery],
   },
 };
 
@@ -161,7 +132,7 @@ function cleanStrategyName(value: unknown): string | null {
 
 function normalizePackId(value: unknown): DoctrinePackId {
   const candidate = String(value ?? "").trim().toLowerCase();
-  return (candidate in DOCTRINE_PACK_PRESETS)
+  return Object.prototype.hasOwnProperty.call(DOCTRINE_PACK_PRESETS,candidate)
     ? (candidate as DoctrinePackId)
     : DEFAULT_DOCTRINE_PACK;
 }
@@ -238,6 +209,8 @@ export function resolveAgentProfile(settings: Partial<AgentSettings> | null | un
     doctrinePack,
     doctrineLabel: preset.label,
     doctrineSummary: preset.summary,
+    knowledgeVersion: DOCTRINE_KNOWLEDGE_VERSION,
+    doctrineSeed: doctrineSeed(doctrinePack),
     goalWeights,
     goalWeightsPct: toPctMap(goalWeights),
     effective: {

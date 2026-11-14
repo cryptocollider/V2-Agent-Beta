@@ -18,6 +18,7 @@ const workerPort = port as NonNullable<typeof parentPort>;
 const BRIDGE_READ_TIMEOUT_MS = 3000;
 const BRIDGE_WRITE_TIMEOUT_MS = 5000;
 const BRIDGE_REPLAY_TIMEOUT_MS = 30000;
+const BRIDGE_POINTS_REDEEM_TIMEOUT_MS = 100000;
 
 const pending = new Map<string, {
   resolve: (value: unknown) => void;
@@ -54,6 +55,15 @@ function requestMain(method: string, payload?: unknown, timeoutMs = BRIDGE_READ_
 }
 
 const bridge: MonitorBridge = {
+  getAgentName:()=>requestMain("getAgentName",undefined,30000),
+  setAgentName:request=>requestMain("setAgentName",request,100000),
+  getManagerPreview: () => requestMain("getManagerPreview", undefined, 65000),
+  saveBankPolicy: request => requestMain("saveBankPolicy", request, 100000),
+  depositBankWallet: request => requestMain("depositBankWallet", request, 100000),
+  unlockBankWallet: request => requestMain("unlockBankWallet", request, 100000),
+  getBankWallet: () => requestMain("getBankWallet", undefined, 30000),
+  encryptBankWallet: request => requestMain("encryptBankWallet", request, 100000),
+  requestBankWithdrawal: request => requestMain("requestBankWithdrawal", request, 100000),
   getRuntimeSettings: () => requestMain("getRuntimeSettings", undefined, BRIDGE_READ_TIMEOUT_MS),
   updateRuntimeSettings: (patch) => requestMain("updateRuntimeSettings", patch, BRIDGE_WRITE_TIMEOUT_MS),
   getControlState: () => requestMain("getControlState", undefined, BRIDGE_READ_TIMEOUT_MS),
@@ -65,6 +75,11 @@ const bridge: MonitorBridge = {
   getManagerCandidateSet: () => requestMain("getManagerCandidateSet", undefined, BRIDGE_READ_TIMEOUT_MS),
   saveManagerCandidateSet: (candidateSet) => requestMain("saveManagerCandidateSet", candidateSet, BRIDGE_WRITE_TIMEOUT_MS),
   buildReplaySvgExport: (request) => requestMain("buildReplaySvgExport", request, BRIDGE_REPLAY_TIMEOUT_MS),
+  getPointsConversionStatus: () => requestMain("getPointsConversionStatus", undefined, BRIDGE_REPLAY_TIMEOUT_MS),
+  getConfirmationStatus: () => requestMain("getConfirmationStatus", undefined, BRIDGE_REPLAY_TIMEOUT_MS),
+  saveConfirmationConfig: (patch) => requestMain("saveConfirmationConfig", patch, BRIDGE_WRITE_TIMEOUT_MS),
+  savePointsConversionConfig: (patch) => requestMain("savePointsConversionConfig", patch, BRIDGE_WRITE_TIMEOUT_MS),
+  redeemPointsForClc: (request) => requestMain("redeemPointsForClc", request, BRIDGE_POINTS_REDEEM_TIMEOUT_MS),
 };
 
 const cfg = (workerData || {}) as ServerConfig;

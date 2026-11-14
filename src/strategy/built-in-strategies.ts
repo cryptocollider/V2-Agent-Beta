@@ -1,3 +1,5 @@
+import {thesisBias} from './thesis-bias.js';
+import type {RecentShot} from './score.js';
 import type { SimRunInput } from "../collider/types.js";
 import type { PredictionSummary } from "../agent/prediction-log.js";
 import type { CandidatePlanRun } from "../sim/planner.js";
@@ -29,6 +31,7 @@ type StrategyParams = {
   prediction: PredictionSummary | null;
   plan: CandidatePlanRun | null | undefined;
   simInput: SimRunInput;
+  recentShots?: RecentShot[];
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -363,9 +366,9 @@ function applyProfMetaRotatorCore(params: Omit<StrategyParams, "baseScore">): St
   const nutjob = applyNutJobDiscoveryCore(params);
 
   const weighted =
-    tough.scoreDelta * 0.37 +
+    tough.scoreDelta * 0.25 +
     peanut.scoreDelta * 0.35 +
-    nutjob.scoreDelta * 0.28;
+    nutjob.scoreDelta * 0.10;
 
   const support = [
     { name: "toughnut", delta: tough.scoreDelta },
@@ -406,25 +409,29 @@ export function applyBuiltInStrategyBias(params: {
   prediction: PredictionSummary | null;
   plan: CandidatePlanRun | null | undefined;
   simInput: SimRunInput;
+  recentShots?: RecentShot[];
 }): BuiltInStrategyApplication {
   const strategy = normalizeBuiltInStrategyName(params.strategyName);
   const coreParams = {
     prediction: params.prediction,
     plan: params.plan,
     simInput: params.simInput,
+    recentShots: params.recentShots,
   };
 
+  const refine=(core:StrategyCoreResult)=>{const extra=thesisBias(strategy,params.prediction,params.plan,params.recentShots);return finalizeApplication(strategy,params.baseScore,{...core,scoreDelta:core.scoreDelta+extra.scoreDelta,notes:[...core.notes,...extra.notes]});};
+
   if (strategy === "toughnut_never_lose") {
-    return finalizeApplication(strategy, params.baseScore, applyToughNutNeverLoseCore(coreParams));
+    return refine(applyToughNutNeverLoseCore(coreParams));
   }
   if (strategy === "nutjob_discovery") {
-    return finalizeApplication(strategy, params.baseScore, applyNutJobDiscoveryCore(coreParams));
+    return refine(applyNutJobDiscoveryCore(coreParams));
   }
   if (strategy === "peanut_safe_flow") {
-    return finalizeApplication(strategy, params.baseScore, applyPeanutSafeFlowCore(coreParams));
+    return refine(applyPeanutSafeFlowCore(coreParams));
   }
   if (strategy === "prof_meta_rotator") {
-    return finalizeApplication(strategy, params.baseScore, applyProfMetaRotatorCore(coreParams));
+    return refine(applyProfMetaRotatorCore(coreParams));
   }
 
   return {

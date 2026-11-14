@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   DEFAULT_MANAGER_LLM_CONFIG,
@@ -20,6 +20,7 @@ const MAX_ACTIONS = 18;
 
 let dataDir = "./data";
 let managerLlmState: ManagerLlmState = buildDefaultManagerLlmState();
+let stateUpdateQueue: Promise<void> = Promise.resolve();
 
 type ProviderConfigPatch = Partial<ManagerLlmProviderConfig> & {
   clearApiKey?: boolean;
@@ -53,11 +54,15 @@ function normalizeProviderConfig(
   const model = String(value?.model ?? fallback.model).trim();
   const endpointUrl = String(value?.endpointUrl ?? fallback.endpointUrl).trim();
   const apiKey = String(value?.apiKey ?? "").trim();
+  const apiKeyEnv=String(value?.apiKeyEnv??fallback.apiKeyEnv??"").trim();
+  if(apiKeyEnv&&!["OPENROUTER_API_KEY","VENICE_API_KEY","OPENAI_API_KEY"].includes(apiKeyEnv))throw Error("Use a dedicated supported LLM API-key environment reference");
   return {
     enabled: value?.enabled == null ? fallback.enabled : !!value.enabled,
     model: model || fallback.model,
     endpointUrl: endpointUrl || fallback.endpointUrl,
     apiKey: apiKey || null,
+    apiKeyEnv:apiKeyEnv||null,
+    maxOutputTokens:Math.max(128,Math.min(2048,Math.trunc(Number(value?.maxOutputTokens??fallback.maxOutputTokens??768))||768)),
   };
 }
 
@@ -168,13 +173,22 @@ function normalizeState(value: Partial<ManagerLlmState> | null | undefined): Man
 
 async function persistState(): Promise<void> {
   await mkdir(dataDir, { recursive: true });
-  await writeFile(llmFile(), JSON.stringify(managerLlmState, null, 2), "utf8");
+  const target = llmFile();
+  const tmp = `${target}.${process.pid}.tmp`;
+  await writeFile(tmp, JSON.stringify(managerLlmState, null, 2), "utf8");
+  await rename(tmp, target);
 }
 
 async function updateState(mutator: (current: ManagerLlmState) => ManagerLlmState): Promise<ManagerLlmState> {
-  managerLlmState = normalizeState(mutator(clone(managerLlmState)));
-  await persistState();
-  return getManagerLlmState();
+  let result: ManagerLlmState | null = null;
+  const update = stateUpdateQueue.then(async () => {
+    managerLlmState = normalizeState(mutator(clone(managerLlmState)));
+    await persistState();
+    result = clone(managerLlmState);
+  });
+  stateUpdateQueue = update.catch(() => undefined);
+  await update;
+  return result ?? getManagerLlmState();
 }
 
 function maskApiKey(apiKey: string | null): { apiKeyConfigured: boolean; apiKeyPreview: string | null } {
@@ -190,7 +204,10 @@ function toPublicProviderConfig(config: ManagerLlmProviderConfig): PublicManager
     enabled: config.enabled,
     model: config.model,
     endpointUrl: config.endpointUrl,
+    apiKeyEnv:config.apiKeyEnv??null,
+    maxOutputTokens:config.maxOutputTokens??768,
     ...masked,
+    apiKeyConfigured:masked.apiKeyConfigured||!!(config.apiKeyEnv&&process.env[config.apiKeyEnv]),
   };
 }
 
@@ -207,10 +224,16 @@ function toPublicConfig(config: ManagerLlmConfig): PublicManagerLlmConfig {
 
 export async function initManagerLlmState(nextDataDir = "./data"): Promise<void> {
   dataDir = nextDataDir;
+  stateUpdateQueue = Promise.resolve();
   await mkdir(dataDir, { recursive: true });
   try {
     const raw = await readFile(llmFile(), "utf8");
     managerLlmState = normalizeState(JSON.parse(raw) as Partial<ManagerLlmState>);
+    if (managerLlmState.busy) {
+      managerLlmState.busy = false;
+      managerLlmState.lastUpdatedAt = new Date().toISOString();
+      await persistState();
+    }
   } catch {
     managerLlmState = buildDefaultManagerLlmState();
     await persistState();

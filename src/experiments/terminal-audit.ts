@@ -1,0 +1,1 @@
+export function latestControllerTerminal(events:any[]){const attached=events.filter(e=>e.type==='controller-attached').at(-1)?.ts??null;return {attached,terminal:attached?events.filter(e=>e.ts>=attached&&e.type==='all-paused').at(-1)??null:null};}

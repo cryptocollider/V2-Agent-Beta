@@ -4,11 +4,11 @@
 
 Local Node-based agent player, monitor, and manager API for Collider V2.
 
-**Beta mode only. Test tokens only.**
+**RC1 v0.2.0-rc1.1. Test tokens only.**
 
 Agent 1 is the first baseline agent for the Collider Arena: a starting plate for many future agents, doctrines, managers, and human/AI teams.
 
-It connects to the Collider V2 beta chain, scans live games, fetches canonical `getSimInput`, simulates candidate throws through the local `sim_core.wasm` deterministic physics engine, submits live throws with prediction commits, and logs exact audit data for later review.
+It connects to the Collider V2 public Fuji RC1 chain, scans live games, fetches canonical `getSimInput`, simulates candidate throws through the local `sim_core.wasm` deterministic physics engine, submits live throws with prediction commits, and logs exact audit data for later review.
 
 The goal of Agent 1 is not to create the finished intelligent Agent.
 
@@ -27,8 +27,6 @@ Who becomes the strongest Collider manager: a human, an AI, or a human+AI team?
 Who can turn physics, prediction, bankroll, doctrine, and replay/auditability into measurable edge?
 
 Now is a good time to get a head start and collect early data.
-
-> **Human reader note:** this repo is written mostly for agent managers and technical operators. If you are a human who found your way here early, good — you are exactly who Agent 1 needs. Start with `npm start`, watch the monitor, then decide whether to manage the baseline agent, modify its doctrine, or play alongside it.
 
 ## What it does
 
@@ -59,13 +57,22 @@ Doctrine is the operating posture.
 
 Different human managers, model managers, and local runtime setups can adjust these doctrines over time, creating pressure toward better prediction/self-awareness, bankroll discipline/profits, and improving whole arena intuition.
 
+- **ToughNut — profit:** search harder with more actual simulations; prefer well-researched entries and bounded repairs.
+- **Peanut — points:** have a stake in every eligible affordable game, especially higher-value ones, with a planned backup allowance.
+- **NutJob — discovery:** test specific new controls and keep both successful and failed experiments.
+- **Prof DeezNutz — calibration:** compare forecasts with settled outcomes and revise beliefs.
+
+Choose a seed for a new profile with `npm run start:rc1 -- --doctrine peanut`. These are starting priorities, not proven winners; explicit user limits take precedence. See [the doctrine starters](docs/DOCTRINE_STARTERS.md).
+
 ## Current operator surfaces
 
-- Default human monitor: `monitor21.html` (served at `/`); `monitor.html` is an older alternate
+- Default human monitor: `monitor21.html` (served at `/`)
 - Local manager API base: `http://localhost:8787`
 - Honest-performance API surfaces: `/api/manager/honest-score` and `/api/manager/reveals`
 - Explicit replay storyboard SVG export: `POST /api/manager/replay-svg`
 - Agent profile, onboarding/bootstrap summary, and baseline-lift state: `/api/manager/state`
+- Points & CLC and Bank: live quotes, balances, wallet security and on-chain agent names
+- Optional Gamechain.info / HPS publishing: enable in Settings; off by default
 - Full manager docs: `docs/collider-manager.md`
 - Repo-local Claw wrapper plugin: `plugins/collider-agent-claw`
 
@@ -95,7 +102,7 @@ are not included in this public checkout.
 
 An AI manager is optional. Baseline play, the monitor, test-token funding, and
 manual settings work without an API key or local model. Desktop installer
-packaging is experimental; use the Node workflow below for this beta demo.
+packaging is experimental; use the Node workflow below for public RC1.
 
 ## Project layout
 
@@ -110,48 +117,45 @@ packaging is experimental; use the Node workflow below for this beta demo.
 
 ## Install
 
-Install **Node.js 22 or newer with npm**, then open a terminal in this repository.
-Node 22 was used for the public-beta verification. Verify `node --version` and
-`npm --version` before continuing.
+Install **Node.js 22 or newer with npm**, then open a terminal in this repository. Verify `node --version` and `npm --version` before continuing.
 
-`npm ci` installs the exact dependency versions in the lockfile. Keep development
-dependencies installed: startup compiles the TypeScript source.
+`npm ci` installs the exact dependency versions in the lockfile. Keep development dependencies installed: startup compiles the TypeScript source.
+
+On Linux/macOS, securely set `COLLIDER_AGENT_KEY_PASSWORD` (12–256 characters) before first start and when unlocking. Windows can create its independent encrypted wallet using CurrentUser protection. See [wallet setup and recovery](docs/RC1_QUICKSTART.md).
 
 ```bash
 npm ci
-npm start
+npm run start:rc1
 ```
 
-Startup builds automatically. Open **http://localhost:8787** after the terminal
-prints the monitor address. On Windows, if PowerShell blocks npm's script,
-use `npm.cmd ci` and `npm.cmd start`.
+Startup builds automatically. Open **http://localhost:8787** after the terminal prints the monitor address. On Windows, if PowerShell blocks npm's script, use `npm.cmd ci` and `npm.cmd run start:rc1`.
 
 For offline regression checks after dependency installation:
 
 ```bash
 npm run check
 npm test
+npm run verify:rc1
 ```
 
-See [the demo run check](docs/beta-demo-check.md) for verified behavior and limits.
+See [the RC1 release notes](docs/RC1_RELEASE_2026-11-13.md) for verified behavior and remaining qualification gates.
 
 ## First start
 
-Agent 1 now ships with a starter `data/settings.json`, so beta users do not need to discover a flag set before the first run.
-
-Leave `data/settings.json` in its starter state and run:
+Run the public RC1 entry point:
 
 ```bash
-npm start
+npm run start:rc1
 ```
 
-That now defaults to the live loop plus the local monitor. If the committed starter settings are still unset, Agent 1 will bootstrap itself automatically on first launch:
+For a genuinely new `data-rc1` profile, this explicitly opts into testnet onboarding:
 
-- generate a random valid 32-byte beta user address
-- keep beta USDC as the active starting asset
-- request beta test tokens through `mirrorDeposit`
-- persist the resulting bootstrap state back into `data/settings.json`
-- expose that onboarding state to both the monitor and `/api/manager/state`
+- generate an independent signing wallet and encrypt it outside the repository; no shared wallet or key is bundled
+- validate the pinned public Fuji chain, custody route and simulator
+- request the external faucet's one-use grant of 4,000 mock CLC plus 0.005 Fuji AVAX
+- verify the grant receipts, then approve/deposit the exact CLC grant into the same wallet's Collider L1 account
+- preserve the funding and signed-operation journals and begin bounded play when readiness passes
+- expose onboarding state to the monitor and `/api/manager/state`
 
 Then open:
 
@@ -159,9 +163,9 @@ Then open:
 - Manager state snapshot: `http://localhost:8787/api/manager/state`
 - Manager guide: `docs/collider-manager.md`
 
-A test-token request may take a few seconds to appear in the on-chain balance. The live loop retries automatically; an initial balance-gate message during funding is normal.
+If the faucet or route is held, preserve the same wallet/profile and wait for service recovery. Do not reset the journal or repeat a claim. Public RC1 does not use the old random beta identity, internal `mirrorDeposit` bootstrap or Bank token-request shortcut.
 
-The monitor welcome screen explains what was auto-configured, what the app is for, and what to do next. If the automatic token request fails, use the Bank page `Request Test Tokens` button.
+Existing profiles start **paused**. After reconciling their original wallet/journals, resume explicitly with `npm run start:rc1 -- --resume`. Back up the data directory and external encrypted wallet together; see [the quick start](docs/RC1_QUICKSTART.md).
 
 ## Human + manager collaboration from day one
 
@@ -175,26 +179,26 @@ This keeps the release flow simple:
 
 1. clone or download the repo
 2. install dependencies and build
-3. run `npm start`
-4. watch the baseline agent begin playing on beta
+3. run `npm run start:rc1`
+4. watch the baseline agent begin playing on public Fuji RC1
 5. decide whether to keep the baseline doctrine or move into Peanut, ToughNut, NutJob, or Prof DeezNutz
-6. optionally bring in a Claw manager or play alongside the agent manually from the same address so Agent 1 can study those examples
+6. optionally bring in a Claw manager or configure manual-example addresses for Agent 1 to study
 
 ## Optional advanced overrides
 
-Zero-flag startup is now the default path. Advanced operators can still override it when needed:
+The public RC1 quick start above is the normal user path. Ordinary `npm start` retains the separately configured advanced runtime; it does not perform public quick-start onboarding. Advanced operators can use these commands with prepared settings, a funded wallet and an existing build:
 
 - `npm run start:once`: one live cycle, no monitor
 - `npm run start:headless`: live loop without the local monitor server
 - direct CLI flags still work for exact overrides such as `--rpc`, `--asset`, `--amount`, `--once`, or `--no-monitor`
 
-The settings file and monitor are now the primary operator surface for beta startup. Persona is the human-readable face. Doctrine is the exact operating posture.
+The settings file and monitor remain the primary operator surfaces. Persona is the human-readable face. Doctrine is the exact operating posture.
 
 ## Demo troubleshooting
 
-- If port 8787 is already used by another agent, run `npm start -- --monitor-port 8788` and open http://localhost:8788.
-- To keep a demo identity and logs separate, run `npm start -- --data-dir ./data-demo --monitor-port 8788`.
+- Each independent instance needs its own data directory, wallet and monitor port. If 8787 is occupied, configure another profile's `monitorPort` while stopped; do not launch a second signer for the same wallet.
+- To keep another identity and logs separate, use `npm run start:rc1 -- --data-dir ./data-demo`; assign a different monitor port before running several instances together.
 - A fresh identity has no settled results. Honest Score and predicted profit stay pending until a game settles; funding and a submitted throw do not immediately produce HPS.
-- This beta needs internet access to the public RPC and the monitor's Chart.js CDN. Local AI setup and hosted AI connections are optional.
-- Existing users should preserve their identity and settings. If their RPC still contains `WdFeSwHfau9U7Vj8B1wEHhNMtubRQKfVGiuJwgTyDUBLbCH4s`, replace only the RPC URL with the current value in the starter settings; the old endpoint returns 404.
-- Stop the terminal process with Ctrl+C when finished. `start:once` and `start:headless` also build automatically.
+- This RC1 needs internet access to its pinned public RPC. Chart.js is bundled locally. AI connections are optional; Ollama detection uses an existing installation and does not download models.
+- Existing users should preserve their identity, encrypted wallet and journals. Old beta/local-chain profiles require a reviewed migration; changing only the RPC URL is insufficient for RC1's domain, asset and signing checks.
+- Stop the terminal process with Ctrl+C when finished. After an unexpected exit, reconcile the old signer/nonce and pending work before restarting.

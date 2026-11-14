@@ -1,6 +1,7 @@
 import type { AgentSettings } from "../core/settings.js";
 
 export const MANAGER_LLM_PROVIDER_IDS = [
+  "codex",
   "venice",
   "openai",
   "openrouter",
@@ -13,7 +14,7 @@ export const MANAGER_LLM_PROVIDER_IDS = [
 
 export type LlmProviderId = (typeof MANAGER_LLM_PROVIDER_IDS)[number];
 
-const MANAGER_LLM_KEYLESS_PROVIDER_SET = new Set<LlmProviderId>(["ollama", "local"]);
+const MANAGER_LLM_KEYLESS_PROVIDER_SET = new Set<LlmProviderId>(["ollama", "local", "codex"]);
 
 export function managerLlmProviderNeedsApiKey(provider: LlmProviderId): boolean {
   return !MANAGER_LLM_KEYLESS_PROVIDER_SET.has(provider);
@@ -24,6 +25,9 @@ export type ManagerLlmProviderConfig = {
   model: string;
   endpointUrl: string;
   apiKey: string | null;
+  apiKeyEnv?: string | null;
+  maxOutputTokens?: number;
+  reasoningEffort?: "low" | "medium" | "high";
 };
 
 export type ManagerLlmConfig = {
@@ -143,6 +147,7 @@ export const DEFAULT_MANAGER_LLM_CONFIG: ManagerLlmConfig = {
   activeProvider: "venice",
   autoApply: false,
   providers: {
+    codex: {enabled:false,model:"default",endpointUrl:"codex://chatgpt",apiKey:null},
     venice: {
       enabled: false,
       model: "zai-org-glm-4.7",

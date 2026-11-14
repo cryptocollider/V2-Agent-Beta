@@ -1,4 +1,5 @@
 import type { Hex32, SimRunInput, ThrowRecord } from "../collider/types.js";
+import { decimalE8ToApproxNumber, decimalUnitsToApproxNumber } from "../core/exact.js";
 import { bytesToHex32 } from "../collider/throw-builder.js";
 import { decodeGameResult, type DecodedGameResult, type DecodedThrowOutcome } from "../sim/decode.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
@@ -124,11 +125,8 @@ function assetColor(symbol: string, index: number): string {
 }
 
 function toDisplayAmount(amount: string, decimals: number): string {
-  const numeric = Number(amount);
-  if (!Number.isFinite(numeric)) return String(amount);
-  const scale = Math.pow(10, decimals || 0);
-  if (!(scale > 0)) return String(amount);
-  const display = numeric / scale;
+  const display = decimalUnitsToApproxNumber(amount, decimals);
+  if (display == null) return String(amount);
   if (display >= 100) return display.toFixed(0);
   if (display >= 10) return display.toFixed(1).replace(/\.0$/, "");
   return display.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
@@ -231,7 +229,7 @@ function computeTeleportAnchor(throwsVisible: ThrowRecord[], simInput: SimRunInp
   let sumY = 0;
   let sumW = 0;
   for (const throwRecord of early) {
-    const weight = Math.max(0, Number(String(throwRecord.value_usd_e8 ?? "0")) / 1e8);
+    const weight = Math.max(0, decimalE8ToApproxNumber(throwRecord.value_usd_e8) ?? 0);
     const effectiveWeight = weight > 0 ? weight : 1;
     sumX += Number(throwRecord.init_pose?.pos?.x ?? 0) * effectiveWeight;
     sumY += Number(throwRecord.init_pose?.pos?.y ?? 0) * effectiveWeight;
@@ -465,7 +463,8 @@ export async function buildReplaySvgExportWithRuntime(params: {
   request: ReplaySvgRequest;
 }): Promise<ReplaySvgExport> {
   const simInput = await params.client.getSimInput(params.request.gameId);
-  const rawFinalizeBytes = await params.wasm.runToFinalize(simInput);
+  const runtime = params.wasm.forGame ? await params.wasm.forGame(params.request.gameId) : params.wasm;
+  const rawFinalizeBytes = await runtime.runToFinalize(simInput);
   const decoded = decodeGameResult(rawFinalizeBytes);
   return buildReplaySvgStoryboard({
     gameId: params.request.gameId,

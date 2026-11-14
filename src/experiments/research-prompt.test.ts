@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{compactResearchPrompt}from'./research-prompt.js';
+test('prompt compression preserves pending uncertainty and exact monetary strings without mutating evidence',()=>{
+ const p={own:{currentOverlay:{id:'p',notes:['x'.repeat(50000)]},clcBalanceBase:'123456789012345678901234'},research:{feedback:{cases:Array.from({length:12},(_,nonce)=>({nonce,settled:false,actualWalletPnlUsd:null,proposedControls:['x'.repeat(5000)]}))},measuredSearch:[{search:{elapsedMs:12.123456789,plannedCandidates:240,simulatedScenarios:480,candidateFilterSummary:{large:'x'.repeat(50000)}}}]}};
+ const v=compactResearchPrompt(p);assert.ok(JSON.stringify(v).length<2000);assert.equal(v.own.clcBalanceBase,p.own.clcBalanceBase);assert.equal(v.research.feedback.cases.length,6);assert.equal(v.research.feedback.cases[0].actualWalletPnlUsd,null);assert.equal(v.research.measuredSearch[0].search.plannedCandidates,240);assert.equal(p.research.feedback.cases.length,12);assert.equal(p.own.currentOverlay.notes[0].length,50000);
+});
+test('prompt size stays bounded as full hypothesis libraries grow',()=>{
+ const controls=Array.from({length:24},(_,n)=>({candidateHash:'h'+n,x:960,y:10,angleDeg:n,speedPct:35,spinPct:0,asset:'a'.repeat(64),amount:'4000000000000000000'}));
+ const p={research:{approvedControls:controls,feedback:{experiments:Array.from({length:100},(_,i)=>({id:'h'+i,approvedControls:controls,confidence:.5,control:{settled:4},treatment:{settled:4}})),cases:[]}}};const v=compactResearchPrompt(p);assert.equal(v.research.feedback.experiments.length,4);assert.equal(v.research.feedback.experiments[0].approvedControls,undefined);assert.equal(v.research.approvedControls.length,24);assert.ok(JSON.stringify(v).length<10000);assert.equal(p.research.feedback.experiments.length,100);
+});

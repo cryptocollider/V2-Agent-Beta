@@ -1,0 +1,264 @@
+{
+  "schema": "agent1.public-qualification.v1",
+  "note": "Whitelisted frozen audit checkpoints; no wallet identities, private run files, raw intents, signatures or keys are included. Source audit digests identify the local evidence from which these summaries were produced. Pending is not a realized loss and later settlements can differ from these checkpoints.",
+  "runs": [
+    {
+      "sourceAuditSha256": "647b8d01bcdd8bde3045af7b04932065e948225dc2d57f033e33b70f5c9eabb6",
+      "checkpointAt": "2026-11-12T17:25:34.706Z",
+      "plannedStart": "2026-11-12T16:50:24.821Z",
+      "plannedStop": "2026-11-12T17:20:24.821Z",
+      "actualStart": "2026-11-12T16:50:29.506Z",
+      "actualStop": "2026-11-12T17:20:24.932Z",
+      "stopReason": "approved play deadline",
+      "model": "gpt-6.1-terra",
+      "totals": {
+        "accepted": 400,
+        "settled": 400,
+        "scored": 400,
+        "allPaused": true,
+        "allClassic": true,
+        "allFixedStake": true,
+        "allNoncesReconciled": true,
+        "allPendingClear": true,
+        "actualSelectionChanges": 16
+      },
+      "profiles": [
+        {
+          "id": "profit",
+          "label": "ToughNut — profit",
+          "accepted": 100,
+          "settled": 100,
+          "scored": 100,
+          "attributedPoints": 120,
+          "settledNetClcBase": "15867949059930603565",
+          "pendingPrincipalBase": "0",
+          "meanHps": 69.75692471030605,
+          "selectionChanges": 2,
+          "nonceReconciled": true
+        },
+        {
+          "id": "points",
+          "label": "Peanut — points",
+          "accepted": 100,
+          "settled": 100,
+          "scored": 100,
+          "attributedPoints": 134,
+          "settledNetClcBase": "-74741336654355110722",
+          "pendingPrincipalBase": "0",
+          "meanHps": 67.83678347156967,
+          "selectionChanges": 4,
+          "nonceReconciled": true
+        },
+        {
+          "id": "discovery",
+          "label": "NutJob — discovery",
+          "accepted": 100,
+          "settled": 100,
+          "scored": 100,
+          "attributedPoints": 133,
+          "settledNetClcBase": "25134571428571428570",
+          "pendingPrincipalBase": "0",
+          "meanHps": 71.06320772077883,
+          "selectionChanges": 9,
+          "nonceReconciled": true
+        },
+        {
+          "id": "calibration",
+          "label": "Prof DeezNutz — calibration",
+          "accepted": 100,
+          "settled": 100,
+          "scored": 100,
+          "attributedPoints": 116,
+          "settledNetClcBase": "10182663345644889280",
+          "pendingPrincipalBase": "0",
+          "meanHps": 67.70819096187584,
+          "selectionChanges": 1,
+          "nonceReconciled": true
+        }
+      ],
+      "limitations": [
+        "Same incremental gross risk budget and fixed stake; starting wallet balances differ.",
+        "Mixed-cohort warmup is separate from fresh Classic games; native balance/ladder deltas can include older pending settlements.",
+        "Profit uses exact per-throw CLC returns and reports other assets separately; pending principal is not a realized loss.",
+        "Points attribution includes only matching throw-specific awards; game-wide awards are not invented or allocated speculatively.",
+        "MAE compares sequential current-known-board wallet-PnL forecasts with final wallet PnL; forecasts are correlated and unknown future throws can alter outcomes.",
+        "Selection-change evidence is a rescore of the complete already-valid candidate set, holding deterministic doctrine bias fixed; it is not a second independent physics run.",
+        "Four simultaneous players affect each other; this run is an exploratory comparison, not proof of a superior doctrine.",
+        "Per-agent candidate context was empty in 0 calls; those decisions could use the shared reference shortlist instead.",
+        "Settlement feedback can lag accepted throws. Resident result collection continues while paused; no forced settlement or second signing process is used."
+      ]
+    },
+    {
+      "sourceAuditSha256": "43dcc4de07a9127d4d14401d830d8d1e248ffe5c294418d5465edbef06c72019",
+      "checkpointAt": "2026-11-13T02:14:18.004Z",
+      "plannedStart": "2026-11-12T22:06:06.261Z",
+      "plannedStop": "2026-11-13T02:06:06.261Z",
+      "actualStart": "2026-11-12T22:06:12.645Z",
+      "actualStop": "2026-11-13T02:06:06.364Z",
+      "stopReason": "approved play deadline",
+      "model": "gpt-6.1-terra",
+      "totals": {
+        "accepted": 3200,
+        "settled": 3192,
+        "scored": 3192,
+        "allPaused": true,
+        "allClassic": true,
+        "allFixedStake": true,
+        "allNoncesReconciled": true,
+        "allPendingClear": true,
+        "actualSelectionChanges": 62
+      },
+      "profiles": [
+        {
+          "id": "profit",
+          "label": "ToughNut — profit",
+          "accepted": 800,
+          "settled": 799,
+          "scored": 799,
+          "attributedPoints": 1083,
+          "settledNetClcBase": "-91375214285714285713",
+          "pendingPrincipalBase": "4000000000000000000",
+          "meanHps": 69.48453640823712,
+          "selectionChanges": 11,
+          "nonceReconciled": true
+        },
+        {
+          "id": "points",
+          "label": "Peanut — points",
+          "accepted": 800,
+          "settled": 798,
+          "scored": 798,
+          "attributedPoints": 1010,
+          "settledNetClcBase": "209361142857142857140",
+          "pendingPrincipalBase": "8000000000000000000",
+          "meanHps": 69.5291444275992,
+          "selectionChanges": 16,
+          "nonceReconciled": true
+        },
+        {
+          "id": "discovery",
+          "label": "NutJob — discovery",
+          "accepted": 800,
+          "settled": 797,
+          "scored": 797,
+          "attributedPoints": 1123,
+          "settledNetClcBase": "-214228000000000000002",
+          "pendingPrincipalBase": "12000000000000000000",
+          "meanHps": 70.56324385479925,
+          "selectionChanges": 31,
+          "nonceReconciled": true
+        },
+        {
+          "id": "calibration",
+          "label": "Prof DeezNutz — calibration",
+          "accepted": 800,
+          "settled": 798,
+          "scored": 798,
+          "attributedPoints": 1050,
+          "settledNetClcBase": "45142071428571428575",
+          "pendingPrincipalBase": "8000000000000000000",
+          "meanHps": 68.74136398660983,
+          "selectionChanges": 4,
+          "nonceReconciled": true
+        }
+      ],
+      "limitations": [
+        "Same incremental gross risk budget and fixed stake; starting wallet balances differ.",
+        "Mixed-cohort warmup is separate from fresh Classic games; native balance/ladder deltas can include older pending settlements.",
+        "Profit uses exact per-throw CLC returns and reports other assets separately; pending principal is not a realized loss.",
+        "Points attribution includes only matching throw-specific awards; game-wide awards are not invented or allocated speculatively.",
+        "MAE compares sequential current-known-board wallet-PnL forecasts with final wallet PnL; forecasts are correlated and unknown future throws can alter outcomes.",
+        "Selection-change evidence is a rescore of the complete already-valid candidate set, holding deterministic doctrine bias fixed; it is not a second independent physics run.",
+        "Four simultaneous players affect each other; this run is an exploratory comparison, not proof of a superior doctrine.",
+        "Per-agent candidate context was empty in 9 calls; those decisions could use the shared reference shortlist instead.",
+        "Settlement feedback can lag accepted throws. Resident result collection continues while paused; no forced settlement or second signing process is used."
+      ]
+    },
+    {
+      "sourceAuditSha256": "952b064cc6c9d614ab947c578ae76277470d8956b59ab9c8487ac297686c550a",
+      "checkpointAt": "2026-11-13T13:27:41.985Z",
+      "plannedStart": "2026-11-13T11:22:31.192Z",
+      "plannedStop": "2026-11-13T13:22:31.192Z",
+      "actualStart": "2026-11-13T11:22:37.297Z",
+      "actualStop": "2026-11-13T13:22:31.451Z",
+      "stopReason": "approved play deadline",
+      "model": "gpt-6.1-terra",
+      "totals": {
+        "accepted": 258,
+        "settled": 250,
+        "scored": 250,
+        "allPaused": true,
+        "allClassic": true,
+        "allFixedStake": true,
+        "allNoncesReconciled": true,
+        "allPendingClear": true,
+        "actualSelectionChanges": 23
+      },
+      "profiles": [
+        {
+          "id": "profit",
+          "label": "ToughNut — profit",
+          "accepted": 54,
+          "settled": 53,
+          "scored": 53,
+          "attributedPoints": 64,
+          "settledNetClcBase": "8394000000000000000",
+          "pendingPrincipalBase": "4000000000000000000",
+          "meanHps": 66.54781557557483,
+          "selectionChanges": 3,
+          "nonceReconciled": true
+        },
+        {
+          "id": "points",
+          "label": "Peanut — points",
+          "accepted": 54,
+          "settled": 53,
+          "scored": 53,
+          "attributedPoints": 101,
+          "settledNetClcBase": "1795000000000000000",
+          "pendingPrincipalBase": "4000000000000000000",
+          "meanHps": 69.26075446553925,
+          "selectionChanges": 5,
+          "nonceReconciled": true
+        },
+        {
+          "id": "discovery",
+          "label": "NutJob — discovery",
+          "accepted": 95,
+          "settled": 90,
+          "scored": 90,
+          "attributedPoints": 163,
+          "settledNetClcBase": "20869000000000000000",
+          "pendingPrincipalBase": "20000000000000000000",
+          "meanHps": 70.31899943882118,
+          "selectionChanges": 7,
+          "nonceReconciled": true
+        },
+        {
+          "id": "calibration",
+          "label": "Prof DeezNutz — calibration",
+          "accepted": 55,
+          "settled": 54,
+          "scored": 54,
+          "attributedPoints": 51,
+          "settledNetClcBase": "-38718000000000000000",
+          "pendingPrincipalBase": "4000000000000000000",
+          "meanHps": 69.2695216384802,
+          "selectionChanges": 8,
+          "nonceReconciled": true
+        }
+      ],
+      "limitations": [
+        "Same incremental gross risk budget and fixed stake; starting wallet balances differ.",
+        "Mixed-cohort warmup is separate from fresh Classic games; native balance/ladder deltas can include older pending settlements.",
+        "Profit uses exact per-throw CLC returns and reports other assets separately; pending principal is not a realized loss.",
+        "Points attribution includes only matching throw-specific awards; game-wide awards are not invented or allocated speculatively.",
+        "MAE compares sequential current-known-board wallet-PnL forecasts with final wallet PnL; forecasts are correlated and unknown future throws can alter outcomes.",
+        "Selection-change evidence is a rescore of the complete already-valid candidate set, holding deterministic doctrine bias fixed; it is not a second independent physics run.",
+        "Four simultaneous players affect each other; this run is an exploratory comparison, not proof of a superior doctrine.",
+        "Per-agent candidate context was empty in 22 calls; those decisions could use the shared reference shortlist instead.",
+        "Settlement feedback can lag accepted throws. Resident result collection continues while paused; no forced settlement or second signing process is used."
+      ]
+    }
+  ]
+}

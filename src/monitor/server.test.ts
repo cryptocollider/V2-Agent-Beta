@@ -1,20 +1,289 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import { appendFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { DEFAULT_SETTINGS, saveSettings } from "../core/settings.js";
-import { initRuntimeSettings } from "../core/runtime-state.js";
+import { DEFAULT_SETTINGS, loadSettings, saveSettings } from "../core/settings.js";
+import { getRuntimeSettings, initRuntimeSettings } from "../core/runtime-state.js";
 import { initManagerState, saveManagerCandidateSet, saveManagerOverlay, setLatestCandidateContext, setLatestEligibilitySnapshot } from "../core/manager-state.js";
 import { appendResultLog, initStorage, writeArtifactJson } from "../core/storage.js";
 import { startMonitorServer } from "./server.js";
 import { normalizeManagerCandidateSet, normalizeManagerTacticalOverlay } from "../strategy/tactical-overlay.js";
+
+test("map-priority API persists and syncs only the requested map; rejects unsafe requests and retains concurrent changes", async t => {
+  const root=await mkdtemp(path.join(tmpdir(),'map-priority-api-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
+  const initial={...DEFAULT_SETTINGS,maxThrowUsd:1.1,maxSingleThrowUsd:1.1,maxThrowsPerSession:500};
+  await saveSettings(initial,root);let runtime=initial;
+  const server=await startMonitorServer({port:0,dataDir:root,staticDir:process.cwd(),bridge:{
+    getRuntimeSettings:()=>runtime,updateRuntimeSettings:patch=>(runtime={...runtime,...patch})}});
+  t.after(()=>new Promise<void>(resolve=>server.close(()=>resolve())));
+  const base='http://127.0.0.1:'+(server.address() as {port:number}).port,id='12'.repeat(32),second='34'.repeat(32);
+  const save=(body:unknown,origin=base)=>fetch(base+'/api/settings/map-priority',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});
+  for(const body of [{mapId:id,priority:0},{mapId:id,priority:11},{mapId:id,priority:1.5},{mapId:id,priority:'10'},
+    {mapId:'bad',priority:10},{mapId:id,priority:10,maxThrowUsd:99}]) assert.equal((await save(body)).status,400);
+  assert.equal((await save({mapId:id,priority:10},'https://elsewhere.example')).status,400);
+  const responses=await Promise.all([save({mapId:'0x'+id,priority:10}),save({mapId:second,priority:8})]);
+  for(const r of responses){assert.equal(r.status,200);assert.equal((await r.json() as any).runtimeSyncPending,false);}
+  const saved=await loadSettings(root);
+  assert.deepEqual(saved.mapPriorities,{[id]:10,[second]:8});assert.deepEqual(runtime.mapPriorities,saved.mapPriorities);
+  assert.equal(saved.maxThrowUsd,1.1);assert.equal(saved.maxThrowsPerSession,500);
+});
+
+test("confirmation switch is same-origin boolean-only and does not expose signing endpoints", async t => {
+  const root = await mkdtemp(path.join(tmpdir(), "agent1-confirmation-api-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const changes: unknown[] = [];
+  const server = await startMonitorServer({ port: 0, dataDir: root, staticDir: process.cwd(), bridge: {
+    getConfirmationStatus: () => ({ available: true, enabled: false, reason: "level_required", jobs: [] }),
+    saveConfirmationConfig: patch => { changes.push(patch); return patch; },
+  } });
+  t.after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+  const base = "http://127.0.0.1:" + (server.address() as { port: number }).port;
+  assert.equal((await fetchJson(base + "/api/confirmations/status")).available, true);
+  for (const [origin, body] of [
+    ["https://other.example", { enabled: true }], [base, { enabled: "true" }],
+    [base, { enabled: true, maxCapitalBase: "999" }], [base, { enabled: true, salt: "not-accepted" }],
+  ]) {
+    const response = await fetch(base + "/api/confirmations/config", { method: "POST",
+      headers: { origin: String(origin), "content-type": "application/json" }, body: JSON.stringify(body) });
+    assert.equal(response.status, 400);
+  }
+  assert.equal(changes.length, 0);
+  const saved = await fetchJson(base + "/api/confirmations/config", { method: "POST", headers: { origin: base, "content-type": "application/json" },
+    body: JSON.stringify({ enabled: true }) });
+  assert.equal(saved.config.enabled, true); assert.deepEqual(changes, [{ enabled: true }]);
+});
+
+test("runtime settings distinguish an actually uninitialized local runtime", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-runtime-uninitialized-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  const diagnostics: unknown[][] = [];
+  t.mock.method(console, "warn", (...args: unknown[]) => diagnostics.push(args));
+  const server = await startMonitorServer({ port: 0, dataDir: tempDir, staticDir: process.cwd() });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/runtime-settings`);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    ok: false, code: "RUNTIME_SETTINGS_UNINITIALIZED", source: "local",
+    error: "runtime settings not initialized",
+  });
+  assert.equal((diagnostics[0][1] as any).code, "RUNTIME_SETTINGS_UNINITIALIZED");
+});
+
+test("a points status bridge failure returns 503 without killing the monitor", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-points-bridge-failure-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  let calls = 0;
+  const server = await startMonitorServer({
+    port: 0, dataDir: tempDir, staticDir: process.cwd(),
+    bridge: { getPointsConversionStatus: () => {
+      if (++calls === 1) throw new Error("simulated bridge timeout");
+      return { available: true, config: { enabled: false } };
+    } },
+  });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const base = `http://127.0.0.1:${address.port}`;
+  assert.equal((await fetch(`${base}/api/points/status`)).status, 503);
+  assert.equal((await fetchJson(`${base}/api/points/status`)).available, true);
+});
+
+test("points conversion API requires same-origin JSON and forwards only one explicit request", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-points-api-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  let saves = 0;
+  let redemptions = 0;
+  const server = await startMonitorServer({
+    port: 0, dataDir: tempDir, staticDir: process.cwd(),
+    bridge: {
+      getPointsConversionStatus: () => ({ available: true, config: { enabled: false }, history: [], pending: null }),
+      savePointsConversionConfig: (patch) => { saves++; return patch; },
+      redeemPointsForClc: (request) => { redemptions++; return { status: "confirmed", pointsIn: request.pointsIn, nonce: 3 }; },
+    },
+  });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const base = `http://127.0.0.1:${address.port}`;
+  assert.equal((await fetchJson(`${base}/api/points/status`)).config.enabled, false);
+  const body = JSON.stringify({ pointsIn: "7500", expectedPointsPerClc: "1500", requestId: "test-request-1" });
+  const crossOrigin = await fetch(`${base}/api/points/redeem`, { method: "POST", headers: { "content-type": "application/json", origin: "https://other.example" }, body });
+  assert.equal(crossOrigin.status, 400);
+  assert.equal(redemptions, 0);
+  const wrongType = await fetch(`${base}/api/points/config`, { method: "POST", headers: { origin: base, "content-type": "text/plain" }, body: "{}" });
+  assert.equal(wrongType.status, 400);
+  assert.equal(saves, 0);
+  const saved = await fetchJson(`${base}/api/points/config`, { method: "POST", headers: { origin: base, "content-type": "application/json" }, body: JSON.stringify({ enabled: false }) });
+  assert.equal(saved.config.enabled, false);
+  assert.equal(saves, 1);
+  const redeemed = await fetchJson(`${base}/api/points/redeem`, { method: "POST", headers: { origin: base, "content-type": "application/json" }, body });
+  assert.equal(redeemed.nonce, 3);
+  assert.equal(redemptions, 1);
+});
+
+test("points ledger and exact quote are served through the monitor origin without signing", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-points-ledger-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  const user = "ab".repeat(32);
+  const clc = "0x3e0e0f0eedd306b23b0f386df33a36fac07cbd9e45a7ad02d1c40adedbee2e16";
+  const calls: string[] = [];
+  const rpcServer = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(Buffer.from(chunk));
+    const rpc = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    calls.push(rpc.method);
+    let result: unknown;
+    if (rpc.method === "colliderV2.getLadderUser") result = { points_total: "7500", throw_count: "420" };
+    else if (rpc.method === "colliderV2.getBalances") result = { [clc]: "1000000000000000000" };
+    else if (rpc.method === "colliderV2.getClcRedemptionQuote") {
+      result = { enabled: true, points_in: rpc.params[1], points_per_clc: "1500", clc_out: "5000000000000000000" };
+    } else throw new Error(`unexpected RPC ${rpc.method}`);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: rpc.id, result }));
+  });
+  await new Promise<void>((resolve) => rpcServer.listen(0, "127.0.0.1", resolve));
+  t.after(async () => { await new Promise((resolve) => rpcServer.close(() => resolve(undefined))); });
+  const rpcAddress = rpcServer.address();
+  assert.ok(rpcAddress && typeof rpcAddress === "object");
+  await saveSettings({ ...DEFAULT_SETTINGS, user, rpc: `http://127.0.0.1:${rpcAddress.port}` }, tempDir);
+  const server = await startMonitorServer({ port: 0, dataDir: tempDir, staticDir: process.cwd() });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const base = `http://127.0.0.1:${address.port}`;
+  const ledger = await fetchJson(`${base}/api/points/ledger`);
+  assert.equal(ledger.user, `0x${user}`);
+  assert.equal(ledger.points, "7500");
+  assert.equal(ledger.clcBase, "1000000000000000000");
+  assert.equal(ledger.fullQuote.clc_out, "5000000000000000000");
+  const quote = await fetchJson(`${base}/api/points/quote?pointsIn=1500`);
+  assert.equal(quote.points_in, "1500");
+  assert.equal((await fetch(`${base}/api/points/quote?pointsIn=-1`)).status, 400);
+  const bank = await fetchJson(`${base}/api/bank/balances`);
+  assert.equal(bank.user, `0x${user}`);
+  assert.equal(bank.balances[clc], "1000000000000000000");
+  assert.ok(bank.asOf);
+  assert.deepEqual(calls.slice(0, 2).sort(), ["colliderV2.getBalances", "colliderV2.getLadderUser"]);
+  assert.deepEqual(calls.slice(2), ["colliderV2.getClcRedemptionQuote", "colliderV2.getClcRedemptionQuote", "colliderV2.getBalances"]);
+});
 
 async function fetchJson(url: string, init?: RequestInit): Promise<any> {
   const response = await fetch(url, init);
   assert.equal(response.ok, true, `expected ok response from ${url}`);
   return response.json();
 }
+
+test("history summary exposes lifetime counts and incrementally observes appends", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-history-summary-"));
+  t.after(async () => { await rm(tempDir, { recursive: true, force: true }); });
+  const gameA = "11".repeat(32);
+  const gameB = "22".repeat(32);
+  await writeFile(path.join(tempDir, "throws.jsonl"), [
+    { ts: "2026-01-01T00:00:00.000Z", gameId: gameA, submitted: true,
+      signedIntent: { status: "throw_accepted", nonce: 4 } },
+    { ts: "2026-01-01T00:00:01.000Z", gameId: gameB, submitted: false },
+  ].map((row) => JSON.stringify(row)).join("\n") + "\n", "utf8");
+  await writeFile(path.join(tempDir, "results.jsonl"), `${JSON.stringify({
+    ts: "2026-01-01T00:00:02.000Z", gameId: gameA, honestScore: { honestScore: 88 },
+  })}\n`, "utf8");
+  const server = await startMonitorServer({ port: 0, dataDir: tempDir, staticDir: process.cwd() });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const first = await fetchJson(`${baseUrl}/api/history/summary`);
+  assert.deepEqual({ rows: first.throws.rows, accepted: first.throws.accepted, games: first.throws.games,
+    latestNonce: first.throws.latestNonce, scored: first.results.scored, resultGames: first.results.games,
+    pending: first.pendingAcceptedThrows },
+  { rows: 2, accepted: 1, games: 2, latestNonce: 4, scored: 1, resultGames: 1, pending: 0 });
+  await appendFile(path.join(tempDir, "throws.jsonl"), `${JSON.stringify({
+    ts: "2026-01-01T00:00:03.000Z", gameId: gameB, submitted: true,
+    signedIntent: { status: "throw_accepted", nonce: 5 },
+  })}\n`, "utf8");
+  const second = await fetchJson(`${baseUrl}/api/history/summary`);
+  assert.equal(second.throws.rows, 3);
+  assert.equal(second.throws.accepted, 2);
+  assert.equal(second.throws.games, 2);
+  assert.equal(second.throws.latestNonce, 5);
+  assert.equal(second.pendingAcceptedThrows, 1);
+});
+
+test("per-game accepted totals survive the bounded 100-throw tail", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-game-history-"));
+  t.after(async () => { await rm(tempDir, { recursive: true, force: true }); });
+  const gameA = "11".repeat(32);
+  const gameB = "22".repeat(32);
+  const asset = "09".repeat(32);
+  const rows = Array.from({ length: 11 }, (_, nonce) => ({
+    ts: new Date(1_800_000_000_000 + nonce * 1000).toISOString(), gameId: gameA,
+    decisionId: `a-${nonce}`, submitted: true,
+    signedIntent: { status: "throw_accepted", nonce },
+    payload: { asset, amount: "10" },
+  })).concat(Array.from({ length: 110 }, (_, index) => ({
+    ts: new Date(1_800_000_100_000 + index * 1000).toISOString(), gameId: gameB,
+    decisionId: `b-${index}`, submitted: true,
+    signedIntent: { status: "throw_accepted", nonce: index + 11 },
+    payload: { asset, amount: "10" },
+  })));
+  await writeFile(path.join(tempDir, "throws.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+  const server = await startMonitorServer({ port: 0, dataDir: tempDir, staticDir: process.cwd() });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  const tail = await fetchJson(`${baseUrl}/api/logs/throws?limit=100`);
+  assert.equal(tail.some((row: { gameId: string }) => row.gameId === gameA), false);
+  const summary = await fetchJson(`${baseUrl}/api/history/summary`);
+  const olderGame = summary.recentGames.find((game: { gameId: string }) => game.gameId === gameA);
+  assert.equal(olderGame.accepted, 11);
+  assert.equal(olderGame.inputsByAsset[asset], "110");
+  assert.equal(olderGame.resolved, 0);
+  assert.equal(summary.bank.outByAsset[asset], "1210");
+  assert.equal(summary.bank.pendingByAsset[asset], "1210");
+  const completeGame = await fetchJson(`${baseUrl}/api/history/game?gameId=${gameA}`);
+  assert.equal(completeGame.throws.length, 11);
+  assert.equal(completeGame.gameId, gameA);
+  await appendFile(path.join(tempDir, "results.jsonl"), `${JSON.stringify({
+    ts: new Date(1_800_000_220_000).toISOString(), gameId: gameA,
+    decisionId: "a-0", actual: { wholeGame: {} },
+  })}\n`);
+  const settledSummary = await fetchJson(`${baseUrl}/api/history/summary`);
+  assert.equal(settledSummary.recentGames.find((game: { gameId: string }) => game.gameId === gameA).resolved, 1);
+  assert.equal(settledSummary.bank.pendingByAsset[asset], "1200");
+  assert.equal(settledSummary.bank.unverifiedReturnDecisions, 1);
+  await appendFile(path.join(tempDir, "results.jsonl"), `${JSON.stringify({
+    ts: new Date(1_800_000_221_000).toISOString(), gameId: gameA,
+    decisionId: "a-0", actual: { throwMatch: { returned_by_asset_exact: true, returned_by_asset_source: "canonical_throw_payouts",
+      returned_by_asset: { [asset]: "15" } } },
+  })}\n`);
+  const exactSummary = await fetchJson(`${baseUrl}/api/history/summary`);
+  assert.equal(exactSummary.bank.inByAsset[asset], "15");
+  assert.equal(exactSummary.bank.unverifiedReturnDecisions, 0);
+});
+
+test("log routes return 304 when the bounded source file is unchanged", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-log-etag-"));
+  t.after(async () => { await rm(tempDir, { recursive: true, force: true }); });
+  await writeFile(path.join(tempDir, "throws.jsonl"), JSON.stringify({ ts: "2026-01-01T00:00:00.000Z" }) + "\n", "utf8");
+  const server = await startMonitorServer({ port: 0, dataDir: tempDir, staticDir: process.cwd() });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const url = "http://127.0.0.1:" + address.port + "/api/logs/throws?limit=100";
+  const first = await fetch(url);
+  assert.equal(first.status, 200);
+  assert.deepEqual(await first.json(), [{ ts: "2026-01-01T00:00:00.000Z" }]);
+  const etag = first.headers.get("etag");
+  assert.ok(etag);
+  const unchanged = await fetch(url, { headers: { "if-none-match": etag } });
+  assert.equal(unchanged.status, 304);
+  assert.equal(await unchanged.text(), "");
+});
 
 test("manager API exposes state, overlay, and candidate-set controls", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "collider-manager-api-"));
@@ -768,37 +1037,94 @@ test("manager LLM panel supports local provider chat and bounded apply", async (
   assert.equal(state.settings.minThrowUsd, 9);
 });
 
-test("monitor startup rejects cleanly when its port is already in use", async (t) => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "collider-port-test-"));
-  const server = await startMonitorServer({ port: 0, dataDir });
-  t.after(async () => {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
-    await rm(dataDir, { recursive: true, force: true });
+test("runtime settings bridge timeout stays unavailable even when local settings exist", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-runtime-read-timeout-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  const local = { ...DEFAULT_SETTINGS, maxSingleThrowUsd: 10, maxThrowsPerSession: 934 };
+  initRuntimeSettings(local);
+  const diagnostics: unknown[][] = [];
+  t.mock.method(console, "warn", (...args: unknown[]) => diagnostics.push(args));
+  let writes = 0;
+  const server = await startMonitorServer({
+    port: 0, dataDir: tempDir, staticDir: process.cwd(),
+    bridge: {
+      getRuntimeSettings: () => new Promise<never>(() => undefined),
+      updateRuntimeSettings: () => { writes++; return local; },
+      applyControlAction: () => { writes++; return { state: "live" }; },
+    },
   });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
   const address = server.address();
   assert.ok(address && typeof address === "object");
-  await assert.rejects(startMonitorServer({ port: address.port, dataDir }), { code: "EADDRINUSE" });
+  const started = Date.now();
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/runtime-settings`);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    ok: false, code: "RUNTIME_SETTINGS_BRIDGE_TIMEOUT", source: "bridge",
+    error: "runtime settings bridge read timed out",
+  });
+  assert.ok(Date.now() - started < 5000, "unavailable reads must remain bounded");
+  assert.equal((diagnostics[0][1] as any).code, "RUNTIME_SETTINGS_BRIDGE_TIMEOUT");
+  assert.equal(writes, 0);
+  assert.deepEqual(getRuntimeSettings(), local);
 });
 
-test("dismissing onboarding updates the running state as well as persisted settings", async (t) => {
-  const dataDir = await mkdtemp(path.join(tmpdir(), "collider-welcome-test-"));
-  initRuntimeSettings({ ...DEFAULT_SETTINGS });
-  await saveSettings({ ...DEFAULT_SETTINGS }, dataDir);
-  const server = await startMonitorServer({ port: 0, dataDir });
-  t.after(async () => {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
-    await rm(dataDir, { recursive: true, force: true });
+test("runtime settings preserve bridge errors and recover without a settings mutation", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-runtime-read-recovery-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  const local = { ...DEFAULT_SETTINGS, maxSingleThrowUsd: 1 };
+  const remote = { ...DEFAULT_SETTINGS, maxSingleThrowUsd: 10, maxThrowsPerSession: 934 };
+  initRuntimeSettings(local);
+  const diagnostics: unknown[][] = [];
+  t.mock.method(console, "warn", (...args: unknown[]) => diagnostics.push(args));
+  let calls = 0;
+  const server = await startMonitorServer({
+    port: 0, dataDir: tempDir, staticDir: process.cwd(),
+    bridge: { getRuntimeSettings: () => {
+      if (++calls === 1) throw new Error("simulated upstream diagnostic detail");
+      return remote;
+    } },
   });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
   const address = server.address();
   assert.ok(address && typeof address === "object");
-  const base = 'http://127.0.0.1:' + address.port;
-  const dismissedAt = "2026-09-28T14:00:00.000Z";
-  await fetchJson(base + '/api/settings/onboarding', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ onboarding: { welcomeDismissedAt: dismissedAt } }),
+  const base = `http://127.0.0.1:${address.port}`;
+  const failed = await fetch(`${base}/api/runtime-settings`);
+  assert.equal(failed.status, 503);
+  assert.deepEqual(await failed.json(), {
+    ok: false, code: "RUNTIME_SETTINGS_READ_FAILED", source: "bridge",
+    error: "runtime settings read unavailable",
   });
-  const settings = await fetchJson(base + '/api/settings');
-  const state = await fetchJson(base + '/api/manager/state');
-  assert.equal(settings.onboarding.welcomeDismissedAt, dismissedAt);
-  assert.equal(state.onboarding.welcomePending, false);
+  assert.deepEqual(await fetchJson(`${base}/api/runtime-settings`), remote);
+  assert.equal(calls, 2);
+  assert.deepEqual(getRuntimeSettings(), local);
+  assert.equal(JSON.stringify(diagnostics).includes("upstream diagnostic detail"), false);
 });
+
+test("runtime settings report explicit bridge uninitialized responses separately from timeout", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "collider-runtime-bridge-uninitialized-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+  initRuntimeSettings({ ...DEFAULT_SETTINGS });
+  t.mock.method(console, "warn", () => undefined);
+  let calls = 0;
+  const server = await startMonitorServer({
+    port: 0, dataDir: tempDir, staticDir: process.cwd(),
+    bridge: { getRuntimeSettings: () => {
+      if (++calls === 1) throw new Error("Error: runtime settings not initialized");
+      return null;
+    } },
+  });
+  t.after(async () => { await new Promise((resolve) => server.close(() => resolve(undefined))); });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response: Response = await fetch(`http://127.0.0.1:${address.port}/api/runtime-settings`);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      ok: false, code: "RUNTIME_SETTINGS_UNINITIALIZED", source: "bridge",
+      error: "runtime settings not initialized",
+    });
+  }
+});
+
+test('controlled manager UI audit supports the declared240 rounds and rejects expired, mismatched and out-of-bound reports',async t=>{const root=await mkdtemp(path.join(tmpdir(),'manager-round-limit-'));t.after(()=>rm(root,{recursive:true,force:true}));const file=path.join(root,'manager-experiment.json');const marker={active:true,stopAt:new Date(Date.now()+60000).toISOString(),model:'gpt-6.1-terra',maxInferenceRounds:240};await writeFile(file,JSON.stringify(marker));const server=await startMonitorServer({port:0,dataDir:root,staticDir:process.cwd()});t.after(()=>new Promise<void>(r=>server.close(()=>r())));const base='http://127.0.0.1:'+(server.address() as {port:number}).port;const post=(round:number,model=marker.model,origin=base)=>fetch(base+'/api/manager/experiment/decision',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({model,round,reply:'Bounded tactical decision; no transaction.',policyId:'test-'+round})});for(const n of [95,96,100,239])assert.equal((await post(n)).status,200);for(const n of [-1,240,800,1.5])assert.equal((await post(n)).status,400);assert.equal((await post(100,'different')).status,400);assert.equal((await post(100,marker.model,'https://elsewhere.invalid')).status,400);await writeFile(file,JSON.stringify({...marker,stopAt:new Date(0).toISOString()}));assert.equal((await post(100)).status,400);await writeFile(file,JSON.stringify({...marker,maxInferenceRounds:undefined}));assert.equal((await post(95)).status,200);assert.equal((await post(96)).status,400);await writeFile(file,JSON.stringify({...marker,maxInferenceRounds:241}));assert.equal((await post(100)).status,400);});

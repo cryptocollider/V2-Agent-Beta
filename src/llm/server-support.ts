@@ -18,7 +18,7 @@ import { getControlState, getRuntimeSettings, applyControlAction, updateRuntimeS
 import { getPublicManagerLlmState } from "./state.js";
 import type { ManagerLlmAction, ManagerStateSnapshotForLlm } from "./types.js";
 import { normalizeManagerCandidateSet, normalizeManagerTacticalOverlay } from "../strategy/tactical-overlay.js";
-import { readFile } from "node:fs/promises";
+import { readJsonlTail } from "../core/jsonl.js";
 import path from "node:path";
 
 export type ManagerBridge = {
@@ -33,22 +33,6 @@ export type ManagerBridge = {
   getManagerCandidateSet?: () => unknown | Promise<unknown>;
   saveManagerCandidateSet?: (candidateSet: unknown) => unknown | Promise<unknown>;
 };
-
-function parseJsonl(text: string): any[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
-}
-
-async function safeReadText(file: string): Promise<string> {
-  try {
-    return await readFile(file, "utf8");
-  } catch {
-    return "";
-  }
-}
 
 function cleanHex(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/^0x/, "");
@@ -135,6 +119,7 @@ function safeRuntimeSettings(): Record<string, unknown> | null {
 }
 
 const BRIDGE_READ_TIMEOUT_MS = 1000;
+const BRIDGE_WRITE_TIMEOUT_MS = 3000;
 
 export type SaveSettingsAndRuntimeResult = {
   settings: ReturnType<typeof normalizeSettings>;
@@ -171,7 +156,13 @@ async function fromBridgeWithArg<T, A>(
   arg: A,
   fallback: (arg: A) => T | Promise<T>,
 ): Promise<T> {
-  if (bridgeCall) return await bridgeCall(arg);
+  if (bridgeCall) {
+    return await withTimeout(
+      Promise.resolve().then(() => bridgeCall(arg)),
+      BRIDGE_WRITE_TIMEOUT_MS,
+      "runtime bridge write",
+    );
+  }
   return await fallback(arg);
 }
 
@@ -206,17 +197,8 @@ function emptyCandidateFilterSummary(): {
 }
 
 async function readLatestRunRow(dataDir: string): Promise<any | null> {
-  const text = await safeReadText(path.join(dataDir, "runs.jsonl"));
-  if (!text.trim()) return null;
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    try {
-      return JSON.parse(lines[index]);
-    } catch {
-      // Skip malformed tail lines and continue scanning backward.
-    }
-  }
-  return null;
+  const page = await readJsonlTail<any>(path.join(dataDir, "runs.jsonl"), 1);
+  return page.rows[0] ?? null;
 }
 
 function buildEligibilitySnapshotFromRun(row: any): Record<string, unknown> | null {
@@ -337,8 +319,8 @@ function mergeSettingsPatch(
 
 export async function buildManagerStatePayload(dataDir: string, bridge: ManagerBridge): Promise<Record<string, unknown>> {
   const settings = await loadSettings(dataDir);
-  const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-  const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
+  const resultsPage = await readJsonlTail<any>(path.join(dataDir, "results.jsonl"), 250);
+  const honestPerformance = buildHonestPerformanceSnapshot(resultsPage.rows);
   const latestRun = await readLatestRunRow(dataDir);
   const localOverlay = getManagerOverlay();
   const localCandidateSet = getManagerCandidateSet();
@@ -359,7 +341,7 @@ export async function buildManagerStatePayload(dataDir: string, bridge: ManagerB
     ),
     fromBridgeRead(
       bridge.getRuntimeSettings,
-      () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
+      () => safeRuntimeSettings(),
       "manager runtime settings",
     ),
     fromBridgeRead(
@@ -442,14 +424,10 @@ export async function saveSettingsAndRuntime(
   let runtimeSyncPending = false;
   let runtimeSyncError: string | null = null;
   try {
-    runtime = await withTimeout(
-      fromBridgeWithArg(
-        bridge.updateRuntimeSettings,
-        merged,
-        (runtimePatch) => updateRuntimeSettings(runtimePatch),
-      ),
-      5000,
-      "settings runtime sync",
+    runtime = await fromBridgeWithArg(
+      bridge.updateRuntimeSettings,
+      merged,
+      (runtimePatch) => updateRuntimeSettings(runtimePatch),
     );
   } catch (err) {
     runtimeSyncPending = true;

@@ -6,6 +6,7 @@ import { invokeOllamaProvider } from "./providers/ollama.js";
 import { invokeOpenAiProvider } from "./providers/openai.js";
 import { invokeOpenRouterProvider } from "./providers/openrouter.js";
 import { invokeVeniceProvider } from "./providers/venice.js";
+import { invokeCodexProvider } from "./providers/codex.js";
 import type { LlmProviderId, ManagerProviderRequest, ManagerProviderResult } from "./types.js";
 
 export async function invokeManagerProvider(
@@ -13,6 +14,8 @@ export async function invokeManagerProvider(
   request: ManagerProviderRequest,
 ): Promise<ManagerProviderResult> {
   switch (provider) {
+    case "codex":
+      return invokeCodexProvider(request);
     case "venice":
       return invokeVeniceProvider(request);
     case "openai":

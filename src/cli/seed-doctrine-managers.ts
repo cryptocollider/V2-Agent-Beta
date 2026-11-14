@@ -1,0 +1,40 @@
+import {readFile,writeFile,appendFile} from "node:fs/promises";
+import path from "node:path";
+import {doctrinePrompt} from '../core/doctrine-knowledge.js';
+import {invokeCodexProvider} from "../llm/providers/codex.js";
+import {parseManagerChatResponse} from "../llm/session.js";
+import {validatedSeedOverlay} from "../experiments/doctrine-baseline.js";
+import {applyOverlayToCandidate} from "../strategy/tactical-overlay.js";
+import {initManagerState,saveManagerOverlay} from "../core/manager-state.js";
+import {buildContentAddressRefFromJson} from "../core/content-address.js";
+
+const root="data-doctrine-baselines-20261110a",manifest=JSON.parse(await readFile(path.join(root,"manifest.json"),"utf8")),packet=JSON.parse(await readFile(path.join(root,"shared-packet.json"),"utf8"));
+if(buildContentAddressRefFromJson(packet).sha256Hex!==manifest.sharedPacketSha256)throw Error("frozen packet hash mismatch");
+const policySeed=process.argv.includes("--policy-seed"),selected=process.argv.slice(2).find(v=>!v.startsWith("--")),phase=policySeed?"policy-seed":"inference";
+for(const profile of manifest.profiles.filter((p:any)=>!selected||p.id===selected)){
+  const resultFile=path.join(root,profile.id+"-"+phase+".json");
+  try{await readFile(resultFile);console.log(JSON.stringify({id:profile.id,status:"already recorded; no new inference"}));continue;}catch(e){if((e as any).code!=="ENOENT")throw e;}
+  // Exclusive durable attempt marker prevents automatic retries after timeouts/crashes.
+  await writeFile(path.join(root,profile.id+"-"+phase+"-attempt.json"),JSON.stringify({startedAt:new Date().toISOString(),provider:"codex",packetHash:manifest.sharedPacketSha256}),{flag:"wx"});
+  const stateFile=path.join(profile.dataDir,"manager-llm.json"),state=JSON.parse(await readFile(stateFile,"utf8"));
+  const systemPrompt=doctrinePrompt(profile.doctrine)+"\nBaseline game manager: propose at most ONE overlay, using only candidateScoreDeltas (keys from the packet) and/or holeTypeScoreDeltas (numeric hole IDs observed in the packet). All numbers are SCORE NUDGES, not payouts. Total absolute bias <=100. Prefer a small reusable hole-type bias if the evidence supports it; candidate-specific advice only applies to this archived example. No other action kind or payload field is allowed. Do not invent hole semantics, points forecasts or outcomes. You may abstain with no proposals if the evidence is inadequate. Distinguish an altered score from a changed winning candidate. Reply concisely with rationale and limitations. This is one initial manager decision, no subsequent adaptive inference.";
+  const policyContext=policySeed?"This pass seeds a small reusable PRIOR expressing the user's chosen objective, not an empirically learned optimum. You may use candidateSourceScoreDeltas with grid (fresh search), history (previous accepted controls), copy-seed (copied player controls), manager or manual. Repository hole IDs: 1 draw/capital preservation, 2 total loss, 3 winner, 4 half loss, 5 low bleed. These labels are deterministic game classes, not guaranteed rewards or future outcomes. Choose one modest reusable preference appropriate to the named objective and explain that it is a prior. A calibration goal can prioritize repeatable history for measurement; discovery can prioritize fresh search. Points cannot be forecast per candidate yet: acknowledge this gap and do not claim optimal points. Candidate-score winner change is not required. Abstain if you cannot justify even an objective prior. The allowed payload fields for this pass are holeTypeScoreDeltas and candidateSourceScoreDeltas ONLY, total absolute bias <=100. No predicted payout edits, no execution. Keep the reply under 150 words.":"";
+  const userPrompt=JSON.stringify({doctrine:profile.doctrine,goal:profile.primaryGoal,goalWeights:profile.goalWeights,riskLimits:manifest.commonPolicy,policyContext,packet});
+  try{
+    const response=await invokeCodexProvider({config:state.config.providers.codex,systemPrompt:policySeed?systemPrompt.replace("using only candidateScoreDeltas (keys from the packet) and/or holeTypeScoreDeltas (numeric hole IDs observed in the packet)","using only holeTypeScoreDeltas (documented hole IDs) and/or candidateSourceScoreDeltas (documented candidate source names)"):systemPrompt,messages:[{role:"user",content:userPrompt}]});
+    const parsed=parseManagerChatResponse(response.text);if(parsed.proposals.length>1||parsed.proposals.some(p=>p.kind!=="overlay"))throw Error("baseline response exceeded advisory scope");
+    const overlay=parsed.proposals.length?validatedSeedOverlay(parsed.proposals[0].payload,new Set(packet.candidates.map((c:any)=>c.candidateHash)),"baseline-"+profile.id):null;
+    const rankings=packet.candidates.map((c:any)=>{const applied=applyOverlayToCandidate({overlay,candidate:{...c,tags:[]},candidateHash:c.candidateHash,baseScore:c.baseScore,basePrediction:c.basePrediction});return {candidateHash:c.candidateHash,holeType:c.basePrediction?.holeType,baseScore:c.baseScore.final,scoreDelta:applied.scoreDelta,adjustedScore:applied.adjustedScore.final,predictionUnchanged:JSON.stringify(applied.adjustedPrediction)===JSON.stringify(c.basePrediction)};}).sort((a:any,b:any)=>b.adjustedScore-a.adjustedScore);
+    const original=[...rankings].sort((a:any,b:any)=>b.baseScore-a.baseScore)[0].candidateHash;
+    const result={status:overlay?"validated-score-overlay":"abstained",phase,id:profile.id,completedAt:new Date().toISOString(),provider:response.provider,configuredModel:response.model,usage:response.usage,packetHash:manifest.sharedPacketSha256,reply:parsed.reply,summary:parsed.summary,proposal:parsed.proposals[0]??null,overlay,rankings,winnerChanged:original!==rankings[0].candidateHash,liveThrows:0,limitation:"Frozen historical counterfactual, not live performance; no per-candidate points forecast. Reusable hole/source biases express objective priors, not learned optimal policies."};
+    // When resident, apply through its API so in-memory and persisted overlays agree.
+    let resident=false;try{resident=(await fetch(profile.monitor+"/api/control/status",{signal:AbortSignal.timeout(3000)})).ok;}catch{/* Funding startup has not opened the monitor yet. */}
+    if(resident){const r=await fetch(profile.monitor+"/api/manager/overlay",{method:overlay?"POST":"DELETE",headers:{"content-type":"application/json"},...(overlay?{body:JSON.stringify(overlay)}:{}),signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error("resident manager rejected bounded seed overlay");}
+    else{await initManagerState(profile.dataDir);await saveManagerOverlay(overlay);}
+    const now=new Date().toISOString();state.history=[{id:"baseline-request",role:"user",content:"Initial minimum-inference baseline: "+profile.primaryGoal+" on shared public packet "+manifest.sharedPacketSha256,createdAt:now},{id:"baseline-response",role:"assistant",content:parsed.reply,createdAt:now}];state.lastProvider="codex";state.lastSummary=parsed.summary;state.lastUpdatedAt=now;state.lastError=null;
+    if(parsed.proposals.length)state.pendingActions=[{...parsed.proposals[0],id:"baseline-seed-"+profile.id,createdAt:now,appliedAt:now,rejectedAt:null,rejection:null,guidedAt:null,guideMessage:null,hiddenAt:null,failedAt:null,failure:null}];
+    await writeFile(stateFile,JSON.stringify(state,null,2)+"\n");await writeFile(resultFile,JSON.stringify(result,null,2)+"\n");
+    await appendFile(path.join(root,"inference-events.jsonl"),JSON.stringify({id:profile.id,status:result.status,usage:response.usage,completedAt:now})+"\n");
+    console.log(JSON.stringify({id:profile.id,status:result.status,usage:response.usage,winnerChanged:result.winnerChanged,scoreDeltas:rankings.filter((r:any)=>r.scoreDelta!==0).length}));
+  }catch(e){const error=String((e as Error).message);await writeFile(resultFile,JSON.stringify({id:profile.id,status:"failed-no-auto-retry",error,completedAt:new Date().toISOString()},null,2)+"\n");console.log(JSON.stringify({id:profile.id,status:"failed-no-auto-retry",error}));throw e;}
+}

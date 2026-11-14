@@ -2,10 +2,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { AgentPolicy } from "../policy/schema.js";
+import { normalizeMapPriorities } from "../core/map-priority.js";
 import type { GameListItem, Hex32 } from "../collider/types.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { ArtifactLogRef, HonestScoreLogView, StoragePaths } from "../core/storage.js";
-import { appendResultLog, appendRunLog, writeArtifactJson } from "../core/storage.js";
+import { appendResultLog, appendRunLog, gameHistoryFile, writeArtifactJson } from "../core/storage.js";
+import { readPendingDecisions } from "../core/pending-decisions.js";
+import { readJsonlTail } from "../core/jsonl.js";
+import {SubmissionGateClosed,runtimeSnapshotMatches,submissionStillAllowed} from "./submission-gate.js";
 import { getRuntimeSettings, getControlState, updateControlState } from "../core/runtime-state.js";
 import { resolveAgentProfile } from "../core/agent-profile.js";
 import { getManagerCandidateSet, getManagerOverlay, setLatestCandidateContext, setLatestEligibilitySnapshot } from "../core/manager-state.js";
@@ -13,17 +17,36 @@ import { buildEligibilityCompactCode, evaluateGamesForEligibility, type LatestEl
 import { matchReportToSubmittedThrow, type ExpectedThrowSummary } from "./report-match.js";
 import { buildPredictionRevealBundle, type PredictionHistoryEntry } from "./honest-score.js";
 import type { PredictionCommitPayload } from "./prediction-artifact.js";
-import { runAgentOnce, type ColliderClientLike, type LoopConfig } from "./loop.js";
+import { filterGamesByAllowlist, runAgentOnce, type ColliderClientLike, type LoopConfig } from "./loop.js";
+import { recordReconciledAcceptedThrow } from "./signed-intent-recovery.js";
 
 export type ColliderClientSessionLike = ColliderClientLike & {
   getGameReport(gameId: Hex32): Promise<unknown>;
+  reconcilePendingSignedIntent?(timeoutMs?: number): Promise<import("../collider/client.js").ReconciledStoredThrow | null>;
 };
 
 export type SessionConfig = {
+  accelerated?: {startIntervalMs:number;maxThrows:number;stopAtMs:number};
   pollMs: number;
   maxCycles?: number;
   cooldownMsPerGame?: number;
+  stopWhenSessionCapReached?: boolean;
+  maybeAutoConvert?: () => Promise<void>;
+  serviceBondedConfirmations?: () => Promise<boolean>;
+  reconciliationOnly?: boolean;
+  canReconcile?: () => Promise<boolean>;
+  signal?: AbortSignal;
+  stopAtMs?: number;
 };
+
+export function sessionCapExitAction(
+  enabled: boolean,
+  capReached: boolean,
+  pendingResults: number,
+): "normal" | "drain" | "exit" {
+  if (!enabled || !capReached) return "normal";
+  return pendingResults > 0 ? "drain" : "exit";
+}
 
 type SubmittedDecision = {
   decisionId: string;
@@ -47,34 +70,35 @@ function cleanHex(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/^0x/, "");
 }
 
-function parseJsonLines(text: string): any[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    })
-    .filter((row) => row && typeof row === "object");
-}
-
-async function loadPredictionHistoryForGame(params: {
+export async function loadPredictionHistoryForGame(params: {
   storage: StoragePaths;
   gameId: string;
   botUser: string;
+  report?: unknown;
 }): Promise<PredictionHistoryEntry[]> {
   const { storage, gameId, botUser } = params;
   const targetGameId = cleanHex(gameId);
   const targetBotUser = cleanHex(botUser);
+  const reportHex = (value: unknown) => Array.isArray(value) ? Buffer.from(value).toString("hex") : cleanHex(value);
+  const report = params.report as Record<string, any> | undefined;
+  const canonicalHistory = !!report && reportHex(report.game_id) === targetGameId && Array.isArray(report.throws_raw);
+  const canonicalIds = new Map<string, Set<string>>();
+  if (canonicalHistory) for (const row of report!.throws_raw) {
+    if (reportHex(row.user) !== targetBotUser) continue;
+    const hash = reportHex(row.data_commit), id = reportHex(row.id ?? row.throw_id);
+    if (!/^[a-f0-9]{64}$/.test(hash) || !/^[a-f0-9]{64}$/.test(id)) continue;
+    const ids = canonicalIds.get(hash) ?? new Set<string>(); ids.add(id); canonicalIds.set(hash, ids);
+  }
   const resolvedByDecision = new Map<string, { resolvedActualThrowId: string | null; ts: string | null }>();
+  const indexedThrows = await readJsonlTail<any>(gameHistoryFile(storage, "throws", gameId), 256);
+  const useGameIndex = indexedThrows.fileBytes > 0;
 
   try {
-    const resultText = await readFile(storage.resultsFile, "utf8");
-    for (const row of parseJsonLines(resultText)) {
+    const resultTail = await readJsonlTail<any>(
+      useGameIndex ? gameHistoryFile(storage, "results", gameId) : storage.resultsFile,
+      useGameIndex ? 256 : 10_000,
+    );
+    for (const row of resultTail.rows) {
       if (cleanHex(row?.gameId) !== targetGameId) continue;
       if (cleanHex(row?.botUser) !== targetBotUser) continue;
       const decisionKey = cleanHex(row?.decisionId);
@@ -95,8 +119,8 @@ async function loadPredictionHistoryForGame(params: {
 
   const throwRowsByDecision = new Map<string, any>();
   try {
-    const throwText = await readFile(storage.throwsFile, "utf8");
-    for (const row of parseJsonLines(throwText)) {
+    const throwTail = useGameIndex ? indexedThrows : await readJsonlTail<any>(storage.throwsFile, 10_000);
+    for (const row of throwTail.rows) {
       if (cleanHex(row?.gameId) !== targetGameId) continue;
       if (cleanHex(row?.botUser) !== targetBotUser) continue;
       if (row?.submitted === false) continue;
@@ -127,6 +151,7 @@ async function loadPredictionHistoryForGame(params: {
       const commit = JSON.parse(commitText) as PredictionCommitPayload;
       if (!commit || commit.schema !== "collider.prediction.commit.v1") continue;
       const resolution = resolvedByDecision.get(cleanHex(row?.decisionId));
+      const ids = canonicalIds.get(cleanHex(commitRef.sha256Hex));
       history.push({
         commit,
         commitRef: {
@@ -134,7 +159,7 @@ async function loadPredictionHistoryForGame(params: {
           localPath,
         },
         decisionId: row?.decisionId ?? commit.decisionId ?? null,
-        resolvedActualThrowId: resolution?.resolvedActualThrowId ?? null,
+        resolvedActualThrowId: canonicalHistory ? (ids?.size === 1 ? [...ids][0] : null) : resolution?.resolvedActualThrowId ?? null,
         ts: row?.ts ?? null,
       });
     } catch {
@@ -166,54 +191,20 @@ async function loadPendingSubmittedDecisions(params: {
   botUser: string;
 }): Promise<SubmittedDecision[]> {
   const { storage, botUser } = params;
-  const targetBotUser = cleanHex(botUser);
-  const resolvedByDecision = new Set<string>();
-
-  try {
-    const resultText = await readFile(storage.resultsFile, "utf8");
-    for (const row of parseJsonLines(resultText)) {
-      if (cleanHex(row?.botUser) !== targetBotUser) continue;
-      const decisionKey = cleanHex(row?.decisionId);
-      if (!decisionKey) continue;
-      resolvedByDecision.add(decisionKey);
-    }
-  } catch {
-    // no settled rows yet
-  }
-
-  const latestSubmittedByDecision = new Map<string, any>();
-  try {
-    const throwText = await readFile(storage.throwsFile, "utf8");
-    for (const row of parseJsonLines(throwText)) {
-      if (cleanHex(row?.botUser) !== targetBotUser) continue;
-      if (row?.submitted === false) continue;
-      const decisionKey = cleanHex(row?.decisionId);
-      if (!decisionKey || !row?.gameId) continue;
-      const rowTs = new Date(row?.ts || 0).getTime();
-      const prev = latestSubmittedByDecision.get(decisionKey);
-      const prevTs = new Date(prev?.ts || 0).getTime();
-      if (!prev || rowTs >= prevTs) latestSubmittedByDecision.set(decisionKey, row);
-    }
-  } catch {
-    return [];
-  }
-
+  const rows = await readPendingDecisions(storage, botUser);
   const out: SubmittedDecision[] = [];
-  const orderedRows = [...latestSubmittedByDecision.values()]
-    .filter((row) => !resolvedByDecision.has(cleanHex(row?.decisionId)))
-    .sort((a, b) => new Date(a?.ts || 0).getTime() - new Date(b?.ts || 0).getTime());
 
-  for (const row of orderedRows) {
-    const predictionCommitRef = row?.predictionCommit as ArtifactLogRef | undefined;
+  for (const row of rows) {
+    const predictionCommitRef = row.predictionCommit;
     out.push({
-      decisionId: String(row.decisionId),
-      gameId: String(row.gameId) as Hex32,
-      submittedAt: new Date(row?.ts || 0).getTime() || 0,
-      expected: payloadToExpectedSummary(row?.payload),
+      decisionId: row.decisionId,
+      gameId: row.gameId as Hex32,
+      submittedAt: new Date(row.ts || 0).getTime() || 0,
+      expected: { ...payloadToExpectedSummary(row.payload), throwId: row.throwId },
       predictionCommitPayload: predictionCommitRef
         ? await loadPredictionCommitPayload(storage, predictionCommitRef)
         : undefined,
-      predictionCommitRef: predictionCommitRef ?? undefined,
+      predictionCommitRef,
     });
   }
 
@@ -429,6 +420,9 @@ export async function runAgentSession(
       botUser: baseLoopCfg.botUser,
     });
     pendingSubmitted.push(...recoveredPending);
+    for (const pending of recoveredPending) {
+      sessionThrowCounts.set(pending.gameId, (sessionThrowCounts.get(pending.gameId) ?? 0) + 1);
+    }
     if (recoveredPending.length) {
       console.log(`[session] recovered ${recoveredPending.length} unresolved submitted decisions from storage`);
     }
@@ -437,18 +431,94 @@ export async function runAgentSession(
 
   let totalLiveThrows = 0;
   let lastLiveThrowAt = 0;
+  let lastAcceleratedStart=0;
   let cumulativeRealizedProfit = 0;
+  let sessionCapReached = false;
+  let reconciliationCursor = 0;
 
   for (let cycle = 0; cycle < maxCycles; cycle++) {
     const now = Date.now();
 
     try {
+      if (sessionCfg.reconciliationOnly && sessionCfg.signal?.aborted) return;
+      if (sessionCfg.reconciliationOnly && !(await sessionCfg.canReconcile?.())) {
+        await sleep(sessionCfg.pollMs);
+        continue;
+      }
       const rt = getRuntimeSettings();
+      const deadlineReached = sessionCfg.stopAtMs !== undefined && Date.now() >= sessionCfg.stopAtMs;
+      if (deadlineReached) {
+        updateControlState({state:"paused",lastMessage:"Timed play window complete; settled-result publication remains enabled.",lastAction:{action:"auto_pause_time_limit",ts:new Date().toISOString()}});
+        if (!pendingSubmitted.length) { await sleep(sessionCfg.pollMs); continue; }
+      }
       const ctl = getControlState();
 
-      if (ctl.state === "paused") {
-        await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
-        continue;
+      if (!deadlineReached && !sessionCfg.reconciliationOnly && !baseLoopCfg.dryRun && client.reconcilePendingSignedIntent) {
+        const recovered = await client.reconcilePendingSignedIntent(0);
+        if (recovered?.result.status === "pending") {
+          updateControlState({
+            lastMessage: `RC1 signed intent nonce ${recovered.result.nonce} is awaiting canonical reconciliation.`,
+          });
+          await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+          continue;
+        }
+        if (recovered) {
+          const recorded = baseLoopCfg.storage
+            ? await recordReconciledAcceptedThrow(baseLoopCfg.storage, recovered, baseLoopCfg.sessionId)
+            : null;
+          if (recorded) {
+            pendingSubmitted.push({
+              decisionId: recorded.decisionId,
+              gameId: recorded.gameId as Hex32,
+              submittedAt: recorded.submittedAt,
+              expected: { ...payloadToExpectedSummary(recorded.expected), throwId: recovered.result.throwId ?? undefined },
+              predictionCommitPayload: recorded.predictionCommitRef
+                ? await loadPredictionCommitPayload(baseLoopCfg.storage!, recorded.predictionCommitRef)
+                : undefined,
+              predictionCommitRef: recorded.predictionCommitRef,
+            });
+          }
+          console.log(`[rc1] reconciled signed intent nonce=${recovered.result.nonce} status=${recovered.result.status}`);
+        }
+      }
+
+      // Existing principal obligations continue even while speculative throws are paused.
+      if (!deadlineReached && !sessionCfg.reconciliationOnly && !baseLoopCfg.dryRun && sessionCfg.serviceBondedConfirmations) {
+        try {
+          if (await sessionCfg.serviceBondedConfirmations()) {
+            await sleep(Math.min(1000, Number(rt.pollMs ?? sessionCfg.pollMs)));
+            continue;
+          }
+        } catch {
+          updateControlState({ state: "paused", lastMessage: "Bonded confirmation requires canonical reconciliation." });
+          await sleep(Math.min(1000, Number(rt.pollMs ?? sessionCfg.pollMs)));
+          continue;
+        }
+      }
+
+      const pausedCapAction = sessionCapExitAction(
+        !!sessionCfg.stopWhenSessionCapReached,
+        sessionCapReached,
+        pendingSubmitted.length,
+      );
+      if (ctl.state === "paused" && pausedCapAction === "exit") {
+        console.log("[session] session cap reached and pending results drained, stopping");
+        return;
+      }
+      // Pauses stop new throws, not read-only settlement feedback.
+
+      if (!sessionCfg.reconciliationOnly && !baseLoopCfg.dryRun && ctl.state === "live" && sessionCfg.maybeAutoConvert) {
+        try {
+          await sessionCfg.maybeAutoConvert();
+        } catch (error) {
+          updateControlState({
+            state: "paused",
+            lastMessage: `Automatic points conversion paused safely: ${String(error)}`,
+          });
+          console.error("[session] automatic points conversion paused play:", error);
+          await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+          continue;
+        }
       }
 
       const baselineResetActive = String(ctl.mode || "").startsWith("baseline-reset-")
@@ -480,6 +550,7 @@ export async function runAgentSession(
         minGameStakeUsd: parseOptionalNumber(rt.minGameStakeUsd),
         maxSingleThrowUsd: unifiedMaxThrowUsd,
         maxGameExposureUsd: parseOptionalNumber(rt.maxGameExposureUsd),
+        maxSingleThrowBase: String(rt.maxSingleThrowBase ?? basePolicy.maxSingleThrowBase ?? "0"),
         minThrowUsd: parseOptionalNumber(rt.minThrowUsd),
         maxThrowUsd: unifiedMaxThrowUsd,
         riskMode: profile.effective.riskMode ?? String(rt.riskMode || basePolicy.riskMode || "balanced") as AgentPolicy["riskMode"],
@@ -490,6 +561,7 @@ export async function runAgentSession(
         humanLearningAddresses: parseStringArray(humanLearning.addresses),
         humanLearningMaxSeeds: parseOptionalNumber(humanLearning.maxSeedsPerCycle) ?? undefined,
         allowedAssets: parseStringArray(rt.allowedAssets),
+        mapPriorities: normalizeMapPriorities(rt.mapPriorities),
         blockedAssets: parseStringArray(rt.blockedAssets),
         keepAssets: parseStringArray(rt.keepAssets),
         disposeAssets: parseStringArray(rt.disposeAssets),
@@ -516,6 +588,7 @@ export async function runAgentSession(
 
       const effectiveLoopCfg: LoopConfig = {
         ...baseLoopCfg,
+        allowedGameIds: parseStringArray(rt.allowedGameIds),
         defaultAsset: rt.asset || baseLoopCfg.defaultAsset,
         defaultAmount: String(rt.amount || baseLoopCfg.defaultAmount),
         candidateBudget: {
@@ -527,16 +600,33 @@ export async function runAgentSession(
           ...baseLoopCfg.scoreConfig,
           recentShots,
         },
-        preferredGameId: ctl.targetGameId || undefined,
+        preferredGameId: ctl.targetGameId || baseLoopCfg.preferredGameId || undefined,
         selectionMode: baselineResetActive ? "random" : "best",
         agentProfile: profile,
       };
 
+      let reconcileBatch: Set<string> | null = null;
+      if (sessionCfg.reconciliationOnly && baseLoopCfg.storage) {
+        const refreshed = await loadPendingSubmittedDecisions({ storage: baseLoopCfg.storage, botUser: baseLoopCfg.botUser });
+        pendingSubmitted.splice(0, pendingSubmitted.length, ...refreshed);
+        reconcileBatch = new Set<string>();
+        for (let n = 0; n < Math.min(2, pendingSubmitted.length); n++) reconcileBatch.add(pendingSubmitted[(reconciliationCursor + n) % pendingSubmitted.length].decisionId);
+        reconciliationCursor = pendingSubmitted.length ? (reconciliationCursor + 2) % pendingSubmitted.length : 0;
+      }
+      const cycleReports=new Map<string,Promise<unknown>>(),cycleInputs=new Map<string,Promise<any>>();
+      if(sessionCfg.accelerated&&!deadlineReached&&!sessionCfg.reconciliationOnly){reconcileBatch=new Set<string>();for(let n=0;n<Math.min(4,pendingSubmitted.length);n++)reconcileBatch.add(pendingSubmitted[(reconciliationCursor+n)%pendingSubmitted.length].decisionId);reconciliationCursor=pendingSubmitted.length?(reconciliationCursor+4)%pendingSubmitted.length:0;}
       for (let i = pendingSubmitted.length - 1; i >= 0; i--) {
         const p = pendingSubmitted[i];
+        if (reconcileBatch && !reconcileBatch.has(p.decisionId)) continue;
 
         try {
-          const report = await client.getGameReport(p.gameId);
+          if (sessionCfg.reconciliationOnly) {
+            if (!(await sessionCfg.canReconcile?.())) break;
+            const game = await client.getGame(p.gameId) as any;
+            if (game?.status !== 4 || !game.has_result || !(Number(game.settled_height) > 0)) continue;
+          }
+          let reportRead=cycleReports.get(p.gameId);if(!reportRead){reportRead=client.getGameReport(p.gameId);cycleReports.set(p.gameId,reportRead);}const report=await reportRead;
+          const holeRules = client.getHoleRules ? await client.getHoleRules() : undefined;
           const provisionalMatch = matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected);
 
           if (!hasPreciseSettledOutcome(provisionalMatch)) {
@@ -545,16 +635,17 @@ export async function runAgentSession(
 
           let settledInput: Awaited<ReturnType<typeof client.getSimInput>> | undefined;
           try {
-            settledInput = await client.getSimInput(p.gameId);
+            let inputRead=cycleInputs.get(p.gameId);if(!inputRead){inputRead=client.getSimInput(p.gameId);cycleInputs.set(p.gameId,inputRead);}settledInput=await inputRead;
           } catch {
             settledInput = undefined;
           }
 
           const matched = settledInput
-            ? matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected, settledInput)
+            ? matchReportToSubmittedThrow(report, effectiveLoopCfg.botUser, p.expected, settledInput, holeRules)
             : provisionalMatch;
 
           const resultTs = new Date().toISOString();
+          if (sessionCfg.reconciliationOnly && !(await sessionCfg.canReconcile?.())) break;
           let predictionReveal: ArtifactLogRef | undefined;
           let honestScore: HonestScoreLogView | undefined;
 
@@ -565,9 +656,11 @@ export async function runAgentSession(
                     storage: effectiveLoopCfg.storage,
                     gameId: p.gameId,
                     botUser: effectiveLoopCfg.botUser,
+                    report,
                   })
                 : [];
               const revealBundle = buildPredictionRevealBundle({
+                holeRules,
                 createdAt: resultTs,
                 sessionId: effectiveLoopCfg.sessionId,
                 decisionId: p.decisionId,
@@ -594,6 +687,7 @@ export async function runAgentSession(
           }
 
           if (effectiveLoopCfg.storage) {
+            if (sessionCfg.reconciliationOnly && !(await sessionCfg.canReconcile?.())) break;
             await appendResultLog(effectiveLoopCfg.storage as StoragePaths, {
               ts: resultTs,
               sessionId: effectiveLoopCfg.sessionId,
@@ -619,7 +713,32 @@ export async function runAgentSession(
         }
       }
 
-      const prefetchedGames = await client.listGames(effectiveLoopCfg.gameStatusMask);
+      if (sessionCfg.reconciliationOnly) {
+        await sleep(sessionCfg.pollMs);
+        continue; // Hard boundary: no game selection, simulation, intent recovery or trading.
+      }
+      if (!sessionCfg.reconciliationOnly && (getControlState().state === "paused" || (sessionCfg.stopAtMs !== undefined && Date.now() >= sessionCfg.stopAtMs))) {
+        await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+        continue;
+      }
+      if (ctl.state === "paused" && sessionCapExitAction(
+        !!sessionCfg.stopWhenSessionCapReached,
+        sessionCapReached,
+        pendingSubmitted.length,
+      ) !== "normal") {
+        if (pendingSubmitted.length === 0) {
+          console.log("[session] session cap reached and pending results drained, stopping");
+          return;
+        }
+        await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
+        continue;
+      }
+
+      if(!runtimeSnapshotMatches(rt,getRuntimeSettings()))continue;
+      const prefetchedGames = filterGamesByAllowlist(
+        await client.listGames(effectiveLoopCfg.gameStatusMask),
+        effectiveLoopCfg.allowedGameIds,
+      );
       const sessionEligibility = buildSessionEligibilityContext(
         now,
         cooldownMsPerGame,
@@ -656,6 +775,7 @@ export async function runAgentSession(
         }
 
         if (totalLiveThrows >= (effectivePolicy.maxThrowsPerSession ?? Infinity)) {
+          sessionCapReached = true;
           updateControlState({
             state: "paused",
             mode: ctl.mode || "regular",
@@ -673,12 +793,15 @@ export async function runAgentSession(
             notes: [`totalLiveThrows=${totalLiveThrows}`],
           });
           console.log("[session] maxThrowsPerSession reached, pausing");
+          if (sessionCfg.stopWhenSessionCapReached && pendingSubmitted.length === 0) return;
           await sleep(Number(rt.pollMs ?? sessionCfg.pollMs));
           continue;
         }
 
-        if (now - lastLiveThrowAt < (effectivePolicy.minMillisBetweenLiveThrows ?? 0)) {
-          const remainingMs = (effectivePolicy.minMillisBetweenLiveThrows ?? 0) - (now - lastLiveThrowAt);
+        const requiredSpacing=sessionCfg.accelerated?sessionCfg.accelerated.startIntervalMs:(effectivePolicy.minMillisBetweenLiveThrows??0);
+        const lastPaceTime=sessionCfg.accelerated?lastAcceleratedStart:lastLiveThrowAt;
+        if (now - lastPaceTime < requiredSpacing) {
+          const remainingMs = requiredSpacing - (now - lastPaceTime);
           await publishSessionGate({
             ts: gateTs,
             reason: "cooldown",
@@ -694,16 +817,21 @@ export async function runAgentSession(
         }
       }
 
-      const result = await runAgentOnce(
+      if(sessionCfg.accelerated){if(Date.now()>=sessionCfg.accelerated.stopAtMs||totalLiveThrows>=sessionCfg.accelerated.maxThrows){updateControlState({state:"paused",lastMessage:`Accelerated deadline or ${sessionCfg.accelerated.maxThrows}-throw limit reached`});continue;}lastAcceleratedStart=Date.now();}
+      const planningEpoch=getControlState().lastAction?.ts??null;
+      let result;try{result = await runAgentOnce(
         client,
         wasm,
         effectivePolicy,
         {
           ...effectiveLoopCfg,
+          maySubmit:()=>submissionStillAllowed(rt,getRuntimeSettings(),planningEpoch,getControlState(),totalLiveThrows,sessionCfg.accelerated?.maxThrows??Infinity),
           prefetchedGames,
           sessionEligibility,
         },
       );
+
+      }catch(e){if(e instanceof SubmissionGateClosed){console.log("[session] submission gated before signing; replan current context");continue;}throw e;}
 
       if (result.gameId) {
         recentGameTouches.set(result.gameId, now);
@@ -711,7 +839,7 @@ export async function runAgentSession(
 
       if (result.winnerSubmitted && result.decisionId && result.gameId) {
         totalLiveThrows += 1;
-        lastLiveThrowAt = now;
+        lastLiveThrowAt = Date.now();
 
         sessionThrowCounts.set(
           result.gameId,
@@ -722,7 +850,7 @@ export async function runAgentSession(
           decisionId: result.decisionId,
           gameId: result.gameId,
           submittedAt: now,
-          expected: payloadToExpectedSummary(result.winnerPayload),
+          expected: { ...payloadToExpectedSummary(result.winnerPayload), throwId: result.signedSubmission?.throwId ?? undefined },
           predictionCommitPayload: result.predictionCommitPayload ?? undefined,
           predictionCommitRef: result.predictionCommit ?? undefined,
         });

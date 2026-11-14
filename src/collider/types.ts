@@ -124,6 +124,163 @@ export type PlaceThrowArgs = {
   data_commit: Hex32 | null;
 };
 
+export type Rc1AuthContext = {
+  network_id: number;
+  l1_id: Hex32;
+  chain_id: Hex32;
+  network_domain: Hex32;
+  domain_configured: boolean;
+  last_accepted_height: number;
+  max_intent_lifetime_blocks: number;
+  eip712: {
+    name: string;
+    version: string;
+    uses_chain_id: boolean;
+    chain_id?: string;
+    domain_separator_field: string;
+  };
+  user?: {
+    user_id: Hex32;
+    canonical_wallet_user: boolean;
+    accepted_next_nonce: number;
+    next_available_nonce: number;
+  };
+  [key: string]: unknown;
+};
+
+export type PreparedSignedIntent = {
+  native_intent_signing?: { evm_chain_id: number; epoch: number };
+  signer: Hex32;
+  nonce: number;
+  issued_at_height: number;
+  valid_until_height: number;
+  action: string;
+  details: string;
+  payload_hash: Hex32;
+  network_domain: Hex32;
+  digest: Hex32;
+  op_b64: string;
+  typed_data: unknown;
+};
+
+export type SubmitSignedIntentArgs = {
+  signer: Hex32;
+  nonce: number;
+  issued_at_height: number;
+  valid_until_height: number;
+  op_b64: string;
+  signature: string;
+};
+
+export type SubmittedSignedIntent = {
+  accepted: boolean;
+  op_id: Hex32;
+  signer: Hex32;
+  nonce: number;
+};
+
+export type SignedThrowStatus =
+  | "throw_accepted"
+  | "authenticated_business_rejected"
+  | "pending"
+  | "expired";
+
+export type SignedThrowResult = {
+  status: SignedThrowStatus;
+  signer: Hex32;
+  nonce: number;
+  payloadHash: Hex32;
+  opId: Hex32 | null;
+  throwId: Hex32 | null;
+  authenticatedAtHeight: number | null;
+  acceptedAtHeight: number | null;
+  submitError: string | null;
+};
+
+export type Rc1ClientOptions = {
+  expectedSigningChainId?: number | null;
+  expectedNetworkDomain?: string | null;
+  expectedNetworkId?: number | null;
+  expectedL1Id?: string | null;
+  expectedChainId?: string | null;
+  intentTtlBlocks?: number;
+  reconcilePollMs?: number;
+  reconcileTimeoutMs?: number;
+  intentStateFile?: string | null;
+};
+
+export type BridgeAssetPin = {
+  tokenAddress: string;
+  policyHash: Hex32;
+  minWithdrawalAmount: string;
+};
+
+export type BridgeWithdrawalSettings = {
+  cRpc: string;
+  expectedEvmChainId: number;
+  custodyContract: string;
+  routeId: Hex32;
+  expectedAttestor: string;
+  assets: Record<string, BridgeAssetPin>;
+};
+
+export type BridgeWithdrawalArgs = {
+  asset: Hex32;
+  user: Hex32;
+  amount: string;
+  withdrawalNonce: number;
+  originRefId: Hex32;
+};
+
+export type BridgeWithdrawalPreview = {
+  attestor_required_after_acceptance: boolean;
+  custody_digest: Hex32;
+  custody_typed_data: unknown;
+  expected_attestor_after_acceptance: string;
+  expected_user_signer: string;
+  origin_ref_id: Hex32;
+  policy_hash: Hex32;
+  request_id: Hex32;
+  route_id: Hex32;
+  user_custody_signature_required: boolean;
+  withdrawal_nonce: number;
+};
+
+export type BridgeWithdrawalResult = {
+  status: "withdrawal_reserved" | "authenticated_business_rejected" | "pending" | "expired";
+  signer: Hex32;
+  nonce: number;
+  payloadHash: Hex32;
+  opId: Hex32 | null;
+  requestId: Hex32;
+  authenticatedAtHeight: number | null;
+  reservedAtHeight: number | null;
+  balanceBefore: string;
+  balanceAfter: string | null;
+  submitError: string | null;
+};
+
+export type BridgeWithdrawalObservation = {
+  requestId: Hex32;
+  status: string;
+  asset: Hex32;
+  amount: string;
+  user: Hex32;
+  createdHeight: number;
+  terminalHeight: number | null;
+  terminalTs: number | null;
+  acceptedBalance: string;
+  pendingLiability: string;
+  recognizedCollateral: string;
+  evmReceipt: {
+    txHash: Hex32;
+    status: number;
+    blockNumber: number;
+    blockHash: Hex32;
+    exactTransferVerified: boolean;
+  } | null;
+};
+
 export type AgentControlThrow = {
   x: number;
   y: number;

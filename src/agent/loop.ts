@@ -1,9 +1,18 @@
+import {SubmissionGateClosed} from './submission-gate.js';
+import {researchCandidatePool,peanutCoverageGame} from '../strategy/research-pool.js';
+import {fixedStakeMatches} from '../experiments/fixed-stake.js';
 import { readFile } from "node:fs/promises";
+import { assertLivePlayWindow } from "../core/play-window.js";
 import type { AgentPolicy } from "../policy/schema.js";
+import { decimalE8ToApproxNumber, decimalIntegerToApproxNumber } from "../core/exact.js";
+import { attachExactPriceBases } from "../core/price-basis.js";
+import { enrichPlanningAssets, missingPlanningAssets } from "./planning-assets.js";
 import type {
   AgentControlThrow,
   GameListItem,
   Hex32,
+  PlaceThrowArgs,
+  SignedThrowResult,
   SimRunInput,
 } from "../collider/types.js";
 import {
@@ -21,7 +30,7 @@ import {
 import { buildContentAddressRefFromJson } from "../core/content-address.js";
 import type { WasmVizRuntime } from "../sim/wasm.js";
 import type { ResolvedAgentProfile } from "../core/agent-profile.js";
-import { generateGridCandidates, shuffleCandidates, type Candidate } from "../strategy/candidate-gen.js";
+import { generateGridCandidates, shuffleCandidates, reserveManagerCandidateBudget, type Candidate } from "../strategy/candidate-gen.js";
 import { chooseBestRanked, rankPlannedCandidates, type RankedCandidate, type SearchBudget } from "../strategy/choose.js";
 import { applyBuiltInStrategyBias, normalizeBuiltInStrategyName } from "../strategy/built-in-strategies.js";
 import {
@@ -62,6 +71,7 @@ import {
   buildManagerCandidateSpecMap,
   buildManagerCandidates,
   hashCandidate,
+  isOverlayActive,
   scoreViewFromRobustScore,
   type LatestCandidateContext,
   type ManagerCandidateSet,
@@ -75,7 +85,10 @@ export type ColliderClientLike = {
   getGame(gameId: Hex32): Promise<unknown>;
   getSimInput(gameId: Hex32): Promise<SimRunInput>;
   getBalances(user: Hex32): Promise<Record<string, string>>;
-  placeThrow(args: unknown): Promise<unknown>;
+  listOracleFeeds?(): Promise<unknown[]>;
+  getAssetsMeta?(): Promise<unknown>;
+  getHoleRules?(): Promise<Record<string, unknown>>;
+  placeThrowSigned(args: PlaceThrowArgs, metadata?: Record<string, unknown> | null): Promise<SignedThrowResult>;
 };
 
 export type LoopConfig = {
@@ -101,13 +114,27 @@ export type LoopConfig = {
     recentShots?: RecentShot[];
   };
   prefetchedGames?: GameListItem[];
+  allowedGameIds?: string[];
   sessionEligibility?: SessionEligibilityContext;
   preferredGameId?: Hex32 | string;
+  maySubmit?:()=>boolean;
+  liveUntilMs?: number;
+  fixedStake?: {asset:string;amount:string};
   selectionMode?: "best" | "random";
   sessionId: string;
   storage?: StoragePaths;
   agentProfile?: ResolvedAgentProfile;
 };
+
+function normalizedGameId(value: unknown): string {
+  return String(value ?? "").trim().replace(/^0x/i, "").toLowerCase();
+}
+
+export function filterGamesByAllowlist(games: GameListItem[], allowedGameIds?: string[]): GameListItem[] {
+  const allowed = new Set((allowedGameIds ?? []).map(normalizedGameId).filter(Boolean));
+  if (allowed.size === 0) return games;
+  return games.filter((game) => allowed.has(normalizedGameId(game.game_id)));
+}
 
 export type TopCandidateView = {
   rank: number;
@@ -128,6 +155,7 @@ export type RunOnceResult = {
   gameId: Hex32 | null;
   winnerSubmitted: boolean;
   winnerPayload?: unknown;
+  signedSubmission?: SignedThrowResult | null;
   winnerCandidateHash?: string | null;
   predictionCommit?: ArtifactLogRef | null;
   predictionCommitPayload?: PredictionCommitPayload | null;
@@ -149,6 +177,8 @@ type RankedCandidateMeta = {
   overlayActive: boolean;
   overlayScoreDelta: number;
   overlayAdjustments: OverlayAdjustment[];
+  overlayPolicyId?: string | null;
+  withoutOverlayWinnerHash?: string | null;
 };
 
 type PredictionSummaryLike = {
@@ -172,6 +202,7 @@ function cleanHex(value: string): string {
 type AssetPriceHintState = {
   epoch: number;
   usdPerBase: number;
+  exact?: import("../core/price-basis.js").ExactPriceBasis;
 };
 
 let cachedInternalPriceHintState: Record<string, AssetPriceHintState> = {};
@@ -188,9 +219,9 @@ function collectAssetPriceHintState(simInput: SimRunInput): Record<string, Asset
     const asset = normalizeSimAssetHex((throwRecord as { asset?: unknown }).asset);
     if (!asset) continue;
     const epoch = Number((throwRecord as { price_epoch?: unknown }).price_epoch ?? 0);
-    const amountBase = Number((throwRecord as { amount?: unknown }).amount ?? 0);
-    const valueUsd = Number((throwRecord as { value_usd_e8?: unknown }).value_usd_e8 ?? 0) / 1e8;
-    if (!(amountBase > 0) || !Number.isFinite(valueUsd) || valueUsd <= 0) continue;
+    const amountBase = decimalIntegerToApproxNumber((throwRecord as { amount?: unknown }).amount);
+    const valueUsd = decimalE8ToApproxNumber((throwRecord as { value_usd_e8?: unknown }).value_usd_e8);
+    if (amountBase == null || !(amountBase > 0) || valueUsd == null || valueUsd <= 0) continue;
     const usdPerBase = valueUsd / amountBase;
     const prev = out[asset];
     if (!prev || epoch >= prev.epoch) {
@@ -215,12 +246,40 @@ function mergeAssetPriceHintState(...sources: Array<Record<string, AssetPriceHin
   return merged;
 }
 
+function collectLiveOraclePriceHintState(feeds: unknown[], simInput: SimRunInput): Record<string, AssetPriceHintState> {
+  const decimalsByAsset = new Map<string, number>();
+  for (const meta of simInput.assets || []) {
+    const asset = normalizeSimAssetHex((meta as { asset?: unknown }).asset);
+    const decimals = Number((meta as { decimals?: unknown }).decimals);
+    if (asset && Number.isInteger(decimals) && decimals >= 0 && decimals <= 30) decimalsByAsset.set(asset, decimals);
+  }
+
+  const out: Record<string, AssetPriceHintState> = {};
+  for (const raw of feeds || []) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const feed = raw as Record<string, unknown>;
+    if (feed.usable !== true || !feed.current || typeof feed.current !== "object" || Array.isArray(feed.current)) continue;
+    const asset = normalizeSimAssetHex(feed.asset);
+    const decimals = decimalsByAsset.get(asset);
+    const current = feed.current as Record<string, unknown>;
+    const priceE8 = String(current.price_e8 ?? "");
+    if (decimals == null || !/^\d+$/.test(priceE8) || BigInt(priceE8) <= 0n) continue;
+    const usdPerBase = Number(priceE8) / 1e8 / (10 ** decimals);
+    if (!(usdPerBase > 0) || !Number.isFinite(usdPerBase)) continue;
+    out[asset] = {
+      epoch: Number(current.published_at_ts ?? current.pinned_epoch ?? 0),
+      usdPerBase,
+      exact: {priceE8, decimals, epoch:Number(current.pinned_epoch ?? current.published_at_ts ?? 0)},
+    };
+  }
+  return out;
+}
 function toUsdPerBaseHints(state: Record<string, AssetPriceHintState>): Record<string, number> {
-  return Object.fromEntries(
+  return attachExactPriceBases(Object.fromEntries(
     Object.entries(state)
       .filter(([, hint]) => hint && hint.usdPerBase > 0)
       .map(([asset, hint]) => [asset, hint.usdPerBase]),
-  );
+  ), Object.fromEntries(Object.entries(state).filter(([,p])=>!!p.exact).map(([asset,p])=>[asset,p.exact!])));
 }
 
 function requiredPricingAssets(policy: AgentPolicy, defaultAsset: Hex32): string[] {
@@ -239,7 +298,7 @@ function hasPriceCoverageForAssets(state: Record<string, AssetPriceHintState>, a
   });
 }
 
-async function buildPriceHintsUsdPerBase(params: {
+export async function buildPriceHintsUsdPerBase(params: {
   client: ColliderClientLike;
   games: GameListItem[];
   selectedGameId: Hex32;
@@ -253,6 +312,18 @@ async function buildPriceHintsUsdPerBase(params: {
     cachedInternalPriceHintState,
     collectAssetPriceHintState(selectedSimInput),
   );
+  if (client.listOracleFeeds) {
+    try {
+      const live = collectLiveOraclePriceHintState(await client.listOracleFeeds(), selectedSimInput);
+      // Live oracle availability is authoritative, not comparable to historical price_epoch.
+      // In particular, neither cached prices nor another game's throws may revive an unusable feed.
+      cachedInternalPriceHintState = { ...live };
+      return toUsdPerBaseHints(live);
+    } catch {
+      cachedInternalPriceHintState = {};
+      return {};
+    }
+  }
 
   if (!hasPriceCoverageForAssets(merged, neededAssets)) {
     const fallbackGames = games
@@ -348,6 +419,8 @@ function toOverlayLogView(meta: RankedCandidateMeta | null): OverlayLogView | un
     active: meta.overlayActive,
     scoreDelta: meta.overlayScoreDelta,
     adjustments: meta.overlayAdjustments,
+    policyId: meta.overlayPolicyId ?? null,
+    withoutOverlayWinnerHash: meta.withoutOverlayWinnerHash ?? null,
   };
 }
 
@@ -526,6 +599,8 @@ function buildCandidateContextLogView(context: RankedCandidateContext): Candidat
       active: context.overlay.active,
       scoreDelta: context.overlay.scoreDelta,
       adjustments: context.overlay.adjustments,
+      policyId: context.overlay.policyId ?? null,
+      withoutOverlayWinnerHash: context.overlay.withoutOverlayWinnerHash ?? null,
     },
   };
 }
@@ -564,13 +639,14 @@ function deriveStoppedBy(snapshot: LatestEligibilitySnapshot, fallback?: string 
   if (reasons.has("session_cap")) return "session_cap";
   if (reasons.has("reserve_balance")) return "reserve_balance";
   if (reasons.has("no_balance_for_amounts")) return "no_balance_for_amounts";
+  if (reasons.has("above_max_throw_base")) return "candidate_risk_limits";
   if (reasons.has("missing_price_basis")) return "missing_price_basis";
   if (reasons.has("asset_blocked")) return "asset_blocked";
   if (reasons.has("asset_not_allowed")) return "asset_not_allowed";
   if (reasons.has("planner_failure")) return "planner_failure";
   if (reasons.has("search_budget_stop")) return "search_budget_stop";
   if (reasons.has("below_game_min_throw") || counts.below_game_min_throw || counts.below_min_throw_usd || counts.above_max_throw_usd) return "candidate_min_limits";
-  if (counts.above_max_single_throw_usd || counts.above_game_exposure) return "candidate_risk_limits";
+  if (counts.above_max_single_throw_usd || counts.above_max_throw_base || counts.above_game_exposure) return "candidate_risk_limits";
   if (reasons.has("no_candidates_after_filter")) return "no_candidates_after_filter";
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("cooldown"))) return "cooldown";
   if (snapshot.perGame.length > 0 && snapshot.perGame.every((entry) => entry.reasons.includes("per_game_cap"))) return "max_throws_per_game";
@@ -588,9 +664,12 @@ function buildSearchSummary(params: {
   maxCandidates: number | undefined;
   maxMillis: number | undefined;
   includeSlip1: boolean | undefined;
+  elapsedMs?:number;simulatedScenarios?:number;
   candidateFilterSummary: CandidateFilterSummary;
 }) {
   return {
+    elapsedMs:params.elapsedMs,
+    simulatedScenarios:params.simulatedScenarios,
     generatedCandidates: params.rawCount,
     eligibleCandidates: params.filteredCount,
     limitedCandidates: params.limitedCount,
@@ -673,8 +752,8 @@ function managerCandidateScenarioOverrides(
   return [...defaultScenarios, ...customScenarios];
 }
 
-function buildCandidateContextRows(rows: RankedCandidate[]): RankedCandidateContext[] {
-  return rows.slice(0, 10).map((row, index) => {
+function buildCandidateContextRows(rows: RankedCandidate[],limit=10): RankedCandidateContext[] {
+  return rows.slice(0, limit).map((row, index) => {
     const meta = extractRankedCandidateMeta(row);
     if (!meta) {
       throw new Error("missing ranked candidate metadata");
@@ -691,6 +770,8 @@ function buildCandidateContextRows(rows: RankedCandidate[]): RankedCandidateCont
         active: meta.overlayActive,
         scoreDelta: meta.overlayScoreDelta,
         adjustments: meta.overlayAdjustments,
+        policyId: meta.overlayPolicyId ?? null,
+        withoutOverlayWinnerHash: meta.withoutOverlayWinnerHash ?? null,
       },
     };
   });
@@ -742,13 +823,17 @@ export async function runAgentOnce(
   cfg: LoopConfig,
 ): Promise<RunOnceResult> {
   const nowIso = new Date().toISOString();
-  const games = cfg.prefetchedGames ?? await client.listGames(cfg.gameStatusMask);
+  const games = filterGamesByAllowlist(
+    cfg.prefetchedGames ?? await client.listGames(cfg.gameStatusMask),
+    cfg.allowedGameIds,
+  );
   const { entries: perGame, selectedGame: defaultSelectedGame } = evaluateGamesForEligibility(games, policy, cfg.sessionEligibility);
   const preferredGameId = String(cfg.preferredGameId || '').trim();
   const selectedGame = preferredGameId
-    ? (games.find((game) => String(game.game_id) === preferredGameId && perGame.find((entry) => entry.gameId === game.game_id)?.eligible) ?? defaultSelectedGame)
-    : defaultSelectedGame;
-  const managerCandidateSet = getManagerCandidateSet();
+    ? (games.find((game) => String(game.game_id) === preferredGameId && perGame.find((entry) => entry.gameId === game.game_id)?.eligible) ?? null)
+    : cfg.agentProfile?.doctrinePack==="peanut" ? peanutCoverageGame(games,perGame) : defaultSelectedGame;
+  const bundledOverlay = getManagerOverlay();
+  const managerCandidateSet = isOverlayActive(bundledOverlay) && bundledOverlay?.candidateSet ? bundledOverlay.candidateSet : getManagerCandidateSet();
 
   if (!selectedGame) {
     const snapshot: LatestEligibilitySnapshot = {
@@ -805,9 +890,12 @@ export async function runAgentOnce(
   }
 
   const gameId = selectedGame.game_id;
-  const game = await client.getGame(gameId);
-  const simInput = await client.getSimInput(gameId);
-  const balances = await client.getBalances(cfg.botUser);
+  const selectedWasm = wasm.forGame ? await wasm.forGame(gameId) : wasm;
+  const [game,canonicalInput,holeRules,balances] = await Promise.all([client.getGame(gameId),client.getSimInput(gameId),client.getHoleRules?client.getHoleRules():Promise.resolve(undefined),client.getBalances(cfg.botUser)]);
+  const neededAssets = requiredPricingAssets(policy, cfg.defaultAsset);
+  const simInput = client.getAssetsMeta && missingPlanningAssets(canonicalInput, neededAssets).length
+    ? enrichPlanningAssets(canonicalInput, await client.getAssetsMeta(), neededAssets)
+    : canonicalInput;
   const priceHintsUsdPerBase = await buildPriceHintsUsdPerBase({
     client,
     games,
@@ -930,6 +1018,7 @@ export async function runAgentOnce(
       balances,
       priceHintsUsdPerBase,
     });
+    if(cfg.fixedStake && !fixedStakeMatches(candidate,cfg.fixedStake))reasons.push("fixed_stake_mismatch");
     if (reasons.length === 0) {
       filtered.push(candidate);
       continue;
@@ -939,15 +1028,16 @@ export async function runAgentOnce(
 
   const maxCandidates = cfg.candidateBudget?.maxCandidates ?? filtered.length;
   const shuffled = shuffleCandidates(filtered);
-  const limited = shuffled.slice(0, maxCandidates);
+  const limited = reserveManagerCandidateBudget(shuffled,maxCandidates);
   const nextAcceptedHeight = nextAcceptedHeightFromGame(game);
 
+  const planningStarted=performance.now();
   const plannedSettled = await Promise.allSettled(
     limited.map((control) => {
       const candidateHash = hashCandidate(control);
       const managerSpec = managerCandidateSpecs.get(candidateHash);
       return runCandidateAcrossQueueScenarios(
-        wasm,
+        selectedWasm,
         gameId,
         cfg.botUser,
         simInput,
@@ -981,14 +1071,16 @@ export async function runAgentOnce(
     planned.push(result.value);
   }
 
-  const overlay = getManagerOverlay();
+  const searchTiming={elapsedMs:performance.now()-planningStarted,simulatedScenarios:planned.reduce((n,p)=>n+p.perScenario.length,0)};
+  const overlay = bundledOverlay;
   const baseRanked = rankPlannedCandidates(planned, cfg.scoreConfig);
   const contextualRanked: RankedCandidate[] = baseRanked.map((row) => {
     const plan = planned.find((candidatePlan) => samePlannedControl(candidatePlan.control, row.candidate)) ?? null;
-    const basePrediction = plan ? summarizePredictionFromPlan(plan, cfg.botUser) : null;
+    const basePrediction = plan ? summarizePredictionFromPlan(plan, cfg.botUser, holeRules) : null;
     const candidateHash = hashCandidate(row.candidate);
     const strategyApplication = applyBuiltInStrategyBias({
       strategyName: activeBuiltInStrategy,
+      recentShots: cfg.scoreConfig?.recentShots,
       baseScore: row.score,
       prediction: basePrediction,
       plan,
@@ -1027,10 +1119,19 @@ export async function runAgentOnce(
         overlayActive: overlayApplication.active,
         overlayScoreDelta: overlayApplication.scoreDelta,
         overlayAdjustments: overlayApplication.adjustments,
+        overlayPolicyId: overlay?.id ?? null,
+        withoutOverlayWinnerHash: null as string | null,
       },
     };
   }).sort((a, b) => b.score.final - a.score.final);
 
+  // Audit the same valid planned candidate set without the manager bias; no physics rerun.
+  const noOverlaySelection = cfg.selectionMode === "random" ? null : chooseBestRanked(
+    contextualRanked.map(row => ({...row,score:{...row.score,...(row.meta as unknown as RankedCandidateMeta).baseScore}}))
+      .sort((a,b) => b.score.final-a.score.final), cfg.candidateBudget,
+  );
+  const withoutOverlayWinnerHash = noOverlaySelection?.winner ? hashCandidate(noOverlaySelection.winner.candidate) : null;
+  for (const row of contextualRanked) (row.meta as unknown as RankedCandidateMeta).withoutOverlayWinnerHash = withoutOverlayWinnerHash;
   const rankedForSelection = cfg.selectionMode === "random"
     ? shuffleRankedRows(contextualRanked)
     : contextualRanked;
@@ -1086,6 +1187,7 @@ export async function runAgentOnce(
   const winnerMeta = extractRankedCandidateMeta(chosen.winner);
   const stoppedBy = deriveStoppedBy(eligibilitySnapshot, chosen.stoppedBy);
 
+  const managerAdvice = {policyId:overlay?.id??null,proposed:managerCandidates.length,eligible:filtered.filter(c=>c.source==="manager").length,simulated:baseRanked.filter(p=>p.candidate.source==="manager").length,scoreAffected:contextualRanked.filter(r=>(r.meta as any).overlayScoreDelta!==0).length,selectedChanged:!!chosen.winner && hashCandidate(chosen.winner.candidate)!==withoutOverlayWinnerHash};
   setManagerSnapshots(eligibilitySnapshot, {
     ts: nowIso,
     gameId,
@@ -1093,7 +1195,9 @@ export async function runAgentOnce(
     winnerCandidateHash: winnerMeta?.candidateHash ?? null,
     overlay,
     managerCandidateSet,
+    managerAdvice,
     candidates: candidateContextRows,
+    researchCandidates: researchCandidatePool(buildCandidateContextRows(chosen.ranked,240)),
   });
 
   if (!chosen.winner) {
@@ -1126,6 +1230,7 @@ export async function runAgentOnce(
           limitedCount: limited.length,
           plannedCount: planned.length,
           examinedCount: chosen.examinedCount,
+        ...searchTiming,
           maxCandidates: cfg.candidateBudget?.maxCandidates,
           maxMillis: cfg.candidateBudget?.maxMillis,
           includeSlip1: cfg.includeSlip1,
@@ -1160,6 +1265,7 @@ export async function runAgentOnce(
   }
 
   const predictionCommitBundle = buildPredictionCommitBundle({
+    holeRules,
     createdAt: nowIso,
     sessionId: cfg.sessionId,
     decisionId,
@@ -1182,12 +1288,23 @@ export async function runAgentOnce(
 
   winnerPayload.data_commit = predictionCommit.sha256Hex;
 
+  let signedSubmission: SignedThrowResult | null = null;
   if (!cfg.dryRun) {
-    console.log("SUBMIT winnerPayload:", JSON.stringify(winnerPayload, null, 2));
-    await client.placeThrow(winnerPayload);
+    if(cfg.fixedStake&&!fixedStakeMatches(winnerPayload as any,cfg.fixedStake))throw Error("Fixed-stake experiment mismatch; no signing");
+    assertLivePlayWindow(cfg.liveUntilMs); // Recheck after planning, before any signed preparation.
+    if(cfg.maySubmit&&!cfg.maySubmit())throw new SubmissionGateClosed();
+    console.log("SUBMIT signed winnerPayload:", JSON.stringify(winnerPayload, null, 2));
+    signedSubmission = await client.placeThrowSigned(winnerPayload, {
+      decisionId,
+      sessionId: cfg.sessionId,
+      ts: nowIso,
+      candidateHash: winnerMeta?.candidateHash ?? null,
+      predictionCommit,
+    });
   }
+  const winnerSubmitted = signedSubmission?.status === "throw_accepted";
 
-  printCycleSummary(selectedGame, top, stoppedBy, !cfg.dryRun);
+  printCycleSummary(selectedGame, top, stoppedBy, winnerSubmitted);
 
   if (cfg.storage) {
     await appendRunLog(cfg.storage, {
@@ -1196,7 +1313,8 @@ export async function runAgentOnce(
       mode: cfg.dryRun ? "dry-run" : "live",
       gameId,
       botUser: cfg.botUser,
-      submitted: !cfg.dryRun,
+      submitted: winnerSubmitted,
+      signedIntent: signedSubmission,
       stoppedBy,
       eligibilityCode,
       game: {
@@ -1216,6 +1334,7 @@ export async function runAgentOnce(
         limitedCount: limited.length,
         plannedCount: planned.length,
         examinedCount: chosen.examinedCount,
+        ...searchTiming,
         maxCandidates: cfg.candidateBudget?.maxCandidates,
         maxMillis: cfg.candidateBudget?.maxMillis,
         includeSlip1: cfg.includeSlip1,
@@ -1236,6 +1355,7 @@ export async function runAgentOnce(
       baseScore: winnerMeta?.baseScore,
       adjustedScore: winnerMeta?.adjustedScore,
       overlay: toOverlayLogView(winnerMeta),
+      managerAdvice,
       predictionCommit,
     });
 
@@ -1245,7 +1365,8 @@ export async function runAgentOnce(
       decisionId,
       gameId,
       botUser: cfg.botUser,
-      submitted: !cfg.dryRun,
+      submitted: winnerSubmitted,
+      signedIntent: signedSubmission,
       dryRun: !!cfg.dryRun,
       eligibilityCode,
       candidateHash: winnerMeta?.candidateHash,
@@ -1263,6 +1384,7 @@ export async function runAgentOnce(
       }),
       managerAdjustedPrediction: toPredictionLogView(winnerMeta?.adjustedPrediction),
       overlay: toOverlayLogView(winnerMeta),
+      managerAdvice,
       predictionCommit,
     });
   }
@@ -1270,8 +1392,9 @@ export async function runAgentOnce(
   return {
     decisionId,
     gameId,
-    winnerSubmitted: !cfg.dryRun,
+    winnerSubmitted,
     winnerPayload,
+    signedSubmission,
     winnerCandidateHash: winnerMeta?.candidateHash ?? null,
     predictionCommit,
     predictionCommitPayload: predictionCommitBundle.payload,

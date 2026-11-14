@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent1 · Points &amp; CLC</title>
+  <style>
+    :root{color-scheme:dark;--bg:#060d18;--panel:#0a1729;--line:#1b4560;--text:#d9eaf8;--muted:#90a9be;--cyan:#52e6ff;--green:#54e8aa;--gold:#ffe57b;--red:#ff7c9c}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 0 0,#0b2b42 0,transparent 38%),var(--bg);font:14px/1.5 system-ui,Segoe UI,sans-serif;color:var(--text)}
+    main{max-width:1180px;margin:auto;padding:24px 20px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:22px}h1{margin:0;color:var(--cyan);font-size:28px}h2{font-size:17px;color:var(--cyan);margin:0 0 12px}p{margin:5px 0}.muted{color:var(--muted)}.small{font-size:12px}.warn{color:var(--gold)}.error{color:var(--red)}.ok{color:var(--green)}a{color:var(--cyan)}
+    .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}.panel{background:rgba(8,20,36,.94);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 0 24px #001a2a55}.span-12{grid-column:span 12}.span-6{grid-column:span 6}.span-4{grid-column:span 4}.k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.v{font-size:26px;font-weight:750;color:var(--green);overflow-wrap:anywhere}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:30px;padding:5px 10px;background:#09243b}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}button,input{font:inherit}button{background:#0e3150;color:var(--cyan);border:1px solid #26729a;border-radius:9px;padding:8px 12px;cursor:pointer}button:hover:not(:disabled){background:#16496f}button:disabled{opacity:.52;cursor:not-allowed}input{background:#071321;color:var(--text);border:1px solid #2d5670;border-radius:8px;padding:8px;width:100%;min-width:0}input[type=checkbox]{width:auto;accent-color:var(--cyan)}label{display:block;color:var(--muted);font-size:12px;margin:10px 0 4px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.form-grid .full{grid-column:1/-1}fieldset{border:0;padding:0;margin:0}fieldset:disabled{opacity:.65}.scroll{overflow:auto;max-height:420px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #17344a;vertical-align:top}th{position:sticky;top:0;background:#0b2034;color:var(--cyan)}.status{min-height:22px;margin-top:10px}.right{text-align:right}body.embedded{background:transparent}body.embedded main{max-width:none;padding:0 2px 8px}body.embedded header{display:none}@media(max-width:800px){.span-6,.span-4{grid-column:span 12}.v{font-size:22px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>Points &amp; CLC</h1><p class="muted">Live wallet ledger, conversion quote, and bounded award audit</p></div>
+    <div class="row"><a href="/">← Agent Monitor</a><span class="pill" id="connection">Connecting</span></div>
+  </header>
+  <div class="grid">
+    <section class="panel span-12"><div class="k">RC1 wallet</div><div class="mono" id="wallet">Loading…</div><p class="small muted" id="freshness">No ledger snapshot yet.</p></section>
+    <section class="panel span-4"><div class="k">Spendable points</div><div class="v" id="points">—</div><p class="small muted" id="earned">Current ladder balance, not lifetime earned points.</p></section>
+    <section class="panel span-4"><div class="k">CLC wallet balance</div><div class="v" id="clcBalance">—</div><p class="small muted">Exact base-unit balance from the VM.</p></section>
+    <section class="panel span-4"><div class="k">Live full-balance quote</div><div class="v" id="quoteClc">—</div><p class="small muted" id="quoteRate">Checking treasury rate…</p></section>
+    <section class="panel span-6">
+      <h2>Convert points to CLC</h2>
+      <p class="muted">This is a signed wallet operation. A quote is only a preview; the rate and available points are checked again before submission.</p>
+      <label for="manualPoints">Points to convert</label><input id="manualPoints" type="text" inputmode="numeric" pattern="[0-9]+" placeholder="Exact whole points">
+      <div class="row" style="margin-top:10px"><button id="useAll" type="button">Use available points</button><button id="preview" type="button">Refresh quote</button><button id="convert" type="button" disabled>Convert points</button></div>
+      <p class="small" id="manualQuote">Enter points for a conversion preview.</p>
+      <p class="status" id="convertStatus" role="status"></p>
+    </section>
+    <section class="panel span-6">
+      <h2>Automatic conversion</h2>
+      <p class="muted">Off by default. When active, it converts only enough earned points to reach the CLC target. The rate ceiling is checked before signing; the current RC1 intent has no on-chain minimum-output field, so a rate move before execution cannot be ruled out. It never changes throw settings.</p>
+      <fieldset id="autoFields" disabled>
+        <div class="form-grid">
+          <div class="full"><label><input id="autoEnabled" type="checkbox"> Enable automatic conversion</label></div>
+          <div><label for="targetClc">Target wallet CLC</label><input id="targetClc" type="text" inputmode="decimal" value="5" placeholder="5"></div>
+          <div><label for="maxRate">Maximum pre-sign points per CLC</label><input id="maxRate" type="text" inputmode="numeric" value="1500" placeholder="1500"></div>
+          <div><label for="minPoints">Minimum points per conversion</label><input id="minPoints" type="text" inputmode="numeric" value="1" placeholder="1"></div>
+          <div class="row" style="align-self:end"><button id="saveAuto" type="button">Save rules</button></div>
+        </div>
+      </fieldset>
+      <p class="status warn" id="autoStatus" role="status">Checking conversion service…</p>
+    </section>
+    <section class="panel span-12" aria-labelledby="confirmationHeading">
+      <h2 id="confirmationHeading">Bonded game confirmations</h2>
+      <label><input id="confirmationEnabled" type="checkbox" disabled> Enable new bonded confirmations</label>
+      <p class="small warn">Off by default. Each accepted commitment locks CLC. An incorrect answer or missed reveal forfeits the bond. Switching off stops new bonds, but accepted bonds still recover and reveal through the same Agent1 signer.</p>
+      <p class="status" id="confirmationStatus" role="status">Checking the reviewed confirmation runtime…</p>
+      <p class="small mono" id="confirmationEligibility"></p>
+      <p class="small muted" id="confirmationLimits"></p>
+      <p class="small muted" id="confirmationPolicy"></p>
+      <p class="small mono" id="confirmationStats"></p>
+      <p class="small muted">Bonded statistics come from getVerificationStats, not legacy proposer confirmation or validation counters. This disposable test policy is not approved public anti-farming economics.</p>
+      <div class="scroll"><table><thead><tr><th>Game / round</th><th>Bond / state</th><th>Signed nonce / outcome</th><th>Canonical principal and reward notices</th></tr></thead><tbody id="confirmationRows"><tr><td colspan="4">No confirmation status yet.</td></tr></tbody></table></div>
+    </section>
+    <section class="panel span-12"><h2>Recent points award events</h2><p class="small muted">Locally observed settled-game bonuses, deduplicated by game. This is a recent audit window, not the complete chain history or your spendable balance.</p><div class="scroll"><table><thead><tr><th>Settled at</th><th>Game</th><th>Bonus kind</th><th class="right">Points</th><th>Throw</th></tr></thead><tbody id="awardRows"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody></table></div></section>
+    <section class="panel span-12"><h2>Conversion audit</h2><p class="small muted">Confirmed and unresolved conversions initiated by this Agent1 instance. An unresolved signed operation is never retried automatically.</p><div class="scroll"><table><thead><tr><th>Time</th><th>State</th><th>Points</th><th>CLC out</th><th>Nonce / operation</th></tr></thead><tbody id="conversionRows"><tr><td colspan="5" class="muted">Checking local audit…</td></tr></tbody></table></div></section>
+  </div>
+</main>
+<script>
+const CLC_ASSET='0x3e0e0f0eedd306b23b0f386df33a36fac07cbd9e45a7ad02d1c40adedbee2e16';
+const el=id=>document.getElementById(id);
+let ctx=null, snapshot=null, service=false, conversionPending=false, lastPreview=null, refreshing=false, manualRequestId=null;
+const digits=value=>/^\d+$/.test(String(value||'').trim());
+const short=value=>{const s=String(value||'');return s.length>18?s.slice(0,10)+'…'+s.slice(-8):s;};
+const clcText=base=>{const n=BigInt(base||'0');const whole=n/10n**18n;const frac=(n%10n**18n).toString().padStart(18,'0').replace(/0+$/,'');return whole.toString()+(frac?'.'+frac:'');};
+function clcBase(value){const raw=String(value||'').trim();if(!/^\d+(?:\.\d{1,18})?$/.test(raw))throw new Error('Enter a non-negative CLC amount with at most 18 decimals.');const [w,f='']=raw.split('.');return (BigInt(w)*10n**18n+BigInt(f.padEnd(18,'0'))).toString();}
+function setText(id,value){el(id).textContent=String(value);}
+async function json(url,options){const res=await fetch(url,{cache:'no-store',...options});const data=await res.json().catch(()=>null);if(!res.ok)throw new Error(data?.error||'HTTP '+res.status);return data;}
+async function quote(points){return json('/api/points/quote?pointsIn='+encodeURIComponent(String(points)));}
+async function refreshLedger(){const ledger=await json('/api/points/ledger');ctx={user:ledger.user};setText('wallet',ctx.user);const points=String(ledger.points??'0');const clc=String(ledger.clcBase??'0');const full=ledger.fullQuote;snapshot={points,clc,full};setText('points',points);setText('earned',(ledger.throwCount??'0')+' scored throws; spendable points can fall after conversion.');setText('clcBalance',clcText(clc));setText('quoteClc',full?.enabled?clcText(full.clc_out)+' CLC':'Unavailable');setText('quoteRate',full?.enabled?`${full.points_per_clc} points / CLC · ${points} points quoted`:(full?.disable_reason||'Conversion unavailable'));setText('freshness','Ledger and quote refreshed '+new Date().toLocaleString());setText('connection','RPC live through monitor');await refreshManualQuote();}
+async function refreshManualQuote(){if(!ctx)return;const points=el('manualPoints').value.trim();lastPreview=null;el('convert').disabled=true;if(!digits(points)||BigInt(points)<=0n){setText('manualQuote','Enter a positive whole-points amount.');return;}try{const q=await quote(points);lastPreview=q;setText('manualQuote',q.enabled?`${points} points → ${clcText(q.clc_out)} CLC at ${q.points_per_clc} points/CLC`:(q.disable_reason||'Quote disabled'));el('convert').disabled=!(service&&!conversionPending&&q.enabled&&BigInt(points)<=BigInt(snapshot?.points||'0'));}catch(err){setText('manualQuote',String(err.message||err));}}
+async function refreshService(){try{const status=await json('/api/points/status');service=!!status?.available;conversionPending=!!status?.pending;el('autoFields').disabled=!service;setText('autoStatus',service?(status.runtimeMode==='monitor-only'?'Wallet-linked monitor is ready. Automatic conversion rules can be saved but do not run until a future authorized live throw session.':'Conversion service ready. Saved rules run only through this Agent1 wallet and its signed-intent journal.'):'Conversion service unavailable; rules are inactive.');if(service){const c=status.config||{};if(!el('autoFields').contains(document.activeElement)){el('autoEnabled').checked=!!c.enabled;el('targetClc').value=clcText(c.targetClcBase||'5000000000000000000');el('maxRate').value=String(c.maxPointsPerClc||1500);el('minPoints').value=String(c.minPointsPerConversion||1);}renderConversions(status.history||[]);if(status.pending)setText('convertStatus',`Signed conversion nonce ${status.pending.nonce} remains pending. Do not retry.`);}else renderConversions([]);}catch{service=false;conversionPending=false;el('autoFields').disabled=true;el('convert').disabled=true;setText('autoStatus','Conversion controls require an updated Agent1 runtime. This running test is unchanged; live quotes and award history are available now.');renderConversions([]);}await refreshManualQuote();}
+function renderConversions(rows){const body=el('conversionRows');body.replaceChildren();if(!rows.length){const tr=body.insertRow();const td=tr.insertCell();td.colSpan=5;td.className='muted';td.textContent=service?'No local conversions recorded.':'Audit endpoint will be available after a later Agent1 restart.';return;}for(const row of rows.slice(-40).reverse()){const tr=body.insertRow();for(const value of [row.ts||row.createdAt||'',row.status||'',row.pointsIn||'',row.clcOutBase?clcText(row.clcOutBase):'—',`${row.nonce??'—'} / ${short(row.opId)}`])tr.insertCell().textContent=String(value);}}
+async function refreshAwards(){try{const rows=await json('/api/logs/results?limit=80');const latest=new Map();for(const row of rows.slice().reverse()){const key=String(row.gameId||'');if(key&&!latest.has(key))latest.set(key,row);}const events=[];for(const row of latest.values())for(const bonus of row.actual?.bonuses||[])events.push({ts:row.ts,game:row.gameId,kind:bonus.kind,points:bonus.points,throwId:bonus.throw_id});events.sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));const body=el('awardRows');body.replaceChildren();if(!events.length){const tr=body.insertRow();tr.insertCell().textContent='No locally scored awards in this window.';return;}for(const event of events.slice(0,50)){const tr=body.insertRow();for(const value of [event.ts?new Date(event.ts).toLocaleString():'',short(event.game),event.kind||'',event.points??0,short(event.throwId)])tr.insertCell().textContent=String(value);tr.cells[3].className='right';}}catch(err){setText('awardRows','Award history unavailable: '+String(err.message||err));}}
+async function saveRules(){try{const targetClcBase=clcBase(el('targetClc').value);const maxPointsPerClc=el('maxRate').value.trim();const minPointsPerConversion=el('minPoints').value.trim();if(!digits(maxPointsPerClc)||BigInt(maxPointsPerClc)<1n||!digits(minPointsPerConversion)||BigInt(minPointsPerConversion)<1n)throw new Error('Rate and minimum points must be positive integers.');const result=await json('/api/points/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({enabled:el('autoEnabled').checked,targetClcBase,maxPointsPerClc,minPointsPerConversion})});if(!result.ok)throw new Error(result.error||'Save failed');setText('autoStatus','Saved. Auto-convert '+(result.config?.enabled?'enabled':'disabled')+'.');}catch(err){setText('autoStatus',String(err.message||err));}}
+async function convert(){const pointsIn=el('manualPoints').value.trim();if(!service||!lastPreview?.enabled||!digits(pointsIn))return;const message=`Convert ${pointsIn} earned points for an estimated ${clcText(lastPreview.clc_out)} CLC? The live rate will be checked again before signing. This cannot be undone.`;if(!window.confirm(message))return;manualRequestId ||= crypto.randomUUID();el('convert').disabled=true;setText('convertStatus','Submitting one signed conversion; do not retry if the result is uncertain.');try{const result=await json('/api/points/redeem',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pointsIn,expectedPointsPerClc:String(lastPreview.points_per_clc),requestId:manualRequestId})});setText('convertStatus',result.status==='confirmed'?'Confirmed: '+clcText(result.clcOutBase)+' CLC.':'Operation pending or rejected: '+JSON.stringify(result));if(result.status!=='pending')manualRequestId=null;await refreshLedger();await refreshService();}catch(err){setText('convertStatus','Conversion not confirmed: '+String(err.message||err)+'. Check the audit before any further action.');await refreshService();}}
+async function refresh(){if(refreshing)return;refreshing=true;try{await refreshLedger();await refreshAwards();await refreshService();}catch(err){setText('connection','RPC unavailable');setText('freshness',String(err.message||err));}finally{refreshing=false;}}
+if(new URLSearchParams(location.search).get('embedded')==='1'){document.body.classList.add('embedded');const resize=()=>parent.postMessage({type:'agent1-points-height',height:document.documentElement.scrollHeight},location.origin);new ResizeObserver(resize).observe(document.body);}
+el('useAll').addEventListener('click',()=>{el('manualPoints').value=snapshot?.points||'';refreshManualQuote();});el('preview').addEventListener('click',refreshManualQuote);el('manualPoints').addEventListener('change',refreshManualQuote);el('saveAuto').addEventListener('click',saveRules);el('convert').addEventListener('click',convert);refresh();setInterval(refresh,30000);
+let confirmationState=null, confirmationSaving=false;
+async function refreshConfirmations(){
+  if(confirmationSaving)return;
+  try{
+    const state=await json('/api/confirmations/status');confirmationState=state;
+    el('confirmationEnabled').disabled=!state.available;
+    el('confirmationEnabled').checked=!!state.enabled;
+    if(!state.available){setText('confirmationStatus','Unavailable: a reviewed fresh-chain confirmation profile is required. No fallback signing or digest is used.');return;}
+    const e=state.eligibility||{},l=state.limits||{},p=state.policy||{},s=state.stats||{};
+    const messages={disabled:'Off: new commitments are disabled; existing bonds continue recovery.',policy_disabled:'Waiting: canonical confirmation policy is disabled.',level_required:'Waiting: this wallet must naturally reach level 1 before it can bond confirmations.',clc_required:'Waiting: insufficient available CLC for the fixed bond.',round_limit:'Canary round limit reached. Existing bonds continue recovery; no new commitments.',capital_limit:'Waiting: pending capital limit reached.',bond_limit:'Waiting: canonical bond exceeds the reviewed per-job limit.',job_limit:'Waiting: active job limit reached.',reconciliation_required:'Waiting: an existing principal claim requires canonical reconciliation.',ready:'Enabled and eligible: waiting for a suitable canonical Commit task.'};
+    setText('confirmationStatus',state.control==='paused'?'Loop paused: no new commitments; existing accepted bonds still recover and reveal.':(messages[state.reason]||'Waiting for canonical confirmation state.'));
+    setText('confirmationEligibility','Level '+e.level+' / required '+e.requiredLevel+' · available '+clcText(e.clcBalanceBase||'0')+' CLC · bond '+clcText(p.bondBase||'0')+' CLC'+(!e.bondBalanceMet?' · bond balance not met':''));
+    setText('confirmationLimits','Canary rounds '+l.roundsUsed+'/'+l.maxNewRounds+' · active jobs ≤'+l.maxJobs+' · pending '+clcText(l.pendingCapitalBase||'0')+'/'+clcText(l.maxCapitalBase||'0')+' CLC · per-bond ceiling '+clcText(l.maxBondBase||'0')+' CLC · compute ≤'+l.computeTimeoutMs+' ms, '+l.maxThrowCount+' throws, '+l.maxFrameCap+' frames, '+l.maxInputBytes+' input bytes.');
+    setText('confirmationPolicy','Policy '+p.version+' · minimum accepted game value $'+(Number(p.minGameValueUsdE8||0)/1e8).toFixed(2)+' · fastest pool '+p.fastestPoints+' + shared pool '+p.sharedPoints+' points · aggregate cap '+(p.hardPointsCap??'none')+'. Rewards are conditional, not guaranteed.');
+    setText('confirmationStats','Bonded: committed '+(s.committed||0)+' · correct '+(s.correct||0)+' · mismatched '+(s.mismatched||0)+' · missed '+(s.missed||0)+' · voided '+(s.voided||0)+' · points '+(s.points||0)+' · paid fastest wins '+(s.fastest_paid_wins||0)+' · pending '+(s.pending_bonds||0));
+    const body=el('confirmationRows');body.replaceChildren();
+    for(const job of state.jobs||[]){
+      const tr=body.insertRow();
+      const receipts=(job.notices||[]).map(n=>'h'+n.height+' '+n.stage+' · '+clcText(n.amountClcBase||'0')+' CLC · '+n.points+' pts').join('; ')||'No individual canonical notice yet.';
+      for(const value of [short(job.gameId)+' / '+short(job.roundId),clcText(job.bondBase)+' CLC / '+job.state,(job.operations||[]).map(o=>o.nonce+' '+o.action+' / '+o.outcome).join('; ')||'Not signed',receipts])tr.insertCell().textContent=value;
+    }
+    if(!body.rows.length){const td=body.insertRow().insertCell();td.colSpan=4;td.textContent='No bonded jobs. Eligibility and capital checks never grant points or bypass level requirements.';}
+  }catch{el('confirmationEnabled').disabled=true;setText('confirmationStatus','Confirmation status unavailable. Controls are disabled; no settings change or signed retry is attempted.');}
+}
+el('confirmationEnabled').addEventListener('change',async()=>{
+  const enabled=el('confirmationEnabled').checked;
+  if(enabled&&!window.confirm('Enable up to '+confirmationState.limits.maxNewRounds+' new bonded rounds under the displayed CLC and compute ceilings? Incorrect or missing reveals lose the fixed bond. This does not enable automatic points conversion.')){el('confirmationEnabled').checked=false;return;}
+  confirmationSaving=true;el('confirmationEnabled').disabled=true;
+  try{await json('/api/confirmations/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({enabled})});}
+  catch{setText('confirmationStatus','Save not confirmed. Reading persisted status; do not assume the switch changed.');}
+  finally{confirmationSaving=false;await refreshConfirmations();}
+});
+refreshConfirmations();setInterval(refreshConfirmations,15000);
+</script>
+</body>
+</html>

@@ -1,8 +1,16 @@
+import {researchSnapshot} from '../experiments/research-controller.js';
+import {DOCTRINE_SEEDS,DOCTRINE_KNOWLEDGE,DOCTRINE_KNOWLEDGE_VERSION,doctrineKnowledge} from '../core/doctrine-knowledge.js';
+import {DOCTRINE_PACK_PRESETS} from '../core/agent-profile.js';
 import { existsSync } from "node:fs";
 import http from "node:http";
-import { readFile } from "node:fs/promises";
+import { publisherStatus, setExplorerPublishing, queueExistingReveals } from "../publisher/publisher.js";
+import { createReadStream } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { ColliderClient } from "../collider/client.js";
+import { CLC_ASSET } from "../points/conversion.js";
+import { readJsonlTail } from "../core/jsonl.js";
 import { buildEligibilityCompactCode } from "../agent/eligibility.js";
 import { buildSettingsAuditReport } from "../agent/settings-audit.js";
 import { resolveAgentProfile } from "../core/agent-profile.js";
@@ -10,6 +18,7 @@ import { buildBootstrapSummary } from "../core/bootstrap.js";
 import { normalizeAssetsMetaPayload } from "../core/assets-meta.js";
 import { normalizeReplaySvgRequest, type ReplaySvgRequest } from "./replay-svg.js";
 import { buildHonestPerformanceBaseline } from "../core/hps-baseline.js";
+import { HistorySummaryReader } from "./history-summary.js";
 import {
   getControlState,
   getRuntimeSettings,
@@ -17,6 +26,10 @@ import {
   updateRuntimeSettings,
 } from "../core/runtime-state.js";
 import { loadSettings, normalizeSettings, saveSettings } from "../core/settings.js";
+import { canonicalMapId } from "../core/map-priority.js";
+import { JsonRpcClient, isPublicReadMethod } from "../core/rpc.js";
+import { PUBLIC_RC1 } from "../public-rc1/contract.js";
+import { assertPublicSettings } from "../public-rc1/profile.js";
 import {
   getLatestCandidateContext,
   getLatestEligibilitySnapshot,
@@ -44,7 +57,6 @@ import {
   readManagerLlmAuditEntries,
 } from "../llm/audit.js";
 import { autoDetectLocalManagerProvider } from "../llm/autodetect.js";
-import { autoSetupLocalManagerRuntime, buildLocalManagerSetupPlan } from "../llm/local-setup.js";
 import { runManagerConversation } from "../llm/session.js";
 import {
   applyManagerLlmAction,
@@ -60,6 +72,15 @@ import {
 } from "../strategy/tactical-overlay.js";
 
 export type MonitorBridge = {
+  getAgentName?:()=>unknown|Promise<unknown>;
+  setAgentName?:(request:Record<string,unknown>)=>unknown|Promise<unknown>;
+  getManagerPreview?: () => unknown | Promise<unknown>;
+  saveBankPolicy?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
+  depositBankWallet?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
+  unlockBankWallet?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
+  getBankWallet?: () => unknown | Promise<unknown>;
+  encryptBankWallet?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
+  requestBankWithdrawal?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
   getRuntimeSettings?: () => unknown | Promise<unknown>;
   updateRuntimeSettings?: (patch: Record<string, unknown>) => unknown | Promise<unknown>;
   getControlState?: () => unknown | Promise<unknown>;
@@ -71,6 +92,11 @@ export type MonitorBridge = {
   getManagerCandidateSet?: () => unknown | Promise<unknown>;
   saveManagerCandidateSet?: (candidateSet: unknown) => unknown | Promise<unknown>;
   buildReplaySvgExport?: (request: ReplaySvgRequest) => unknown | Promise<unknown>;
+  getPointsConversionStatus?: () => unknown | Promise<unknown>;
+  getConfirmationStatus?: () => unknown | Promise<unknown>;
+  saveConfirmationConfig?: (patch: Record<string, unknown>) => unknown | Promise<unknown>;
+  savePointsConversionConfig?: (patch: Record<string, unknown>) => unknown | Promise<unknown>;
+  redeemPointsForClc?: (request: Record<string, unknown>) => unknown | Promise<unknown>;
 };
 
 export type ServerConfig = {
@@ -98,6 +124,22 @@ async function safeReadText(file: string): Promise<string> {
   } catch {
     return "";
   }
+}
+
+async function readCompleteGameLog(file: string, gameId: string): Promise<any[]> {
+  const rows: any[] = [];
+  try {
+    const lines = createInterface({ input: createReadStream(file, { encoding: "utf8" }), crlfDelay: Infinity });
+    for await (const line of lines) {
+      if (!line.trim()) continue;
+      let row: any;
+      try { row = JSON.parse(line); } catch { continue; }
+      if (String(row?.gameId ?? "").toLowerCase().replace(/^0x/, "") === gameId) rows.push(row);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return rows;
 }
 
 function parseJsonl(text: string): any[] {
@@ -135,6 +177,7 @@ function resolveReadableLocalJsonPath(
 ): string | null {
   const raw = String(requestedPath ?? "").trim();
   if (!raw) return null;
+  if (/(?:wallet|signing.key|signed.intent|signed.withdrawal|intent.state|conversion.state|withdrawal.state|settings\.json|manager.llm\.json)/i.test(raw)) return null;
   if (/^[a-z]+:\/\//i.test(raw)) return null;
   const normalizedRaw = raw.replace(/[\\/]+/g, path.sep);
   const allowedRoots = [path.resolve(dataDir), path.resolve(staticDir)];
@@ -304,6 +347,45 @@ function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown
   res.end(JSON.stringify(payload));
 }
 
+function assertSameOriginJsonMutation(req: http.IncomingMessage): void {
+  const remote = String(req.socket.remoteAddress ?? "").replace(/^::ffff:/, "");
+  if (remote !== "127.0.0.1" && remote !== "::1") {
+    throw new Error("signed points controls are loopback-only");
+  }
+  if (!String(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+    throw new Error("points conversion requires application/json");
+  }
+  const origin = String(req.headers.origin ?? "");
+  const host = String(req.headers.host ?? "");
+  if (!["127.0.0.1","localhost","[::1]"].includes(new URL("http://"+host).hostname)) throw Error("Wallet controls require a loopback Host");
+  const localControlHeader = req.headers["x-collider-local-control"] === "1";
+  if (!localControlHeader && (!origin || !host || new URL(origin).host !== host)) {
+    throw new Error("points conversion requires a same-origin monitor request");
+  }
+}
+
+async function sendNotModifiedForUnchangedFile(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  file: string,
+  limit: number,
+): Promise<boolean> {
+  try {
+    const info = await stat(file);
+    const etag = 'W/"' + info.size + '-' + Math.trunc(info.mtimeMs) + '-' + limit + '"';
+    res.setHeader("etag", etag);
+    res.setHeader("cache-control", "no-cache");
+    if (req.headers["if-none-match"] === etag) {
+      res.statusCode = 304;
+      res.end();
+      return true;
+    }
+  } catch {
+    // Let the normal tail reader return its empty/missing-file view.
+  }
+  return false;
+}
+
 async function readJsonBody(req: http.IncomingMessage): Promise<any> {
   const chunks: Uint8Array[] = [];
   for await (const chunk of req) {
@@ -387,25 +469,213 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
   await initManagerLlmState(dataDir);
   await initManagerLlmAudit(dataDir);
   const defaultMonitorFile = await resolveDefaultMonitorFile(staticDir);
+  const historySummary = new HistorySummaryReader(
+    path.join(dataDir, "throws.jsonl"),
+    path.join(dataDir, "results.jsonl"),
+    path.join(dataDir, "runs.jsonl"),
+  );
+  let managerLlmRequestInFlight = false;
+  let mapPrioritySaveQueue: Promise<unknown> = Promise.resolve();
+  let publicProxyInFlight=0;
 
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer((req, res) => {
+    void (async () => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+    if (url.pathname.startsWith("/api/")) {
+      try {
+        const host=String(req.headers.host??""),parsedHost=new URL("http://"+host);
+        if(!["localhost","127.0.0.1","[::1]"].includes(parsedHost.hostname))throw Error("Monitor API requires a loopback host");
+        if(["POST","PUT","PATCH","DELETE"].includes(req.method??"")){
+          const origin=String(req.headers.origin??""),site=String(req.headers["sec-fetch-site"]??"");
+          if((origin&&new URL(origin).host!==host)||(site&&!["same-origin","none"].includes(site)))throw Error("Cross-origin monitor control is not allowed");
+        }
+      }catch{sendJson(res,400,{ok:false,error:"Monitor API requires trusted local access"});return;}
+    }
+
+    if(url.pathname==="/api/public-rpc/read"&&req.method==="POST"){
+      try{
+        assertSameOriginJsonMutation(req);
+        const request=await readJsonBody(req),settings=await loadSettings(dataDir);assertPublicSettings(settings);
+        if(typeof request.method!=="string"||!isPublicReadMethod(request.method)||!Array.isArray(request.params)
+          ||Object.keys(request).some(k=>!["method","params"].includes(k))||JSON.stringify(request).length>8192)throw Error("bounded public read-only RPC required");
+        if(publicProxyInFlight>=2){res.setHeader("retry-after","5");sendJson(res,429,{error:"local public read budget busy"});return;}
+        publicProxyInFlight++;
+        try{const result=await new JsonRpcClient(PUBLIC_RC1.rpc,{}, {timeoutMs:8000,retries:1}).call(request.method,request.params);sendJson(res,200,{result});}
+        finally{publicProxyInFlight--;}
+      }catch{sendJson(res,400,{error:"public read held; no signing or arbitrary proxy allowed"});}
+      return;
+    }
 
     if (url.pathname === "/api/logs/runs") {
-      const txt = await safeReadText(path.join(dataDir, "runs.jsonl"));
-      sendJson(res, 200, parseJsonl(txt));
+      const file = path.join(dataDir, "runs.jsonl");
+      const limit = parseLimit(url, 500, 10_000);
+      if (await sendNotModifiedForUnchangedFile(req, res, file, limit)) return;
+      const page = await readJsonlTail(file, limit);
+      res.setHeader("x-collider-log-file-bytes", String(page.fileBytes));
+      res.setHeader("x-collider-log-truncated", String(page.truncated));
+      sendJson(res, 200, page.rows);
       return;
     }
 
     if (url.pathname === "/api/logs/throws") {
-      const txt = await safeReadText(path.join(dataDir, "throws.jsonl"));
-      sendJson(res, 200, parseJsonl(txt));
+      const file = path.join(dataDir, "throws.jsonl");
+      const limit = parseLimit(url, 500, 10_000);
+      if (await sendNotModifiedForUnchangedFile(req, res, file, limit)) return;
+      const page = await readJsonlTail(file, limit);
+      res.setHeader("x-collider-log-file-bytes", String(page.fileBytes));
+      res.setHeader("x-collider-log-truncated", String(page.truncated));
+      sendJson(res, 200, page.rows);
       return;
     }
 
     if (url.pathname === "/api/logs/results") {
-      const txt = await safeReadText(path.join(dataDir, "results.jsonl"));
-      sendJson(res, 200, parseJsonl(txt));
+      const file = path.join(dataDir, "results.jsonl");
+      const limit = parseLimit(url, 500, 10_000);
+      if (await sendNotModifiedForUnchangedFile(req, res, file, limit)) return;
+      const page = await readJsonlTail(file, limit);
+      res.setHeader("x-collider-log-file-bytes", String(page.fileBytes));
+      res.setHeader("x-collider-log-truncated", String(page.truncated));
+      sendJson(res, 200, page.rows);
+      return;
+    }
+
+    if(url.pathname==="/api/publisher/config"&&req.method==="POST"){try{assertSameOriginJsonMutation(req);const b=await readJsonBody(req);if(Object.keys(b).join()!=="enabled"||typeof b.enabled!=="boolean")throw Error("Only the enabled flag may change");sendJson(res,200,{ok:true,status:await setExplorerPublishing(dataDir,b.enabled)});}catch(e){sendJson(res,400,{ok:false,error:e instanceof Error?e.message:"Publisher configuration held"});}return;}
+    if(url.pathname==="/api/publisher/export-existing"&&req.method==="POST"){try{assertSameOriginJsonMutation(req);const b=await readJsonBody(req);if(Object.keys(b).join()!=="limit")throw Error("Only a bounded limit may be provided");sendJson(res,200,{ok:true,...await queueExistingReveals(dataDir,b.limit)});}catch(e){sendJson(res,400,{ok:false,error:e instanceof Error?e.message:"Export held"});}return;}
+    if (url.pathname === "/api/publisher/status" && req.method === "GET") {
+      try { sendJson(res,200,await publisherStatus(dataDir)); }
+      catch { sendJson(res,503,{enabled:false,error:"publisher state unreadable; no uploads attempted"}); }
+      return;
+    }
+
+    if (url.pathname === "/api/history/summary" && req.method === "GET") {
+      sendJson(res, 200, await historySummary.read());
+      return;
+    }
+
+    if (url.pathname === "/api/history/game" && req.method === "GET") {
+      const gameId = String(url.searchParams.get("gameId") ?? "").toLowerCase().replace(/^0x/, "");
+      if (!/^[0-9a-f]{64}$/.test(gameId)) {
+        sendJson(res, 400, { error: "invalid gameId" });
+        return;
+      }
+      const [runs, throws, results] = await Promise.all([
+        readCompleteGameLog(path.join(dataDir, "runs.jsonl"), gameId),
+        readCompleteGameLog(path.join(dataDir, "throws.jsonl"), gameId),
+        readCompleteGameLog(path.join(dataDir, "results.jsonl"), gameId),
+      ]);
+      sendJson(res, 200, { gameId, runs, throws, results });
+      return;
+    }
+
+    if (url.pathname === "/api/points/status" && req.method === "GET") {
+      if (!bridge.getPointsConversionStatus) sendJson(res, 503, { available: false, error: "points conversion runtime unavailable" });
+      else sendJson(res, 200, await bridge.getPointsConversionStatus());
+      return;
+    }
+
+    if (url.pathname === "/api/confirmations/status" && req.method === "GET") {
+      if (!bridge.getConfirmationStatus) sendJson(res, 503, { available: false, enabled: false, error: "reviewed confirmation runtime unavailable" });
+      else sendJson(res, 200, await bridge.getConfirmationStatus());
+      return;
+    }
+    if (url.pathname === "/api/confirmations/config" && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);
+        const body = await readJsonBody(req);
+        if (!isPlainRecord(body) || Object.keys(body).join() !== "enabled" || typeof body.enabled !== "boolean") {
+          throw new Error("only a boolean confirmation enabled flag may be changed");
+        }
+        if (!bridge.saveConfirmationConfig) throw new Error("reviewed confirmation runtime unavailable");
+        sendJson(res, 200, { ok: true, config: await bridge.saveConfirmationConfig({ enabled: body.enabled }) });
+      } catch (error) { sendJson(res, 400, { ok: false, error: String(error) }); }
+      return;
+    }
+
+    if(url.pathname==="/api/doctrines"&&req.method==="GET"){sendJson(res,200,{version:DOCTRINE_KNOWLEDGE_VERSION,cards:Object.keys(DOCTRINE_SEEDS).map(id=>({...doctrineKnowledge(id),defaultGoalWeights:DOCTRINE_PACK_PRESETS[id as keyof typeof DOCTRINE_PACK_PRESETS].goalWeights})),lessons:DOCTRINE_KNOWLEDGE});return;}
+    if (url.pathname === "/api/manager/preview" && req.method === "POST") {
+      try {assertSameOriginJsonMutation(req); if (!bridge.getManagerPreview) throw Error("Fresh planner is unavailable"); sendJson(res,200,{ok:true,context:await bridge.getManagerPreview()});}
+      catch {sendJson(res,503,{ok:false,error:"Fresh planning preview unavailable"});} return;
+    }
+    if(url.pathname==="/api/wallet/name"&&["GET","POST"].includes(req.method??"")){try{if(req.method==="POST"){assertSameOriginJsonMutation(req);if(!bridge.setAgentName)throw Error("Name service unavailable");sendJson(res,200,await bridge.setAgentName(await readJsonBody(req)));}else{if(!bridge.getAgentName)throw Error("Name service unavailable");sendJson(res,200,await bridge.getAgentName());}}catch(e){sendJson(res,400,{ok:false,error:e instanceof Error?e.message:"Name request failed"});}return;}
+    if (url.pathname === "/api/bank/wallet" && req.method === "GET") {
+      try { if (!bridge.getBankWallet) throw Error("Bank wallet service is not loaded in this running monitor; reload Agent1"); sendJson(res, 200, await bridge.getBankWallet()); }
+      catch { sendJson(res, 503, {ok:false,error:"Bank wallet service unavailable; reload the updated Agent1 runtime"}); } return;
+    }
+    if (["/api/bank/encrypt", "/api/bank/withdraw", "/api/bank/unlock", "/api/bank/deposit", "/api/bank/policy"].includes(url.pathname) && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);
+        const body = await readJsonBody(req);
+        const action = url.pathname.endsWith("policy") ? bridge.saveBankPolicy : url.pathname.endsWith("deposit") ? bridge.depositBankWallet : url.pathname.endsWith("encrypt") ? bridge.encryptBankWallet : url.pathname.endsWith("unlock") ? bridge.unlockBankWallet : bridge.requestBankWithdrawal;
+        if (!action) throw Error("Bank wallet service is not loaded");
+        sendJson(res, 200, await action(body));
+      } catch (error) { sendJson(res, 400, {ok:false,error:error instanceof Error ? error.message : "Wallet request failed"}); } return;
+    }
+
+    if (url.pathname === "/api/bank/balances" && req.method === "GET") {
+      try {
+        const settings = await loadSettings(dataDir);
+        const runtime = await fromBridgeRead(bridge.getRuntimeSettings, () => safeRuntimeSettings(), "bank RPC settings");
+        const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
+        const cleanUser = String(effective.user ?? "").trim().toLowerCase().replace(/^0x/, "");
+        if (!/^[0-9a-f]{64}$/.test(cleanUser)) throw new Error("RC1 wallet UserId is not configured");
+        const user = `0x${cleanUser}`;
+        const balances = await new ColliderClient(effective.rpc).getBalances(user);
+        sendJson(res, 200, { user, balances, asOf: new Date().toISOString() });
+      } catch (error) {
+        sendJson(res, 503, { ok: false, error: String(error) });
+      }
+      return;
+    }
+
+    if ((url.pathname === "/api/points/ledger" || url.pathname === "/api/points/quote") && req.method === "GET") {
+      try {
+        const settings = await loadSettings(dataDir);
+        const runtime = await fromBridgeRead(bridge.getRuntimeSettings, () => safeRuntimeSettings(), "points RPC settings");
+        const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
+        const cleanUser = String(effective.user ?? "").trim().toLowerCase().replace(/^0x/, "");
+        if (!/^[0-9a-f]{64}$/.test(cleanUser)) throw new Error("RC1 wallet UserId is not configured");
+        const user = `0x${cleanUser}`;
+        const client = new ColliderClient(effective.rpc);
+        if (url.pathname === "/api/points/quote") {
+          const pointsIn = String(url.searchParams.get("pointsIn") ?? "").trim();
+          if (!/^\d{1,39}$/.test(pointsIn) || BigInt(pointsIn) < 1n) {
+            sendJson(res, 400, { ok: false, error: "pointsIn must be a positive exact integer" });
+            return;
+          }
+          sendJson(res, 200, await client.getClcRedemptionQuote(user, BigInt(pointsIn).toString()));
+          return;
+        }
+        const [ladder, balances] = await Promise.all([client.getLadderUser(user), client.getBalances(user)]);
+        const points = String(ladder?.points_total ?? "0");
+        const fullQuote = BigInt(points) > 0n ? await client.getClcRedemptionQuote(user, points) : null;
+        sendJson(res, 200, { user, points, throwCount: String(ladder?.throw_count ?? "0"),
+          clcBase: String(balances[CLC_ASSET] ?? "0"), fullQuote });
+      } catch (error) {
+        sendJson(res, 503, { ok: false, error: String(error) });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/points/config" && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);
+        if (!bridge.savePointsConversionConfig) throw new Error("points conversion runtime unavailable");
+        const config = await bridge.savePointsConversionConfig(await readJsonBody(req));
+        sendJson(res, 200, { ok: true, config });
+      } catch (error) {
+        sendJson(res, 400, { ok: false, error: String(error) });
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/points/redeem" && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);
+        if (!bridge.redeemPointsForClc) throw new Error("points conversion runtime unavailable");
+        sendJson(res, 200, await bridge.redeemPointsForClc(await readJsonBody(req)));
+      } catch (error) {
+        sendJson(res, 400, { ok: false, error: String(error) });
+      }
       return;
     }
 
@@ -432,7 +702,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         const settings = await loadSettings(dataDir);
         const runtime = await fromBridgeRead(
           bridge.getRuntimeSettings,
-          () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
+          () => safeRuntimeSettings(),
           "assets meta runtime settings",
         );
         const effective = mergeEffectiveSettings(settings, (runtime && typeof runtime === "object") ? runtime as Record<string, unknown> : null);
@@ -448,7 +718,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const settings = await loadSettings(dataDir);
       const runtime = await fromBridgeRead(
         bridge.getRuntimeSettings,
-        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
+        () => null,
         "settings runtime settings",
       );
       sendJson(
@@ -476,6 +746,27 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
+    if (url.pathname === "/api/settings/map-priority" && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);
+        const json = await readJsonBody(req);
+        const id = canonicalMapId(json?.mapId), priority = json?.priority;
+        if (!id || typeof priority !== "number" || !Number.isInteger(priority) || priority < 1 || priority > 10
+          || Object.keys(json).some(key => !["mapId", "priority"].includes(key))) throw Error("mapId and integer priority 1–10 required");
+        const save = mapPrioritySaveQueue.then(async () => {
+          const current = await loadSettings(dataDir);
+          return await saveSettingsAndRuntime({ mapPriorities: { ...current.mapPriorities, [id]: priority } }, dataDir, bridge);
+        });
+        mapPrioritySaveQueue = save.catch(() => undefined);
+        const saved = await save;
+        sendJson(res, 200, { ok:true, mapId:id, priority, settings:saved.settings,
+          runtimeSyncPending:saved.runtimeSyncPending, runtimeSyncError:saved.runtimeSyncError });
+      } catch (err) {
+        sendJson(res, 400, { ok:false, error:String(err) });
+      }
+      return;
+    }
+
     if (url.pathname === "/api/settings/onboarding" && req.method === "POST") {
       try {
         const json = await readJsonBody(req);
@@ -487,7 +778,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
             ...((json?.onboarding && typeof json.onboarding === "object") ? json.onboarding : {}),
           },
         });
-        await saveSettingsAndRuntime(nextOnboarding, dataDir, bridge);
+        await saveSettings(nextOnboarding, dataDir);
         sendJson(res, 200, {
           ok: true,
           settings: nextOnboarding,
@@ -499,16 +790,31 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/runtime-settings" && req.method === "GET") {
-      const runtime = await fromBridgeRead(
-        bridge.getRuntimeSettings,
-        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
-        "runtime settings",
-      );
-      if (!runtime) {
-        sendJson(res, 500, { ok: false, error: "runtime settings not initialized" });
-        return;
+      const source = bridge.getRuntimeSettings ? "bridge" : "local";
+      try {
+        // A worker's local settings cannot establish the main signer runtime's state.
+        const runtime = bridge.getRuntimeSettings
+          ? await withTimeout(Promise.resolve().then(() => bridge.getRuntimeSettings!()), BRIDGE_READ_TIMEOUT_MS, "runtime settings")
+          : getRuntimeSettings();
+        if (!runtime) throw new Error("runtime settings not initialized");
+        sendJson(res, 200, runtime);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const uninitialized = /^(?:Error:\s*)?runtime settings not initialized$/.test(message);
+        const timedOut = /^runtime settings timed out after \d+ms$/.test(message)
+          || /^monitor bridge timeout for getRuntimeSettings after \d+ms$/.test(message);
+        const code = uninitialized ? "RUNTIME_SETTINGS_UNINITIALIZED"
+          : timedOut ? "RUNTIME_SETTINGS_BRIDGE_TIMEOUT" : "RUNTIME_SETTINGS_READ_FAILED";
+        console.warn("[monitor-runtime-settings-read]", {
+          ts: new Date().toISOString(), code, source,
+          timeoutMs: source === "bridge" ? BRIDGE_READ_TIMEOUT_MS : null,
+        });
+        sendJson(res, 503, {
+          ok: false, code, source,
+          error: uninitialized ? "runtime settings not initialized"
+            : timedOut ? "runtime settings bridge read timed out" : "runtime settings read unavailable",
+        });
       }
-      sendJson(res, 200, runtime);
       return;
     }
 
@@ -594,13 +900,13 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     if (url.pathname === "/api/manager/honest-score" && req.method === "GET") {
       const limit = parseLimit(url, 12, 100);
       const includeArtifacts = queryFlag(url, "includeArtifacts");
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
+      const resultsPage = await readJsonlTail(path.join(dataDir, "results.jsonl"), 10_000);
+      const honestPerformance = buildHonestPerformanceSnapshot(resultsPage.rows);
       const recentRows = honestPerformance.revealRows.slice(0, limit);
       const settings = await loadSettings(dataDir);
       const runtime = await fromBridgeRead(
         bridge.getRuntimeSettings,
-        () => bridge.getRuntimeSettings ? null : safeRuntimeSettings(),
+        () => safeRuntimeSettings(),
         "honest-score runtime settings",
       );
       sendJson(res, 200, {
@@ -610,6 +916,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         latest: honestPerformance.revealRows[0] ? await expandHonestPerformanceRow(honestPerformance.revealRows[0], includeArtifacts) : null,
         latestScored: honestPerformance.scoredRows[0] ? await expandHonestPerformanceRow(honestPerformance.scoredRows[0], includeArtifacts) : null,
         recent: await Promise.all(recentRows.map((row) => expandHonestPerformanceRow(row, includeArtifacts))),
+        dataWindow: {
+          retainedRowsScanned: resultsPage.rows.length,
+          activeFileBytes: resultsPage.fileBytes,
+          truncated: resultsPage.truncated,
+        },
       });
       return;
     }
@@ -619,8 +930,8 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       const includeArtifacts = queryFlag(url, "includeArtifacts");
       const gameId = cleanHex(url.searchParams.get("gameId") || "");
       const decisionId = cleanHex(url.searchParams.get("decisionId") || "");
-      const resultsText = await safeReadText(path.join(dataDir, "results.jsonl"));
-      const honestPerformance = buildHonestPerformanceSnapshot(parseJsonl(resultsText));
+      const resultsPage = await readJsonlTail(path.join(dataDir, "results.jsonl"), 10_000);
+      const honestPerformance = buildHonestPerformanceSnapshot(resultsPage.rows);
       const filtered = honestPerformance.revealRows.filter((row) => {
         if (gameId && cleanHex(row?.gameId || "") !== gameId) return false;
         if (decisionId && cleanHex(row?.decisionId || "") !== decisionId) return false;
@@ -631,6 +942,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         count: filtered.length,
         returned: selected.length,
         rows: await Promise.all(selected.map((row) => expandHonestPerformanceRow(row, includeArtifacts))),
+        dataWindow: {
+          retainedRowsScanned: resultsPage.rows.length,
+          activeFileBytes: resultsPage.fileBytes,
+          truncated: resultsPage.truncated,
+        },
       });
       return;
     }
@@ -701,8 +1017,23 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
+    if(url.pathname==="/api/manager/research"&&req.method==="GET"){try{sendJson(res,200,await researchSnapshot(dataDir));}catch{sendJson(res,503,{available:false,error:"Research evidence unavailable; not zero activity"});}return;}
+
+    if (url.pathname === "/api/manager/experiment/decision" && req.method === "POST") {
+      try {
+        assertSameOriginJsonMutation(req);const body=await readJsonBody(req);
+        const experiment=await safeReadJson(path.join(dataDir,"manager-experiment.json"));
+        const maxRounds=experiment?.maxInferenceRounds??96;
+        if(!Number.isInteger(maxRounds)||maxRounds<1||maxRounds>240||!experiment?.active||Date.parse(experiment.stopAt)<=Date.now()||body.model!==experiment.model||typeof body.reply!=="string"||body.reply.length>4000||!Number.isInteger(body.round)||body.round<0||body.round>=maxRounds)throw Error("Invalid controlled manager decision");
+        await appendManagerLlmMessage("assistant",body.reply);
+        await setManagerLlmResponseMeta("codex", String(body.summary??"Bounded experiment decision"));
+        await appendManagerLlmAuditEntry({actionId:String(body.policyId??""),event:"applied",title:"Controlled doctrine decision",note:body.reply,action:null,snapshot:null,result:{round:body.round,activity:body.activity,model:body.model}});
+        sendJson(res,200,{ok:true});
+      }catch{sendJson(res,400,{ok:false,error:"Controlled manager decision rejected"});}return;
+    }
     if (url.pathname === "/api/manager/llm" && req.method === "GET") {
-      sendJson(res, 200, { state: getPublicManagerLlmState() });
+      const experiment = await safeReadJson(path.join(dataDir,"manager-experiment.json"));
+      sendJson(res, 200, { state: {...getPublicManagerLlmState(), experiment: experiment?.active && Date.parse(experiment.stopAt)>Date.now() ? experiment : null} });
       return;
     }
 
@@ -728,13 +1059,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         const preferRaw = String(json?.prefer || "any").trim().toLowerCase();
         const prefer = preferRaw === "ollama" || preferRaw === "local" ? preferRaw : "any";
         const detection = await autoDetectLocalManagerProvider(prefer);
-        const setupPlan = buildLocalManagerSetupPlan();
         if (!detection.selected) {
           sendJson(res, 404, {
             ok: false,
             error: "No supported local manager runtime was detected. Start Ollama or a local OpenAI-compatible server first.",
             candidates: detection.candidates,
-            setupPlan,
             state: getPublicManagerLlmState(),
           });
           return;
@@ -754,60 +1083,16 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
           ok: true,
           detected: detection.selected,
           candidates: detection.candidates,
-          setupPlan,
           state,
         });
       } catch (err) {
-        sendJson(res, 400, { ok: false, error: String(err), setupPlan: buildLocalManagerSetupPlan(), state: getPublicManagerLlmState() });
+        sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
       }
       return;
     }
 
     if (url.pathname === "/api/manager/llm/local-setup" && req.method === "POST") {
-      const setupPlan = buildLocalManagerSetupPlan();
-      try {
-        const json = await readJsonBody(req).catch(() => ({}));
-        const planId = String(json?.planId || setupPlan.recommendedPlanId || "ollama").trim() || setupPlan.recommendedPlanId;
-        const execution = await autoSetupLocalManagerRuntime(planId);
-        if (!execution.ok) {
-          sendJson(res, 400, {
-            ok: false,
-            error: execution.error || execution.message,
-            message: execution.message,
-            steps: execution.steps,
-            setupPlan,
-            state: getPublicManagerLlmState(),
-          });
-          return;
-        }
-        const state = await saveManagerLlmConfig({
-          activeProvider: execution.option.providerId,
-          providers: {
-            [execution.option.providerId]: {
-              enabled: true,
-              model: execution.option.model,
-              endpointUrl: execution.option.endpointUrl,
-            },
-          },
-        });
-        await setManagerLlmError(null);
-        sendJson(res, 200, {
-          ok: true,
-          message: execution.message,
-          steps: execution.steps,
-          detected: execution.detected ?? {
-            providerId: execution.option.providerId,
-            endpointUrl: execution.option.endpointUrl,
-            model: execution.option.model,
-            label: execution.option.label,
-            source: "local_setup",
-          },
-          setupPlan,
-          state,
-        });
-      } catch (err) {
-        sendJson(res, 400, { ok: false, error: String(err), setupPlan, state: getPublicManagerLlmState() });
-      }
+      sendJson(res, 410, { ok:false, error:"Automatic runtime installation is no longer supported. Connect a provider or detect an existing Ollama instance." });
       return;
     }
 
@@ -817,9 +1102,16 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/manager/llm/chat" && req.method === "POST") {
+      if (managerLlmRequestInFlight) {
+        sendJson(res, 409, { ok: false, error: "A manager request is already in progress.", state: getPublicManagerLlmState() });
+        return;
+      }
+      managerLlmRequestInFlight = true;
       try {
         const json = await readJsonBody(req);
         const message = String(json?.message || "").trim();
+        const experiment = await safeReadJson(path.join(dataDir,"manager-experiment.json"));
+        if(experiment?.active && Date.parse(experiment.stopAt)>Date.now() && message.startsWith("SYSTEM EVENT NOTICE")) throw Error("Scheduled experiment manager handles runtime events; duplicate automatic inference is disabled");
         if (!message) throw new Error("missing message");
         await appendManagerLlmMessage("user", message);
         await setManagerLlmBusy(true);
@@ -847,6 +1139,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         }
         await setManagerLlmResponseMeta(llmState.config.activeProvider, conversation.summary);
         await setManagerLlmBusy(false);
+        managerLlmRequestInFlight = false;
         sendJson(res, 200, {
           ok: true,
           assistantMessage: conversation.reply,
@@ -855,6 +1148,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
           state: getPublicManagerLlmState(),
         });
       } catch (err) {
+        managerLlmRequestInFlight = false;
         await setManagerLlmBusy(false);
         await setManagerLlmError(String(err));
         sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
@@ -921,6 +1215,11 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
     }
 
     if (url.pathname === "/api/manager/llm/guide" && req.method === "POST") {
+      if (managerLlmRequestInFlight) {
+        sendJson(res, 409, { ok: false, error: "A manager request is already in progress.", state: getPublicManagerLlmState() });
+        return;
+      }
+      managerLlmRequestInFlight = true;
       try {
         const json = await readJsonBody(req);
         const actionId = String(json?.actionId || "").trim();
@@ -974,6 +1273,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
         });
         await setManagerLlmResponseMeta(llmState.config.activeProvider, conversation.summary);
         await setManagerLlmBusy(false);
+        managerLlmRequestInFlight = false;
         sendJson(res, 200, {
           ok: true,
           assistantMessage: conversation.reply,
@@ -982,6 +1282,7 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
           state: getPublicManagerLlmState(),
         });
       } catch (err) {
+        managerLlmRequestInFlight = false;
         await setManagerLlmBusy(false);
         await setManagerLlmError(String(err));
         sendJson(res, 400, { ok: false, error: String(err), state: getPublicManagerLlmState() });
@@ -1069,6 +1370,10 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       return;
     }
 
+    const publicExperimentArtifact = /^\/data-doctrine-[a-zA-Z0-9-]+\/(?:audit\.(?:json|txt)|live\.json|fresh-live\.json|completion\.json)$/.test(url.pathname);
+    if (!publicExperimentArtifact && (/(?:^|\/)(?:data(?:-[^/]+)?|\.git|\.aws|\.codex|\.agents)(?:\/|$)/i.test(url.pathname) || /(?:wallet|signing-key|signed-intent|signed-withdrawal|intent-state|conversion-state|withdrawal-state|bank-withdrawals|settings)/i.test(url.pathname) && /\.(?:json|dat|hex|jsonl)$/i.test(url.pathname))) {
+      sendJson(res, 403, {ok:false,error:"Private runtime files are not downloadable"}); return;
+    }
     const filePath = url.pathname === "/"
       ? path.join(staticDir, defaultMonitorFile)
       : path.join(staticDir, url.pathname.replace(/^\/+/, ""));
@@ -1087,15 +1392,16 @@ export async function startMonitorServer(cfg: ServerConfig = {}): Promise<http.S
       res.statusCode = 404;
       res.end("not found");
     }
+    })().catch((error) => {
+      console.error("[monitor-request]", error);
+      if (res.destroyed) return;
+      if (!res.headersSent) sendJson(res, 503, { ok: false, error: "monitor request failed" });
+      else res.destroy();
+    });
   });
 
-  await new Promise<void>((resolve, reject) => {
-    const onError = (error: Error) => reject(error);
-    server.once("error", onError);
-    server.listen(port, () => {
-      server.off("error", onError);
-      resolve();
-    });
+  await new Promise<void>((resolve) => {
+    server.listen(port, "127.0.0.1", () => resolve());
   });
 
   const address = server.address();

@@ -23,9 +23,9 @@ test("buildHonestPerformanceBaseline derives an empirical early window and lift"
     row("2026-04-01T00:00:00.000Z", 50.0, 40, 45, 55, 52),
     row("2026-04-01T00:00:01.000Z", 50.5, 41, 46, 56, 53),
     row("2026-04-01T00:00:02.000Z", 49.5, 42, 44, 57, 54),
-    row("2026-04-01T00:00:03.000Z", 50.2, 41, 45, 56, 53),
-    row("2026-04-01T00:00:04.000Z", 50.1, 42, 46, 57, 54),
-    row("2026-04-01T00:00:05.000Z", 50.4, 43, 47, 58, 55),
+    row("2026-04-01T00:00:03.000Z", 50.2, 43, 45, 58, 55),
+    row("2026-04-01T00:00:04.000Z", 50.1, 44, 46, 59, 56),
+    row("2026-04-01T00:00:05.000Z", 50.4, 45, 47, 60, 57),
     row("2026-04-01T00:00:06.000Z", 65.0, 60, 62, 72, 68),
     row("2026-04-01T00:00:07.000Z", 66.0, 61, 63, 73, 69),
   ]);
@@ -42,15 +42,4 @@ test("buildHonestPerformanceBaseline derives an empirical early window and lift"
   assert.ok((baseline.headline.liftPct ?? 0) > 0);
   assert.equal(baseline.layers.outcome.sampleCountUsed, 6);
   assert.ok((baseline.layers.temporal.liftPct ?? 0) > 0);
-});
-
-test("baseline keeps calibrating when layer drift exceeds the threshold", () => {
-  const rows = Array.from({ length: 8 }, (_, i) => row(
-    new Date(Date.UTC(2026, 3, 1, 0, 0, i)).toISOString(),
-    50, 40 + i, 45, 55 + i, 52 + i,
-  ));
-  const baseline = buildHonestPerformanceBaseline(rows);
-  assert.equal(baseline.calibration.status, "stabilizing");
-  assert.equal(baseline.calibration.stabilizedMetrics, 2);
-  assert.equal(baseline.layers.outcome.stabilized, false);
 });

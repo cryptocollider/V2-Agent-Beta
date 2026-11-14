@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-11-13T13:49:01.889Z",
+  "requests": "GET only; no wallet, challenge, claim or transaction",
+  "checks": [
+    {
+      "name": "gateway",
+      "http": 200,
+      "mode": "authenticated_client",
+      "signingEnabled": true
+    },
+    {
+      "name": "readiness",
+      "http": 503,
+      "ready": false,
+      "mode": "readiness_shadow",
+      "reasons": [
+        "Feed unavailable"
+      ],
+      "checkedAtMs": 1794577735982,
+      "expiresAtMs": 0,
+      "signingEnabled": false
+    },
+    {
+      "name": "faucet",
+      "http": 503,
+      "ready": false
+    }
+  ]
+}

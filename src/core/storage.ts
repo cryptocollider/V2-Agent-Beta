@@ -1,17 +1,27 @@
-import { mkdir, appendFile, writeFile } from "node:fs/promises";
+import { mkdir, appendFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import type { AssetPlanningEntry, CandidateFilterSummary, GameEligibilityEntry } from "../agent/eligibility.js";
-import type { OverlayAdjustment, ScoreView } from "../strategy/tactical-overlay.js";
+import type { ManagerAdviceEvidence, OverlayAdjustment, ScoreView } from "../strategy/tactical-overlay.js";
+import type { SignedThrowResult } from "../collider/types.js";
 import { buildContentAddressRefFromJson, type ContentAddressRef } from "./content-address.js";
+import {
+  ensurePendingDecisionIndex,
+  recordPendingDecision,
+  recordResolvedDecision,
+} from "./pending-decisions.js";
 
 export type StoragePaths = {
   rootDir: string;
+  archiveDir: string;
   runsFile: string;
   throwsFile: string;
   resultsFile: string;
+  gameThrowsDir: string;
+  gameResultsDir: string;
   predictionCommitsDir: string;
   predictionRevealsDir: string;
+  maxActiveLogBytes: number;
 };
 
 export type ArtifactLogRef = ContentAddressRef & {
@@ -108,6 +118,8 @@ export type OverlayLogView = {
   active: boolean;
   scoreDelta: number;
   adjustments: OverlayAdjustment[];
+  policyId?: string | null;
+  withoutOverlayWinnerHash?: string | null;
 };
 
 export type CandidateContextLogView = {
@@ -129,12 +141,14 @@ export type CandidateContextLogView = {
 };
 
 export type RunLogRow = {
+  managerAdvice?:ManagerAdviceEvidence;
   ts: string;
   sessionId: string;
   mode: "dry-run" | "live";
   gameId: string | null;
   botUser: string;
   submitted: boolean;
+  signedIntent?: SignedThrowResult | null;
   stoppedBy?: string;
   eligibilityCode?: string;
   game?: {
@@ -184,12 +198,14 @@ export type RunLogRow = {
 };
 
 export type ThrowLogRow = {
+  managerAdvice?:ManagerAdviceEvidence;
   ts: string;
   sessionId: string;
   decisionId: string;
   gameId: string;
   botUser: string;
   submitted: boolean;
+  signedIntent?: SignedThrowResult | null;
   dryRun: boolean;
   eligibilityCode?: string;
   candidateHash?: string;
@@ -225,37 +241,89 @@ export function makeDecisionId(): string {
   return crypto.randomBytes(10).toString("hex");
 }
 
-export async function initStorage(rootDir = "./data"): Promise<StoragePaths> {
+export async function initStorage(
+  rootDir = "./data",
+  options: { maxActiveLogBytes?: number } = {},
+): Promise<StoragePaths> {
   await mkdir(rootDir, { recursive: true });
+  const archiveDir = path.join(rootDir, "archive");
   const predictionCommitsDir = path.join(rootDir, "prediction-commits");
   const predictionRevealsDir = path.join(rootDir, "prediction-reveals");
+  const gameThrowsDir = path.join(rootDir, "game-history", "throws");
+  const gameResultsDir = path.join(rootDir, "game-history", "results");
+  await mkdir(archiveDir, { recursive: true });
   await mkdir(predictionCommitsDir, { recursive: true });
   await mkdir(predictionRevealsDir, { recursive: true });
+  await mkdir(gameThrowsDir, { recursive: true });
+  await mkdir(gameResultsDir, { recursive: true });
 
-  return {
+  const paths: StoragePaths = {
     rootDir,
+    archiveDir,
     runsFile: path.join(rootDir, "runs.jsonl"),
     throwsFile: path.join(rootDir, "throws.jsonl"),
     resultsFile: path.join(rootDir, "results.jsonl"),
+    gameThrowsDir,
+    gameResultsDir,
     predictionCommitsDir,
     predictionRevealsDir,
+    maxActiveLogBytes: Math.max(1024 * 1024, options.maxActiveLogBytes ?? 64 * 1024 * 1024),
   };
+  await ensurePendingDecisionIndex(paths);
+  return paths;
 }
 
-async function appendJsonLine(file: string, row: unknown): Promise<void> {
-  await appendFile(file, `${JSON.stringify(row)}\n`, "utf8");
+const appendQueues = new Map<string, Promise<void>>();
+
+async function rotateIfNeeded(paths: StoragePaths, file: string, incomingBytes: number): Promise<void> {
+  // Runs are presentation/search diagnostics and can be segmented safely.
+  // Throw/result logs remain active until their per-game history index lands,
+  // preserving current HPS and settlement lookup semantics.
+  if (file !== paths.runsFile) return;
+  let currentBytes = 0;
+  try {
+    currentBytes = (await stat(file)).size;
+  } catch {
+    return;
+  }
+  if (currentBytes === 0 || currentBytes + incomingBytes <= paths.maxActiveLogBytes) return;
+  const parsed = path.parse(file);
+  const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
+  const archive = path.join(paths.archiveDir, `${parsed.name}.${stamp}.${crypto.randomBytes(4).toString("hex")}.jsonl`);
+  await rename(file, archive);
+}
+
+async function appendJsonLine(paths: StoragePaths, file: string, row: unknown): Promise<void> {
+  const line = `${JSON.stringify(row)}\n`;
+  const previous = appendQueues.get(file) ?? Promise.resolve();
+  const current = previous.then(async () => {
+    await rotateIfNeeded(paths, file, Buffer.byteLength(line));
+    await appendFile(file, line, "utf8");
+  });
+  appendQueues.set(file, current.catch(() => undefined));
+  await current;
 }
 
 export async function appendRunLog(paths: StoragePaths, row: RunLogRow): Promise<void> {
-  await appendJsonLine(paths.runsFile, row);
+  await appendJsonLine(paths, paths.runsFile, row);
+}
+
+export function gameHistoryFile(paths: StoragePaths, kind: "throws" | "results", gameId: string): string {
+  const clean = String(gameId ?? "").trim().toLowerCase().replace(/^0x/, "");
+  if (!/^[0-9a-f]{64}$/.test(clean)) throw new Error("game history requires a canonical 32-byte game id");
+  return path.join(kind === "throws" ? paths.gameThrowsDir : paths.gameResultsDir, clean + ".jsonl");
 }
 
 export async function appendThrowLog(paths: StoragePaths, row: ThrowLogRow): Promise<void> {
-  await appendJsonLine(paths.throwsFile, row);
+  await appendJsonLine(paths, paths.throwsFile, row);
+  await appendJsonLine(paths, gameHistoryFile(paths, "throws", row.gameId), row);
+  await recordPendingDecision(paths, row);
 }
 
 export async function appendResultLog(paths: StoragePaths, row: ResultLogRow): Promise<void> {
-  await appendJsonLine(paths.resultsFile, row);
+  await appendJsonLine(paths, paths.resultsFile, row);
+  await appendJsonLine(paths, gameHistoryFile(paths, "results", row.gameId), row);
+  await recordResolvedDecision(paths, row);
 }
 
 export async function writeArtifactJson(params: {

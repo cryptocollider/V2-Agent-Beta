@@ -109,4 +109,7 @@ test("buildScenarioSettlementView resolves byte-array outcome throw ids", () => 
   assert.equal(throwView?.holeIndex, 3);
   assert.equal(throwView?.endFrame, 321);
   assert.equal(settlement.finalFrame, 321);
+  assert.throws(() => buildScenarioSettlementView({ input,
+    outcomes:[{throw_id:hexBytes(throwHex) as any,hole_type:1,endFrame:321}],
+    canonicalPayouts:[] }), /differs from canonical VM credits/);
 });
